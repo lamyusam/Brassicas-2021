@@ -1,0 +1,84 @@
+---
+title: "Brassicas_2021"
+author: "Benjamin A Taylor"
+date: "29/03/2021"
+output:   
+  html_document:
+    code_folding: hide
+    self_contained: FALSE
+    fig_width: 10
+    fig_height: 10 
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = F, message = F, warning = F, cache = T, cache.path =  "/home/benjamin/Documents/Brassicas_repo/Brassicas_cache/Cache")
+```
+```{r load-libraries, eval = TRUE, echo = FALSE, include = FALSE}
+# get libraries
+basic_libraries <- c("tidyverse",
+                     "RColorBrewer",
+                     "lme4",
+                     "lmerTest",
+                     "performance",
+                     "see")
+
+for (lib in basic_libraries) {
+        if (require(package = lib, character.only = TRUE)) {
+                print("Successful")
+        } else {
+                print("Installing")
+                install.packages(lib)
+                library(lib, character.only = TRUE )
+        }
+}
+```
+
+Import morphology data and clean up the formatting:
+
+```{r import-data, eval = TRUE, echo = FALSE, include = FALSE}
+options(stringsAsFactors = F)
+setwd("/home/benjamin/Documents/Brassicas_repo")
+
+# import data
+phenodata.gen2 = read.delim("Data/Phenotypic_data/morphology_data_gen2.txt", sep = ",", header = T, row.names = NULL)
+colnames(phenodata.gen2)
+table(phenodata.gen2$Species)
+
+# remove unused columns
+phenodata.gen2 = select(phenodata.gen2, -c("Total_la"))
+
+# change the environment labels to something less verbose
+phenodata.gen2$Environment =  ifelse(phenodata.gen2$Environment == "wheat competition", "wheat", "control")
+
+# take note of the most relevant measured variables
+measure.vars = c("Days_germ", #days from potting to germination
+                 "Height", #max distance from soil to plant
+                 "Leaf_length", #base to tip of longest non-cotyledon
+                 "Num_leaves", #number of leaves
+                 "Sla", #single leaf area of oldest non-cotyledon
+                 "Sldw", #single lead dry weight of oldest non-cotyledon
+                 #"Sp_la", #specific leaf area
+                 "Aboveground_dw", #all biomass above soil
+                 "Root_dw" #all biomass below soil
+                 #"Total_biomass", #sum of above and below ground biomass
+                 #"Day_flowering", #days from germination to flowering
+                 #"Root_to_shoot_ratio" #ratio of below to above-ground biomass (I think)
+                 ) 
+
+# convert to numeric where applicable
+phenodata.gen2.clean =  mutate_at(phenodata.gen2, measure.vars, function(x) as.numeric(as.character(x))) %>%
+  select(c("Label_front","Species","Population","Wild_Dom","Environment",measure.vars)) 
+```
+
+Wel'll begin with a simple exploration of the  data. The proportion of the samples for which we actually have complete data is actually quite small:
+
+```{r}
+phenodata.gen2.clean.brass = phenodata.gen2.clean %>% subset(substr(Species,1,8)=="Brassica")
+print(paste0(length(which(complete.cases(phenodata.gen2.clean.brass))),"/",nrow(phenodata.gen2.clean.brass)," of Brassica records are complete"))
+
+phenodata.gen2.clean.raph = phenodata.gen2.clean %>% subset(substr(Species,1,8)=="Raphanus")
+print(paste0(length(which(complete.cases(phenodata.gen2.clean.raph))),"/",nrow(phenodata.gen2.clean.raph)," of Raphanus records are complete"))
+```
+Nonetheless, this sample will hopefully be representative for an initial exploration. Looking at the analyses that Jasmine has generated so far, two things are notable: first, we have a large number of measured morphological characteristics, which means that any stats we generate are hard to interpret and likely to be diminished significantly by FDR correction; and second, the results generated for individual characteristics are inconsistent and marginal. My initial instinct is to look for a way to reduce the dimensionality of the data, so let's try generating PCAs. We'll start with the Brassicas:
+
