@@ -61,11 +61,11 @@ measure.vars = c("Days_germ", #days from potting to germination
                  "Sldw", #single lead dry weight of oldest non-cotyledon
                  #"Sp_la", #specific leaf area
                  "Aboveground_dw", #all biomass above soil
+                 #"Day_flowering", #days from germination to flowering
                  "Root_dw" #all biomass below soil
                  #"Total_biomass", #sum of above and below ground biomass
-                 #"Day_flowering", #days from germination to flowering
                  #"Root_to_shoot_ratio" #ratio of below to above-ground biomass (I think)
-                 ) 
+) 
 
 # convert to numeric where applicable
 phenodata.gen2.clean =  mutate_at(phenodata.gen2, measure.vars, function(x) as.numeric(as.character(x))) %>%
@@ -81,7 +81,9 @@ print(paste0(length(which(complete.cases(phenodata.gen2.clean.brass))),"/",nrow(
 phenodata.gen2.clean.raph = phenodata.gen2.clean %>% subset(substr(Species,1,8)=="Raphanus")
 print(paste0(length(which(complete.cases(phenodata.gen2.clean.raph))),"/",nrow(phenodata.gen2.clean.raph)," of Raphanus records are complete"))
 ```
-Nonetheless, this sample will hopefully be representative for an initial exploration. Looking at the analyses that Jasmine has generated so far, two things are notable: first, we have a large number of measured morphological characteristics, which means that any stats we generate are hard to interpret and likely to be diminished significantly by FDR correction; and second, the results generated for individual characteristics are inconsistent and marginal. My initial instinct is to look for a way to reduce the dimensionality of the data, so let's try generating PCAs. We'll start with the Brassicas:
+Nonetheless, this sample will hopefully be representative for an initial exploration. Looking at the analyses that Jasmine has generated so far, two things are notable: first, we have a large number of measured morphological characteristics, which means that any stats we generate are hard to interpret and likely to be diminished significantly by FDR correction; and second, the results generated for individual characteristics are inconsistent and marginal. My initial instinct is to look for a way to reduce the dimensionality of the data, so let's try generating PCAs. We'll start with the Brassicas.
+
+We'll begin with a scree plot, which shows that PCs 1 and 2 together explain about two thirds of the data. There's a big drop off in information per component for PCs 3+ so we'll focus on just the first two PCs for now. 
 
 ```{r}
 phenodata.gen2.clean.compcases = phenodata.gen2.clean[complete.cases(phenodata.gen2.clean),]
@@ -99,14 +101,24 @@ pca.counts = phenodata.gen2.clean.compcases %>%
 #generate PCA object
 data.pca = prcomp(pca.counts,scale. = T)
 
-#visualise scree plot and PC loadings
+#visualise scree plot
 fviz_eig(data.pca)
+```
+
+Looking at the loading of these two PCs, we can see that they decompose fairly cleanly into a component that represents leaf size/length/weight, and a second component that represents other metrics related to size and weight. Notably, individuals that germinated more quickly are also larger. We also predict that time to flowering will be loaded in the opposite direction to size, but because we have very few complete cases when including flowering time, those data aren't in this plot. 
+
+```{r}
+#visualize PC loadings
 fviz_pca_var(data.pca,
              col.var = "contrib", # Color by contributions to the PC
              gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
              repel = TRUE     # Avoid text overlapping
 )
+```
 
+Now let's plot individuals on these PCs and color according either to species or to wild vs domesticated origins:
+
+```{r}
 #plot by species
 fviz_pca_ind(data.pca,
              habillage = subset(phenodata.gen2.clean.compcases, substr(Species,1,8)=="Brassica")$Species, #label by spp
