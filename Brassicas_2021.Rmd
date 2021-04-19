@@ -89,8 +89,7 @@ We'll begin with a scree plot, which shows that PCs 1 and 2 together explain abo
 phenodata.gen2.clean.compcases = phenodata.gen2.clean[complete.cases(phenodata.gen2.clean),]
 
 ##pca for brassicas
-# subset to brassicas and scale measure vars
-#NB: pre-scaling is important for PCA, in order to prevent high-variance covariates dominating the PC calculations
+# subset to brassicas and complete cases
 pca.counts = phenodata.gen2.clean.compcases %>% 
   subset(substr(Species,1,8)=="Brassica") %>%
   remove_rownames() %>%
@@ -99,9 +98,10 @@ pca.counts = phenodata.gen2.clean.compcases %>%
   #scale() 
 
 #generate PCA object
+#NB: pre-scaling is important for PCA, in order to prevent high-variance covariates dominating the PC calculations
 data.pca = prcomp(pca.counts,scale. = T)
 
-#visualise scree plot
+#generate scree plot
 fviz_eig(data.pca)
 ```
 
@@ -137,5 +137,52 @@ fviz_pca_ind(data.pca,
              ggtheme = theme_gray()) + #grey background makes picking out patterns easier
   scale_shape_manual(values = rep(20,7)) #hacky way of preventing the plot from using different shapes for each group
   
+```
+We now want to ask whether individuals' assignments along the first two PCs are predicted well by cultivated stats, treatment, or their interaction. Let's begin by checking distributions of the PCs. First with PC1:
+
+```{r}
+#append values for first two PCs to pheno data
+pca.out = phenodata.gen2.clean.compcases %>% 
+  subset(substr(Species,1,8)=="Brassica") %>%
+  mutate(pca.counts, PC1 = data.pca$x[,"PC1"], PC2 = data.pca$x[,"PC2"])
+
+#generate an lmm for PC1
+PC1.model.gaus = lmer(PC1~Environment + Wild_Dom + Environment:Wild_Dom + (1|Wild_Dom/Population), data=pca.out)
+
+#initial model throws an error so we add a control parameter and also scale the response variable
+PC1.model.gaus = lmer(scale(PC1)~Environment + Wild_Dom + Environment:Wild_Dom + (1|Wild_Dom/Population), 
+                      data=pca.out, 
+                      control = lmerControl(optimizer="bobyqa", optCtrl = list(maxfun = 10000)))
+#that helped! Let's check out the model performance- it looks decent
+check_model(PC1.model.gaus)
+
+#looking at the output, however, we have no meaningful effects:
+summary(PC1.model.gaus)$coefficients
+```
+Now with PC2:
+
+```{r}
+PC2.model.gaus = lmer(scale(PC2)~Environment + Wild_Dom + Environment:Wild_Dom + (1|Wild_Dom/Population), 
+                      data=pca.out, 
+                      control = lmerControl(optimizer="bobyqa", optCtrl = list(maxfun = 10000)))
+#model performance is much worse for this PC
+check_model(PC2.model.gaus)
+
+#let's try something different
+PC2.model.gaus.log = glmer(scale(PC2)~Environment + Wild_Dom + Environment:Wild_Dom + (1|Wild_Dom/Population), 
+                      data=pca.out, 
+                      family=gaussian(link = "log"),
+                      mustart=pmax(scale(pca.out$PC2),1e-3),
+                      control = glmerControl(optimizer="bobyqa", optCtrl = list(maxfun = 10000)))
+
+#this works, but the message 'boundary (singular) fit' indicates either some multicollinearity or alternatively an effect with an estimate close to zero
+# looking at the output, it looks like the interaction term with environment and wild_dom might be the culprit
+summary(PC2.model.gaus.log)$coefficients
+
+summary(glmer(scale(PC2)~Environment + Wild_Dom + (1|Wild_Dom/Population), 
+                      data=pca.out, 
+                      family=gaussian(link = "log"),
+                      mustart=pmax(scale(pca.out$PC2),1e-3),
+                      control = glmerControl(optimizer="bobyqa", optCtrl = list(maxfun = 10000))))
 ```
 
