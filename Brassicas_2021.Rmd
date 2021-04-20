@@ -81,13 +81,26 @@ print(paste0(length(which(complete.cases(phenodata.gen2.clean.brass))),"/",nrow(
 phenodata.gen2.clean.raph = phenodata.gen2.clean %>% subset(substr(Species,1,8)=="Raphanus")
 print(paste0(length(which(complete.cases(phenodata.gen2.clean.raph))),"/",nrow(phenodata.gen2.clean.raph)," of Raphanus records are complete"))
 ```
-Nonetheless, this sample will hopefully be representative for an initial exploration. Looking at the analyses that Jasmine has generated so far, two things are notable: first, we have a large number of measured morphological characteristics, which means that any stats we generate are hard to interpret and likely to be diminished significantly by FDR correction; and second, the results generated for individual characteristics are inconsistent and marginal. My initial instinct is to look for a way to reduce the dimensionality of the data, so let's try generating PCAs. We'll start with the Brassicas.
-
-We'll begin with a scree plot, which shows that PCs 1 and 2 together explain about two thirds of the data. There's a big drop off in information per component for PCs 3+ so we'll focus on just the first two PCs for now. 
+Nonetheless, this sample will hopefully be representative for an initial exploration. Looking at the analyses that Jasmine has generated so far, two things are notable: first, we have a large number of measured morphological characteristics, which means that any stats we generate are hard to interpret and likely to be diminished significantly by FDR correction; and second, the results generated for individual characteristics are inconsistent and marginal. Also, individual traits are likely highly correlated, which again means we might not want to regress against them individually:
 
 ```{r}
 phenodata.gen2.clean.compcases = phenodata.gen2.clean[complete.cases(phenodata.gen2.clean),]
 
+phenodata.gen2.clean.compcases %>% 
+  subset(substr(Species,1,8)=="Brassica") %>%
+  select(measure.vars) %>%
+  cor() %>% round(2)
+```
+
+
+
+
+My initial instinct is to look for a way to reduce the dimensionality of the data, so let's try generating PCAs. We'll start with the Brassicas.
+
+
+We'll begin with a scree plot, which shows that PCs 1 and 2 together explain about two thirds of the data. There's a big drop off in information per component for PCs 3+ so we'll focus on just the first two PCs for now. 
+
+```{r}
 ##pca for brassicas
 # subset to brassicas and complete cases
 pca.counts = phenodata.gen2.clean.compcases %>% 
@@ -136,6 +149,15 @@ fviz_pca_ind(data.pca,
              invisible = "quali", #removes centre point for groups from plot
              ggtheme = theme_gray()) + #grey background makes picking out patterns easier
   scale_shape_manual(values = rep(20,7)) #hacky way of preventing the plot from using different shapes for each group
+
+#plot by treatment
+fviz_pca_ind(data.pca,
+             habillage = subset(phenodata.gen2.clean.compcases, substr(Species,1,8)=="Brassica")$Environment, #label by spp
+             label = F, 
+             pointsize = 3.5,
+             invisible = "quali", #removes centre point for groups from plot
+             ggtheme = theme_gray()) + #grey background makes picking out patterns easier
+  scale_shape_manual(values = rep(20,7)) #hacky way of preventing the plot from using different shapes for each group
   
 ```
 We now want to ask whether individuals' assignments along the first two PCs are predicted well by cultivated stats, treatment, or their interaction. Let's begin by checking distributions of the PCs. First with PC1:
@@ -167,22 +189,26 @@ PC2.model.gaus = lmer(scale(PC2)~Environment + Wild_Dom + Environment:Wild_Dom +
                       control = lmerControl(optimizer="bobyqa", optCtrl = list(maxfun = 10000)))
 #model performance is much worse for this PC
 check_model(PC2.model.gaus)
+summary(PC2.model.gaus)$coefficients
 
-#let's try something different
+#let's try a log link to see if that improves the model at all
 PC2.model.gaus.log = glmer(scale(PC2)~Environment + Wild_Dom + Environment:Wild_Dom + (1|Wild_Dom/Population), 
                       data=pca.out, 
-                      family=gaussian(link = "log"),
+                      family=gaussian(link = "log"), 
                       mustart=pmax(scale(pca.out$PC2),1e-3),
                       control = glmerControl(optimizer="bobyqa", optCtrl = list(maxfun = 10000)))
-
-#this works, but the message 'boundary (singular) fit' indicates either some multicollinearity or alternatively an effect with an estimate close to zero
-# looking at the output, it looks like the interaction term with environment and wild_dom might be the culprit
+#this sort of works works, but the message 'boundary (singular) fit' indicates either some multicollinearity or alternatively an effect with an estimate close to zero
+#also the model fit's horrible
+check_model(PC2.model.gaus.log)
 summary(PC2.model.gaus.log)$coefficients
+```
+Okay, all the above is a bit moot anyway because of our preponderance of incomplete cases. By the protocol, biomass measurements were taken separately from height/leaf measurements, so it's possible we'll be able to include more data is we trat these things separately.
 
-summary(glmer(scale(PC2)~Environment + Wild_Dom + (1|Wild_Dom/Population), 
-                      data=pca.out, 
-                      family=gaussian(link = "log"),
-                      mustart=pmax(scale(pca.out$PC2),1e-3),
-                      control = glmerControl(optimizer="bobyqa", optCtrl = list(maxfun = 10000))))
+```{r}
+phenodata.gen2.clean %>% complete.cases() %>% table()
+
+phenodata.gen2.clean %>% select(-c("Aboveground_dw","Root_dw")) %>% complete.cases() %>% table
+
+phenodata.gen2.clean %>% select(-c("Height","Leaf_length","Num_leaves","Sla","Sldw")) %>% complete.cases() %>% table
 ```
 
