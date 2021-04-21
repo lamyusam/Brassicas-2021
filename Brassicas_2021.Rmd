@@ -92,6 +92,59 @@ phenodata.gen2.clean.compcases %>%
   cor() %>% round(2)
 ```
 
+```{r}
+phenodata.gen2.clean.brass = subset(phenodata.gen2.clean, substr(Species,1,8)=="Brassica")
+
+#loop through measure vars and regress each one against treatment vars
+for(i in 1:length(measure.vars)){
+  
+  #get response of interest
+  response_var = measure.vars[i]
+  #regress against environment and treatment and extract p-vals
+  foo = lmer(scale(get(response_var))~Environment + Wild_Dom + Environment:Wild_Dom + (1|Wild_Dom/Population), 
+             data=phenodata.gen2.clean.brass, 
+             control = lmerControl(optimizer="bobyqa", optCtrl = list(maxfun = 10000))) %>%
+    summary() %>% .$coefficients 
+  #if first loop, instantiate df to store outputs
+  if(i==1){brassica.coefs = data.frame(row.names = row.names(foo))}
+  #cbind coefs to df
+  brassica.coefs = cbind(brassica.coefs,foo[,5])
+  #if last loop, give colnames
+  if(i==length(measure.vars)){colnames(brassica.coefs)=measure.vars}
+  
+
+}
+
+#coerce df for ggplot and apply FDR correction
+brassica.coefs.fdr = reshape2::melt(rownames_to_column(brassica.coefs)) %>% mutate(value = p.adjust(value, method = "BH"))
+#plot
+ggplot(data = brassica.coefs.fdr, aes(x = variable, y = rowname, fill = value)) +
+  geom_tile(color = "grey50", size = 0.5) +
+  geom_text(aes(label=round(value,4)), size = 5, face = "bold") +
+  scale_fill_gradientn(colours = colorRampPalette(rev(c("#FFFFFF",brewer.pal(n = 9, name = "Reds")[1:5])),bias=6)(20),
+                       breaks = c(0.0,0.05,1),
+                       expand = c(0,0),
+                       limits = c(0,1),
+                       guide = guide_colourbar(barheight = 25,
+                                               #title = "p-value\n(adjusted)",
+                                               title = "p-value\n(adjusted)",
+                                               title.vjust = 2,
+                                               frame.colour = "black", 
+                                               frame.linewidth = 1.5)) +
+  theme_minimal() + 
+  theme(aspect.ratio = 1,
+        panel.grid = element_line(size = 0.2, colour = "gray80"),
+        axis.text.x = element_text(size = 15),
+        axis.text.y = element_text(size = 15),
+        axis.title = element_blank(),
+        legend.text = element_text(size=12),
+        legend.title = element_text(size=15, face = "bold")) +
+  coord_fixed()
+
+```
+
+
+
 
 
 
