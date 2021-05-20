@@ -1,0 +1,11 @@
+cd scratch/brassica-project/analysis/Brassica/nextflow/nextflow-210415/
+
+touch outputfile.tsv
+
+for f in output/star_salmon/featurecounts/*.featureCounts.txt.summary
+    do
+        samplename=$(grep -oh "control_R[0-9]*" ${f}) #pull sample name in a variable
+        totnumread=$(cut -f2 ${f} | sed 1d | awk '{s+=$1}END{print s}') #total num reads in a variable: take second column, remove first value, then sum all other values
+        singAligReads=$(awk 'NR == 2 {print $2}' ${f}) #num singly aligned reads in a variable: get second value of second column
+        echo ${samplename} ${totnumread} ${singAligReads} >> outputfile.tsv
+    done
