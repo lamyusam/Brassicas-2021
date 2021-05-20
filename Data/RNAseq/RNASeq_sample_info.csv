@@ -1,0 +1,149 @@
+Number extraction in freezer,RNAseq sample name,Date,Label,Generation,Species,Parental effects status,Generation the seed was obtained from,Wild/ Domesticated,Variety/population,Accession_number,Seed_origin,Environment
+1,A1,02/07/2020,2.0-BRP-WP1-C,2,Brassica rapa,"""not standardised""",0,Wild,WP1,GRU08:013914,UK,control -no competition
+2,A2,02/07/2020,2.1-BRP-RP2-C,2,Brassica rapa,"'""standardised""",1,European cultivated (groups with wild),ssp. rapa2,PI633181,Honduras,control -no competition
+3,A3,02/07/2020,2.0-BMO-WP3-C,2,Brassica montana,"""not standardised""",0,Wild,BMO-WP3,BRA1644,unknown,control -no competition
+4,A4,02/07/2020,2.0-RRA-WP1-W,2,Raphanus raphanistrum,"""not standardised""",0,Wild,RRA-WP1,HRIGRU 804,,wheat competition
+5,A5,02/07/2020,2.1-RMG-WP2-W,2,Raphanus raphanistrum mungra,"'""standardised""",1,Asian cultivated,RMG-WP2,PI 271456,India,wheat competition
+6,A6,02/07/2020,2.0-BCR-WP4-C,2,Brassica cretica,"""not standardised""",0,Wild,BCR-WP4,PI662593,Greece,control -no competition
+7,A7,03/07/2020,2.0-BCR-WP3-W,2,Brassica cretica,"""not standardised""",0,Wild,BCR-WP3,PI662588,Greece,wheat competition
+10,A10,03/07/2020,2.1-BRP-CH2-W,2,Brassica rapa,"'""standardised""",1,Asian cultivated,ssp. chinensis 2,PI662679,Japan,wheat competition
+11,A11,03/07/2020,2.0-BMA-WP1-W,2,Brassica macrocarpa,"""not standardised""",0,Wild,BMA-WP1,HRI08:013115A,,wheat competition
+12,A12,03/07/2020,2.0-RSA-CU1-W,2,Raphanus sativus,"""not standardised""",0,Asian cultivated,RSA-CU1 (Turbak),HRIGRU 1035,Afghanistan,wheat competition
+13,A13,03/07/2020,2.0-RMN-WP1-C,2,Raphanus raphanistrum munra,"""not standardised"" -parents",0,Asian cultivated,RMN-WP1,HRIGRU 1047,India,control -no competition
+14,A14,03/07/2020,2.1-BRP-TR3-W,2,Brassica rapa,"'""standardised""",1,Asian cultivated,ssp.  tricolouris 3,PI649208,"Iowa, US",wheat competition
+15,A15,03/07/2020,2.1-RCA-WP6-C,2,Raphanus sativus var. caudatus,"'""standardised""",1,Asian cultivated,RCA-WP6,PI 647068,U.S.,control -no competition
+16,A16,03/07/2020,2.0-BMA-WP2-C,2,Brassica macrocarpa,"""not standardised""",0,Wild,BMA-WP2,PI662585,Italy,control -no competition
+17,A17,07/07/2020,2.0-BRP-WP8-W,2,Brassica rapa,"""not standardised"" -parents",0,Wild,WP8,Ames30078,USA,wheat competition
+18,A18,07/07/2020,2.1-BRP-TR2-C,2,Brassica rapa,"'""standardised""",1,Asian cultivated,ssp.  tricolouris 2,PI649201,"Iowa, US",control -no competition
+19,A19,07/07/2020,2.1-BRP-CH3-W,2,Brassica rapa,"'""standardised""",1,Asian cultivated,ssp. chinensis 3,PI662680,Japan,wheat competition
+20,A20,07/07/2020,2.1-BRP-WP8-C,2,Brassica rapa,"'""standardised""",1,Wild,WP8,Ames30078,USA,control -no competition
+21,A21,07/07/2020,2.0-RSA-CU4-W,2,Raphanus sativus,"""not standardised"" -parents",0,European cultivated (groups with wild),RSA-CU4 (Diabolo),HRIGRU 13094,Netherlands,wheat competition
+22,A22,07/07/2020,2.0-BRP-RP3-W,2,Brassica rapa,"""not standardised""",0,European cultivated (groups with wild),ssp. rapa 3,PI662628,Unknown,wheat competition
+23,A23,07/07/2020,2.1-RRA-WP5-C,2,Raphanus raphanistrum,"'""standardised""",1,Wild,RRA-WP5,PI 381011,U.S.,control -no competition
+24,A24,07/07/2020,2.0-RRA-WP2-W,2,Raphanus raphanistrum,"""not standardised"" -parents",0,Wild,RRA-WP2,HRIGRU 1015,Netherlands,wheat competition
+25,A25,07/07/2020,2.1-RRA-WP2-C,2,Raphanus raphanistrum,"'""standardised""",1,Wild,RRA-WP2,HRIGRU 1015,Netherlands,control -no competition
+26,A26,07/07/2020,2.1-BRP-CH1-C,2,Brassica rapa,"'""standardised""",1,Asian cultivated,ssp. chinensis 1,PI508409,Korea,control -no competition
+27,A27,07/07/2020,2.0-BRP-WP4-W,2,Brassica rapa,"""not standardised"" -parents",0,Wild,WP4,PI649162,Sweden,wheat competition
+28,A28,07/07/2020,2.0-RRA-WP4-W,2,Raphanus raphanistrum,"""not standardised""",0,Wild,RRA-WP4,HRIGRU 12605,Italy,wheat competition
+29,A29,07/07/2020,2.0-BRP-CH2-W,2,Brassica rapa,"""not standardised"" -parents",0,Asian cultivated,ssp. chinensis 2,PI662679,Japan,wheat competition
+31,A31,07/07/2020,2.0-BRP-WP3-C,2,Brassica rapa,"""not standardised"" -parents",0,Wild,WP3,PI227296,Iran,control -no competition
+32,A32,07/07/2020,2.1-RCA-WP1-W,2,Raphanus sativus var. caudatus,"'""standardised""",1,Asian cultivated,RCA-WP1 ,HRIGRU 4597 ,Thailand,wheat competition
+33,A33,07/07/2020,2.1-BRP-WP7-W,2,Brassica rapa,"'""standardised""",1,Wild,WP7,PI250004,Egypt,wheat competition
+34,A34,07/07/2020,2.1-BRP-WP3-C,2,Brassica rapa,"'""standardised""",1,Wild,WP3,PI227296,Iran,control -no competition
+35,A35,07/07/2020,2.0-BCR-WP4-W,2,Brassica cretica,"""not standardised""",0,Wild,BCR-WP4,PI662593,Greece,wheat competition
+36,A36,07/07/2020,2.1-RCA-WP6-W,2,Raphanus sativus var. caudatus,"'""standardised""",1,Asian cultivated,RCA-WP6,PI 647068,U.S.,wheat competition
+37,A37,07/07/2020,2.0-BRP-WP2-C,2,Brassica rapa,"""not standardised""",0,Wild,WP2,PI175608,Turkey,control -no competition
+38,A38,07/07/2020,2.0-BMO-WP4-W,2,Brassica montana,"""not standardised""",0,Wild,BMO-WP4,BRA 3047 K 6675,Italy,wheat competition
+39,A39,07/07/2020,2.1-RMN-WP1-C,2,Raphanus raphanistrum munra,"'""standardised""",1,Asian cultivated,RMN-WP1,HRIGRU 1047,India,control -no competition
+40,A40,07/07/2020,2.0-RCA-WP6-C,2,Raphanus sativus var. caudatus,"""not standardised"" -parents",0,Asian cultivated,RCA-WP6,PI 647068,U.S.,control -no competition
+41,A41,09/07/2020,2.0-BCR-WP5-C,2,Brassica cretica,"""not standardised""",0,Wild,BCR-WP5,G30323,Greece,control -no competition
+42,A42,09/07/2020,2.1-BRP-RP2-W,2,Brassica rapa,"'""standardised""",1,European cultivated (groups with wild),ssp. rapa2,PI633181,Honduras,wheat competition
+43,A43,09/07/2020,2.0-RRA-WP3-W,2,Raphanus raphanistrum,"""not standardised""",0,Wild,RRA-WP3,HRIGRU 6259,Netherlands,wheat competition
+44,A44,09/07/2020,2.0-BRP-CH2-C,2,Brassica rapa,"""not standardised"" -parents",0,Asian cultivated,ssp. chinensis 2,PI662679,Japan,
+45,A45,09/07/2020,2.1-RRA-WP2-W,2,Raphanus raphanistrum,"'""standardised""",1,Wild,RRA-WP2,HRIGRU 1015,Netherlands,wheat competition
+46,A46,09/07/2020,2.0-BCR-WP1-W,2,Brassica cretica,"""not standardised""",0,Wild,BCR-WP1,GRU08:007329,Greece,wheat competition
+47,A47,09/07/2020,2.0-RSA-CU3-W,2,Raphanus sativus,"""not standardised""",0,European cultivated (groups with wild),RSA-CU3 (Colibri),HRIGRU 13081,Italy,wheat competition
+49,A49,09/07/2020,2.0-BCR-WP3-C,2,Brassica cretica,"""not standardised""",0,Wild,BCR-WP3,PI662588,Greece,control -no competition
+50,A50,09/07/2020,2.0-BCR-WP2-W,2,Brassica cretica,"""not standardised""",0,Wild,BCR-WP2,G30658,unknown,wheat competition
+51,A51,09/07/2020,2.0-RRA-WP3-C,2,Raphanus raphanistrum,"""not standardised""",0,Wild,RRA-WP3,HRIGRU 6259,Netherlands,control -no competition
+52,A52,09/07/2020,2.0-RCA-WP1-C,2,Raphanus sativus var. caudatus,"""not standardised"" -parents",0,Asian cultivated,RCA-WP1 ,HRIGRU 4597 ,Thailand,control -no competition
+53,A53,09/07/2020,2.0-BCR-WP1-C,2,Brassica cretica,"""not standardised""",0,Wild,BCR-WP1,GRU08:007329,Greece,control -no competition
+54,A54,09/07/2020,2.0-RMN-WP1-W,2,Raphanus raphanistrum munra,"""not standardised"" -parents",0,Asian cultivated,RMN-WP1,HRIGRU 1047,India,wheat competition
+55,A55,09/07/2020,2.0-RRA-WP1-C,2,Raphanus raphanistrum,"""not standardised""",0,Wild,RRA-WP1,HRIGRU 804,,control -no competition
+56,A56,09/07/2020,2.0-BCR-WP2-C,2,Brassica cretica,"""not standardised""",0,Wild,BCR-WP2,G30658,unknown,control -no competition
+57,A57,09/07/2020,2.0-RCA-WP1-W,2,Raphanus sativus var. caudatus,"""not standardised"" -parents",0,Asian cultivated,RCA-WP1 ,HRIGRU 4597 ,Thailand,wheat competition
+58,A58,09/07/2020,2.0-BRU-WP1-W,2,Brassica rupestris,"""not standardised""",0,Wild,BRU-WP1,BRA2945,Italy,wheat competition
+59,A59,09/07/2020,2.1-RSA-CU4-C,2,Raphanus sativus,"'""standardised""",1,European cultivated (groups with wild),RSA-CU4 (Diabolo),HRIGRU 13094,Netherlands,control -no competition
+60,A60,09/07/2020,2.0-RRA-WP5-W,2,Raphanus raphanistrum,"""not standardised"" -parents",0,Wild,RRA-WP5,PI 381011,U.S.,wheat competition
+61,A61,09/07/2020,2.1-RMG-WP2-C,2,Raphanus raphanistrum mungra,"'""standardised""",1,Asian cultivated,RMG-WP2,PI 271456,India,control -no competition
+62,A62,09/07/2020,2.1-RCA-WP2-C,2,Raphanus sativus var. caudatus,"'""standardised""",1,Asian cultivated,RCA-WP2,HRIGRU 800 ,,control -no competition
+63,A63,09/07/2020,2.0-RRA-WP4-C,2,Raphanus raphanistrum,"""not standardised""",0,Wild,RRA-WP4,HRIGRU 12605,Italy,control -no competition
+64,A64,09/07/2020,2.0-BRP-WP1-W,2,Brassica rapa,"""not standardised""",0,Wild,WP1,GRU08:013914,UK,wheat competition
+65,A65,16/07/2020,2.1-BRP-CH1-W,2,Brassica rapa,"'""standardised""",1,Asian cultivated,ssp. chinensis 1,PI508409,Korea,wheat competition
+66,A66,16/07/2020,2.0-RSA-CU4-C,2,Raphanus sativus,"""not standardised"" -parents",0,European cultivated (groups with wild),RSA-CU4 (Diabolo),HRIGRU 13094,Netherlands,control -no competition
+67,A67,16/07/2020,2.1-BRP-TR1-C,2,Brassica rapa,"'""standardised""",1,Asian cultivated,ssp.  tricolouris 1,PI649202,India,control -no competition
+68,A68,16/07/2020,2.0-RCA-WP6-W,2,Raphanus sativus var. caudatus,"""not standardised"" -parents",0,Asian cultivated,RCA-WP6,PI 647068,U.S.,wheat competition
+69,A69,16/07/2020,2.1-BRP-TR3-C,2,Brassica rapa,"'""standardised""",1,Asian cultivated,ssp.  tricolouris 3,PI649208,"Iowa, US",control -no competition
+70,A70,16/07/2020,2.0-BRP-RP3-C,2,Brassica rapa,"""not standardised""",0,European cultivated (groups with wild),ssp. rapa 3,PI662628,Unknown,control -no competition
+71,A71,16/07/2020,2.1-BRP-TR2-W,2,Brassica rapa,"'""standardised""",1,Asian cultivated,ssp.  tricolouris 2,PI649201,"Iowa, US",wheat competition
+72,A72,16/07/2020,2.1-BRP-WP7-C,2,Brassica rapa,"'""standardised""",1,Wild,WP7,PI250004,Egypt,control -no competition
+73,A73,16/07/2020,2.1-BRP-WP3-W,2,Brassica rapa,"'""standardised""",1,Wild,WP3,PI227296,Iran,wheat competition
+74,A74,16/07/2020,2.0-RMN-WP2-W,2,Raphanus raphanistrum munra,"""not standardised""",0,Asian cultivated,RMN-WP2,PI 271451,India,wheat competition
+75,A75,16/07/2020,2.0-BIC-WP5-W,2,Brassica incana,"""not standardised""",0,Wild,BIC-WP5,PI435898,Italy,wheat competition
+76,A76,16/07/2020,2.0-BVI-WP3-C,2,Brassica villosa,"""not standardised""",0,Wild,BVI-WP3,BRA1896,Italy,control -no competition
+77,A77,16/07/2020,2.1-BRP-WP8-W,2,Brassica rapa,"'""standardised""",1,Wild,WP8,Ames30078,USA,wheat competition
+78,A78,16/07/2020,2.0-BMO-WP4-C,2,Brassica montana,"""not standardised""",0,Wild,BMO-WP4,BRA 3047 K 6675,Italy,control -no competition
+79,A79,16/07/2020,2.0-BRU-WP2-W,2,Brassica rupestris,"""not standardised""",0,Wild,BRU-WP2,BRA2992,Italy,wheat competition
+80,A80,16/07/2020,2.0-RMG-WP1-C,2,Raphanus raphanistrum mungra,"""not standardised""",0,Asian cultivated,RMG-WP1,HRIGRU 1048,India,control -no competition
+81,A81,16/07/2020,2.0-BRP-WP6-C,2,Brassica rapa,"""not standardised""",0,Wild,WP6,PI169082,Turkey,control -no competition
+82,A82,16/07/2020,2.0-BRP-WP9-C,2,Brassica rapa,"""not standardised""",0,Wild,BRP-WP9,Ames30083,U.S.,control -no competition
+83,A83,16/07/2020,2.0-RSA-CU5-C,2,Raphanus sativus,"""not standardised""",0,European cultivated (groups with wild),RSA-CU5 (Beladi),HRIGRU 7372 ,Syria,control -no competition
+84,A84,16/07/2020,2.0-BRP-WP8-C,2,Brassica rapa,"""not standardised"" -parents",0,Wild,WP8,Ames30078,USA,control -no competition
+86,A86,16/07/2020,2.0-BMO-WP2-W,2,Brassica montana,"""not standardised""",0,Wild,BMO-WP2,AGG95487,France,wheat competition
+87,A87,16/07/2020,2.0-BIC-WP9-C,2,Brassica incana,"""not standardised""",0,Wild,BIC-WP9,AGG94697,Italy,control -no competition
+88,A88,16/07/2020,2.0-RRA-WP2-C,2,Raphanus raphanistrum,"""not standardised"" -parents",0,Wild,RRA-WP2,HRIGRU 1015,Netherlands,control -no competition
+89,A89,20/07/2020,2.1-RMN-WP1-W,2,Raphanus raphanistrum munra,"'""standardised""",1,Asian cultivated,RMN-WP1,HRIGRU 1047,India,wheat competition
+91,A91,20/07/2020,2.0-RRA-WP5-C,2,Raphanus raphanistrum,"""not standardised"" -parents",0,Wild,RRA-WP5,PI 381011,U.S.,control -no competition
+92,A92,20/07/2020,2.0-BRP-WP4-C,2,Brassica rapa,"""not standardised"" -parents",0,Wild,WP4,PI649162,Sweden,control -no competition
+93,A93,20/07/2020,2.0-RMG-WP2-C,2,Raphanus raphanistrum mungra,"""not standardised"" -parents",0,Asian cultivated,RMG-WP2,PI 271456,India,control -no competition
+94,A94,20/07/2020,2.0-BRP-WP9-W,2,Brassica rapa,"""not standardised""",0,Wild,BRP-WP9,Ames30083,U.S.,wheat competition
+95,A95,20/07/2020,2.1-BRP-WP4-C,2,Brassica rapa,"'""standardised""",1,Wild,WP4,PI649162,Sweden,control -no competition
+96,A96,20/07/2020,2.1-BRP-WP4-W,2,Brassica rapa,"'""standardised""",1,Wild,WP4,PI649162,Sweden,wheat competition
+97,A97,20/07/2020,2.1-BRP-CH3-C,2,Brassica rapa,"'""standardised""",1,Asian cultivated,ssp. chinensis 3,PI662680,Japan,control -no competition
+98,A98,20/07/2020,2.0-BRP-WP7-C,2,Brassica rapa,"""not standardised"" -parents",0,Wild,WP7,PI250004,Egypt,control -no competition
+99,A99,20/07/2020,2.1-BRP-TRI-W,2,Brassica rapa,"'""standardised""",1,Asian cultivated,ssp.  tricolouris 1,PI649202,India,wheat competition
+100,A100,20/07/2020,2.0-BRP-WP2-W,2,Brassica rapa,"""not standardised""",0,Wild,WP2,PI175608,Turkey,wheat competition
+101,A101,20/07/2020,2.0-RMG-WP1-W,2,Raphanus raphanistrum mungra,"""not standardised""",0,Asian cultivated,RMG-WP1,HRIGRU 1048,India,wheat competition
+102,A102,20/07/2020,2.0-BRP-TR1-C,2,Brassica rapa,"""not standardised"" -parents",0,Asian cultivated,ssp.  tricolouris 1,PI649202,India,control -no competition
+103,A103,20/07/2020,2.0-RCA-WP2-W,2,Raphanus sativus var. caudatus,"""not standardised"" -parents",0,Asian cultivated,RCA-WP2,HRIGRU 800 ,,wheat competition
+104,A104,20/08/2020,2.0-RMG-WP2-W,2,Raphanus raphanistrum mungra,"""not standardised"" -parents",0,Asian cultivated,RMG-WP2,PI 271456,India,wheat competition
+105,A105,20/08/2020,2.0-RSA-CU1-C,2,Raphanus sativus,"""not standardised""",0,Asian cultivated,RSA-CU1 (Turbak),HRIGRU 1035,Afghanistan,control -no competition
+106,A106,20/08/2020,2.0-BRP-RP2-C,2,Brassica rapa,"""not standardised"" -parents",0,European cultivated (groups with wild),ssp. rapa2,PI633181,Honduras,control -no competition
+107,A107,20/08/2020,2.0-BRP-WP3-W,2,Brassica rapa,"""not standardised"" -parents",0,Wild,WP3,PI227296,Iran,wheat competition
+108,A108,20/08/2020,2.0-BRP-RP1-C,2,Brassica rapa,"""not standardised""",0,European cultivated (groups with wild),ssp. rapa 1,PI633176,Sweden,control -no competition
+109,A109,20/08/2020,2.0-RMN-WP2-C,2,Raphanus raphanistrum munra,"""not standardised""",0,Asian cultivated,RMN-WP2,PI 271451,India,control -no competition
+110,A110,20/08/2020,2.1-RCA-WP1-C,2,Raphanus sativus var. caudatus,"'""standardised""",1,Asian cultivated,RCA-WP1 ,HRIGRU 4597 ,Thailand,control -no competition
+111,A111,20/08/2020,2.0-BRP-WP7-W,2,Brassica rapa,"""not standardised"" -parents",0,Wild,WP7,PI250004,Egypt,wheat competition
+112,A112,25/08/2020,2.0-BRP-RP1-W,2,Brassica rapa,"""not standardised""",0,European cultivated (groups with wild),ssp. rapa 1,PI633176,Sweden,wheat competition
+113,A113,25/08/2020,2.0-RCA-WP2-C,2,Raphanus sativus var. caudatus,"""not standardised"" -parents",0,Asian cultivated,RCA-WP2,HRIGRU 800 ,,control -no competition
+114,A114,25/08/2020,2.0-BRP-TR1-W,2,Brassica rapa,"""not standardised"" -parents",0,Asian cultivated,ssp.  tricolouris 1,PI649202,India,wheat competition
+115,A115,25/08/2020,2.1-RCA-WP2-W,2,Raphanus sativus var. caudatus,"'""standardised""",1,Asian cultivated,RCA-WP2,HRIGRU 800 ,,wheat competition
+116,A116,25/08/2020,2.0-RSA-CU3-C,2,Raphanus sativus,"""not standardised""",0,European cultivated (groups with wild),RSA-CU3 (Colibri),HRIGRU 13081,Italy,control -no competition
+117,A117,25/08/2020,2.1-BRP-CH2-C,2,Brassica rapa,"'""standardised""",1,Asian cultivated,ssp. chinensis 2,PI662679,Japan,control -no competition
+118,A118,25/08/2020,2.0-BRP-RP2-W,2,Brassica rapa,"""not standardised"" -parents",0,European cultivated (groups with wild),ssp. rapa2,PI633181,Honduras,wheat competition
+119,A119,25/08/2020,2.0-RSA-CU5-W,2,Raphanus sativus,"""not standardised""",0,European cultivated (groups with wild),RSA-CU5 (Beladi),HRIGRU 7372 ,Syria,wheat competition
+121,A121,25/08/2020,2.1-RRA-WP5-W,2,Raphanus raphanistrum,"'""standardised""",1,Wild,RRA-WP5,PI 381011,U.S.,wheat competition
+122,A122,25/08/2020,2.0-BRP-WP6-W,2,Brassica rapa,"""not standardised""",0,Wild,WP6,PI169082,Turkey,wheat competition
+127,A127,25/08/2020,2.0-BMO-WP1-W,2,Brassica montana,"""not standardised""",0,Wild,BMO-WP1,CGN18472,Italy,wheat competition
+128,A128,25/08/2020,2.0-BMO-WP5-C,2,Brassica montana,"""not standardised""",0,Wild,BMO-WP5,BRA 2993 K 7223,Unknown,control -no competition
+129,A129,25/08/2020,2.0-BMO-WP2-C,2,Brassica montana,"""not standardised""",0,Wild,BMO-WP2,AGG95487,France,control -no competition
+130,A130,25/08/2020,2.0-BMO-WP5-W,2,Brassica montana,"""not standardised""",0,Wild,BMO-WP5,BRA 2993 K 7223,Unknown,wheat competition
+131,A131,25/08/2020,2.0-BMO-WP3-W,2,Brassica montana,"""not standardised""",0,Wild,BMO-WP3,BRA1644,unknown,wheat competition
+133,A133,25/08/2020,2.0-BRU-WP1-C,2,Brassica rupestris,"""not standardised""",0,Wild,BRU-WP1,BRA2945,Italy,control -no competition
+134,A134,25/08/2020,2.0-BRU-WP2-C,2,Brassica rupestris,"""not standardised""",0,Wild,BRU-WP2,BRA2992,Italy,control -no competition
+135,A135,25/08/2020,2.0-BVI-WP8-W,2,Brassica villosa,"""not standardised""",0,Wild,BVI-WP8,G30244,Spain,wheat competition
+136,A136,25/08/2020,2.0-BVI-WP5-C,2,Brassica villosa,"""not standardised""",0,Wild,BVI-WP5,CGN14116,Italy,control -no competition
+138,A138,27/08/2020,2.0-BVI-WP5-W,2,Brassica villosa,"""not standardised""",0,Wild,BVI-WP5,CGN14116,Italy,wheat competition
+139,A139,27/08/2020,2.0-BVI-WP6-C,2,Brassica villosa,"""not standardised""",0,Wild,BVI-WP6,PI662594,Italy,control -no competition
+140,A140,27/08/2020,2.0-BVI-WP6-W,2,Brassica villosa,"""not standardised""",0,Wild,BVI-WP6,PI662594,Italy,wheat competition
+141,A141,27/08/2020,2.0-BVI-WP7-C,2,Brassica villosa,"""not standardised""",0,Wild,BVI-WP7,PI662595,Italy,control -no competition
+142,A142,27/08/2020,2.0-BVI-WP3-W,2,Brassica villosa,"""not standardised""",0,Wild,BVI-WP3,BRA1896,Italy,wheat competition
+143,A143,27/08/2020,2.0-BVI-WP8-C,2,Brassica villosa,"""not standardised""",0,Wild,BVI-WP8,G30244,Spain,control -no competition
+144,A144,27/08/2020,2.0-BVI-WP7-W,2,Brassica villosa,"""not standardised""",0,Wild,BVI-WP7,PI662595,Italy,wheat competition
+146,A146,27/08/2020,2.0-BCR-WP5-W,2,Brassica cretica,"""not standardised""",0,Wild,BCR-WP5,G30323,Greece,wheat competition
+147,A147,27/08/2020,2.0-BIC-WP2-C,2,Brassica incana,"""not standardised""",0,Wild,BIC-WP2,PI662584,Italy,control -no competition
+148,A148,27/08/2020,2.0-BIC-WP2-W,2,Brassica incana,"""not standardised""",0,Wild,BIC-WP2,PI662584,Italy,wheat competition
+149,A149,27/08/2020,2.0-BMA-WP3-W,2,Brassica macrocarpa,"""not standardised""",0,Wild,BMA-WP3,BRA2854,Italy,wheat competition
+150,A150,27/08/2020,2.0-BIC-WP3-C,2,Brassica incana,"""not standardised""",0,Wild,BIC-WP3,PI662591,Italy,control -no competition
+151,A151,27/08/2020,2.0-BIC-WP3-W,2,Brassica incana,"""not standardised""",0,Wild,BIC-WP3,PI662591,Italy,wheat competition
+152,A152,27/08/2020,2.0-BIC-WP7-C,2,Brassica incana,"""not standardised""",0,Wild,BIC-WP7,BRA2918,Italy,control -no competition
+153,A153,27/08/2020,2.0-BIC-WP7-W,2,Brassica incana,"""not standardised""",0,Wild,BIC-WP7,BRA2918,Italy,wheat competition
+154,A154,27/08/2020,2.0-BMA-WP2-W,2,Brassica macrocarpa,"""not standardised""",0,Wild,BMA-WP2,PI662585,Italy,wheat competition
+155,A155,27/08/2020,2.0-BIC-WP5-C,2,Brassica incana,"""not standardised""",0,Wild,BIC-WP5,PI435898,Italy,control -no competition
+156,A156,27/08/2020,2.0-BIC-WP6-C,2,Brassica incana,"""not standardised""",0,Wild,BIC-WP6,CGN18471,Unknown,control -no competition
+157,A157,27/08/2020,2.0-BIC-WP6-W,2,Brassica incana,"""not standardised""",0,Wild,BIC-WP6,CGN18471,Unknown,wheat competition
+158,A158,27/08/2020,2.0-BMA-WP3-C,2,Brassica macrocarpa,"""not standardised""",0,Wild,BMA-WP3,BRA2854,Italy,control -no competition
+159,A159,27/08/2020,2.0-BMA-WP1-C,2,Brassica macrocarpa,"""not standardised""",0,Wild,BMA-WP1,HRI08:013115A,,control -no competition
+160,A160,27/08/2020,2.0-BIC-WP9-W,2,Brassica incana,"""not standardised""",0,Wild,BIC-WP9,AGG94697,Italy,wheat competition
+162,A162,27/08/2020,2.0-BMO-WP1-C,2,Brassica montana,"""not standardised""",0,Wild,BMO-WP1,CGN18472,Italy,control -no competition
+163,A163,27/08/2020,2.1-RSA-CU4-W,2,Raphanus sativus,"'""standardised""",1,European cultivated (groups with wild),RSA-CU4 (Diabolo),HRIGRU 13094,Netherlands,wheat competition
