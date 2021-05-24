@@ -22,14 +22,15 @@ basic_libraries <- c("tidyverse",
                      "lmerTest",
                      "performance",
                      "see",
-                     "factoextra")
+                     "factoextra",
+                     "reshape2")
 
 for (lib in basic_libraries) {
         if (require(package = lib, character.only = TRUE)) {
                 print("Successful")
         } else {
                 print("Installing")
-                install.packages(lib)
+                install.packages(lib, Ncpus = 6)
                 library(lib, character.only = TRUE )
         }
 }
@@ -95,6 +96,15 @@ phenodata.gen2.clean.compcases %>%
 ```{r}
 phenodata.gen2.clean.brass = subset(phenodata.gen2.clean, substr(Species,1,8)=="Brassica")
 
+phenodata.gen2.clean.brass$Days_germ
+
+response_var = measure.vars[1]
+response_var
+foo = lmer(scale(get(response_var))~Environment + Wild_Dom + Environment:Wild_Dom + (1|Wild_Dom/Population), 
+             data=phenodata.gen2.clean.brass, 
+             control = lmerControl(optimizer="bobyqa", optCtrl = list(maxfun = 10000)))
+check_model(foo)
+
 #loop through measure vars and regress each one against treatment vars
 for(i in 1:length(measure.vars)){
   
@@ -103,8 +113,9 @@ for(i in 1:length(measure.vars)){
   #regress against environment and treatment and extract p-vals
   foo = lmer(scale(get(response_var))~Environment + Wild_Dom + Environment:Wild_Dom + (1|Wild_Dom/Population), 
              data=phenodata.gen2.clean.brass, 
-             control = lmerControl(optimizer="bobyqa", optCtrl = list(maxfun = 10000))) %>%
-    summary() %>% .$coefficients 
+             control = lmerControl(optimizer="bobyqa", optCtrl = list(maxfun = 10000)))
+  check_model(foo)
+  foo = summary(foo)$coefficients 
   #if first loop, instantiate df to store outputs
   if(i==1){brassica.coefs = data.frame(row.names = row.names(foo))}
   #cbind coefs to df
@@ -142,10 +153,6 @@ ggplot(data = brassica.coefs.fdr, aes(x = variable, y = rowname, fill = value)) 
   coord_fixed()
 
 ```
-
-
-
-
 
 
 My initial instinct is to look for a way to reduce the dimensionality of the data, so let's try generating PCAs. We'll start with the Brassicas.
