@@ -7,13 +7,11 @@ setwd("/home/benjamin/Documents/Brassicas_repo/")
 #get phenotypic data for later
 phenodata.gen2 = read.delim("Data/Phenotypic_data/morphology_data_gen2.txt", sep = ",", header = T, row.names = NULL)
 
-
-
 #get alignment data for brassica
 alignrates.brass = read.delim("Analysis/RNAseq/QC/alignment_rates/alignmentdata_brassica.tsv", header = F, sep = " ") %>%
   'colnames<-'(c("sample","reads_total","reads_aligned")) %>% 
   mutate(sample = as.numeric(stringr::str_match(sample,"[0-9]+")))
-#correct labels (necessary because I missed up w the nextflow sample sheet)
+#correct labels (necessary because I messed up the nextflow sample sheet)
 nextflowsheet.brass = read.csv("/home/benjamin/Documents/Brassicas_repo/Data/RNAseq/nextflow_samplesheet_brass.csv") %>%
   mutate(sampleID = stringr::str_match(fastq_1,"A[0-9]+")[,1])
 alignrates.brass$sample = nextflowsheet.brass$sampleID[match(alignrates.brass$sample,nextflowsheet.brass$replicate)]
