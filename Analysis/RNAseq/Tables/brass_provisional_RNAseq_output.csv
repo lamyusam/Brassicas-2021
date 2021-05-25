@@ -1,0 +1,5 @@
+"","variable","features","features_pct"
+"1","Intercept",24148,58.5633215307756
+"2","Environment_wheat_vs_control",29,0.079521772512888
+"3","Domesticated_Wild_vs_Cultivated",97,0.395063739665214
+"4","Environmentwheat.DomesticatedWild",19,0.0726799785785326
