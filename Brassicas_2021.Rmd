@@ -23,7 +23,8 @@ basic_libraries <- c("tidyverse",
                      "performance",
                      "see",
                      "factoextra",
-                     "reshape2")
+                     "reshape2",
+                     "ggpubr")
 
 for (lib in basic_libraries) {
         if (require(package = lib, character.only = TRUE)) {
@@ -52,6 +53,8 @@ phenodata.gen2 = select(phenodata.gen2, -c("Total_la"))
 
 # change the environment labels to something less verbose
 phenodata.gen2$Environment =  ifelse(phenodata.gen2$Environment == "wheat competition", "wheat", "control")
+# for now simplify down to wild vs domesticated
+phenodata.gen2$Wild_Dom =  ifelse(phenodata.gen2$Wild_Dom == "Wild", "Wild", "Cultivated")
 
 # take note of the most relevant measured variables
 measure.vars = c("Days_germ", #days from potting to germination
@@ -71,7 +74,30 @@ measure.vars = c("Days_germ", #days from potting to germination
 # convert to numeric where applicable
 phenodata.gen2.clean =  mutate_at(phenodata.gen2, measure.vars, function(x) as.numeric(as.character(x))) %>%
   select(c("Label_front","Species","Population","Wild_Dom","Environment",measure.vars)) 
+
+
+
+#refactor to set reference levels
+phenodata.gen2.clean$Wild_dom <- factor(phenodata.gen2.clean$Wild_Dom,
+                                        c("Wild","Cultivated"))
 ```
+
+Remove extreme outlier measurements:
+
+```{r}
+# looks like we have a pretty extreme outlier for root dry weight
+summary(phenodata.gen2.clean$Root_dw)
+ggqqplot(phenodata.gen2.clean$Root_dw)
+hist(phenodata.gen2.clean$Root_dw,
+  breaks = sqrt(length(phenodata.gen2.clean$Root_dw)))
+#remove the outlier
+phenodata.gen2.clean$Root_dw[which(phenodata.gen2.clean$Root_dw == max(phenodata.gen2.clean$Root_dw,na.rm = T))] = NA
+
+
+# per PCA, the below sample is a heavy outlier for Raphanus
+phenodata.gen2.clean = phenodata.gen2.clean[-c(which(phenodata.gen2.clean$Label_front == "2.0-RRA-WP2-C-849")),]
+```
+
 
 Wel'll begin with a simple exploration of the  data. The proportion of the samples for which we actually have complete data is actually quite small:
 
@@ -87,23 +113,61 @@ Nonetheless, this sample will hopefully be representative for an initial explora
 ```{r}
 phenodata.gen2.clean.compcases = phenodata.gen2.clean[complete.cases(phenodata.gen2.clean),]
 
-phenodata.gen2.clean.compcases %>% 
+brassica.cors = phenodata.gen2.clean.compcases %>% 
   subset(substr(Species,1,8)=="Brassica") %>%
   select(measure.vars) %>%
   cor() %>% round(2)
+
+brassica.cors[upper.tri(brassica.cors)] = NA
+
+brassica.cors.plot = ggplot(data = melt(brassica.cors, na.rm = T), aes(x=Var1, y=Var2, fill=value)) + 
+ geom_tile(color = "white")+
+ scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+   midpoint = 0, limit = c(-1,1), space = "Lab", 
+   name="Pearson\nCorrelation") +
+  theme_minimal()+ 
+ theme(axis.text.x = element_text(angle = 45, vjust = 1, size = 12, hjust = 1),
+       axis.text.y = element_text(size = 12),
+       axis.title = element_blank())+
+ coord_fixed()
+
+raphanus.cors = phenodata.gen2.clean.compcases %>% 
+  subset(substr(Species,1,8)=="Raphanus") %>%
+  select(measure.vars) %>%
+  cor() %>% round(2)
+
+raphanus.cors[upper.tri(raphanus.cors)] = NA
+
+raphanus.cors.plot = ggplot(data = melt(raphanus.cors, na.rm = T), aes(x=Var1, y=Var2, fill=value)) + 
+ geom_tile(color = "white")+
+ scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+   midpoint = 0, limit = c(-1,1), space = "Lab", 
+   name="Pearson\nCorrelation") +
+  theme_minimal()+ 
+ theme(axis.text.x = element_text(angle = 45, vjust = 1, size = 12, hjust = 1),
+       axis.text.y = element_text(size = 12),
+       axis.title = element_blank())+
+ coord_fixed()
+
+cors.arrange = ggarrange(brassica.cors.plot, raphanus.cors.plot, 
+                         common.legend = T,labels = c("Brassica","Raphanus"))
+
+ggsave(cors.arrange, filename = "phenotypic_correlations.pdf",
+       device = "pdf", path = "Analysis/Phenotypic_analysis/Images",
+       width =  18, height = 11, units = "cm")
 ```
 
 ```{r}
 phenodata.gen2.clean.brass = subset(phenodata.gen2.clean, substr(Species,1,8)=="Brassica")
 
-phenodata.gen2.clean.brass$Days_germ
-
-response_var = measure.vars[1]
-response_var
-foo = lmer(scale(get(response_var))~Environment + Wild_Dom + Environment:Wild_Dom + (1|Wild_Dom/Population), 
-             data=phenodata.gen2.clean.brass, 
-             control = lmerControl(optimizer="bobyqa", optCtrl = list(maxfun = 10000)))
-check_model(foo)
+# phenodata.gen2.clean.brass$Days_germ
+# 
+# response_var = measure.vars[1]
+# response_var
+# foo = lmer(scale(get(response_var))~Environment + Wild_Dom + Environment:Wild_Dom + (1|Wild_Dom/Population), 
+#              data=phenodata.gen2.clean.brass, 
+#              control = lmerControl(optimizer="bobyqa", optCtrl = list(maxfun = 10000)))
+#check_model(foo)
 
 #loop through measure vars and regress each one against treatment vars
 for(i in 1:length(measure.vars)){
@@ -111,27 +175,41 @@ for(i in 1:length(measure.vars)){
   #get response of interest
   response_var = measure.vars[i]
   #regress against environment and treatment and extract p-vals
-  foo = lmer(scale(get(response_var))~Environment + Wild_Dom + Environment:Wild_Dom + (1|Wild_Dom/Population), 
-             data=phenodata.gen2.clean.brass, 
-             control = lmerControl(optimizer="bobyqa", optCtrl = list(maxfun = 10000)))
-  check_model(foo)
+  # foo = lmer(scale(get(response_var))~Environment + Wild_Dom + Environment:Wild_Dom + (1|Wild_Dom/Population), 
+  #            data=phenodata.gen2.clean.brass, 
+  #            control = lmerControl(optimizer="bobyqa", optCtrl = list(maxfun = 10000)))
+  foo = glmer(get(response_var)~Environment + Wild_Dom + Environment:Wild_Dom + (1|Wild_Dom/Population),
+      data=phenodata.gen2.clean.brass,family="Gamma",glmerControl(optimizer="bobyqa", optCtrl = list(maxfun = 10000)))
+  #check_model(foo)
   foo = summary(foo)$coefficients 
   #if first loop, instantiate df to store outputs
-  if(i==1){brassica.coefs = data.frame(row.names = row.names(foo))}
+  if(i==1){
+    brassica.coefs = data.frame(row.names = row.names(foo))
+    brassica.vals = data.frame(row.names = row.names(foo))
+    }
   #cbind coefs to df
-  brassica.coefs = cbind(brassica.coefs,foo[,5])
+  #brassica.coefs = cbind(brassica.coefs,foo[,5])
+  brassica.coefs = cbind(brassica.coefs,foo[,4])
+  brassica.vals = cbind(brassica.vals,foo[,1])
+
   #if last loop, give colnames
   if(i==length(measure.vars)){colnames(brassica.coefs)=measure.vars}
   
 
 }
 
+#get labels for plot
+brassica.coef.labels = paste0(as.matrix(signif(brassica.coefs,2)),"\n(",as.matrix(signif(brassica.vals,2)),")")
 #coerce df for ggplot and apply FDR correction
 brassica.coefs.fdr = reshape2::melt(rownames_to_column(brassica.coefs)) %>% mutate(value = p.adjust(value, method = "BH"))
+
 #plot
-ggplot(data = brassica.coefs.fdr, aes(x = variable, y = rowname, fill = value)) +
+brassica.traits.fdr.plot = ggplot(data = brassica.coefs.fdr, aes(x = variable, y = rowname, fill = value)) +
   geom_tile(color = "grey50", size = 0.5) +
-  geom_text(aes(label=round(value,4)), size = 5, face = "bold") +
+  #geom_text(aes(label=round(value,4)), size = 3, face = "bold") +
+  geom_tile(aes(fill = value),color = "gray", size=.75, width=1, height = 1) +
+  geom_text(aes(label=c(brassica.coef.labels), 
+            lineheight = 0.75, size = 2)) +
   scale_fill_gradientn(colours = colorRampPalette(rev(c("#FFFFFF",brewer.pal(n = 9, name = "Reds")[1:5])),bias=6)(20),
                        breaks = c(0.0,0.05,1),
                        expand = c(0,0),
@@ -143,16 +221,108 @@ ggplot(data = brassica.coefs.fdr, aes(x = variable, y = rowname, fill = value)) 
                                                frame.colour = "black", 
                                                frame.linewidth = 1.5)) +
   theme_minimal() + 
-  theme(aspect.ratio = 1,
+  theme(#aspect.ratio = 1,
         panel.grid = element_line(size = 0.2, colour = "gray80"),
-        axis.text.x = element_text(size = 15),
-        axis.text.y = element_text(size = 15),
-        axis.title = element_blank(),
-        legend.text = element_text(size=12),
-        legend.title = element_text(size=15, face = "bold")) +
+        axis.text.x = element_text(angle = 45, vjust = 1, size = 12, hjust = 1),
+        axis.text.y = element_text(size = 12),
+        axis.title = element_blank()#,
+        #legend.text = element_text(size=12),
+        #legend.title = element_text(size=15, face = "bold")
+        ) +
   coord_fixed()
 
 ```
+
+```{r}
+phenodata.gen2.clean.raph = subset(phenodata.gen2.clean, substr(Species,1,8)=="Raphanus")
+
+phenodata.gen2.clean.raph$Days_germ
+
+response_var = measure.vars[1]
+response_var
+foo = lmer(scale(get(response_var))~Environment + Wild_Dom + Environment:Wild_Dom + (1|Wild_Dom/Population), 
+             data=phenodata.gen2.clean.raph, 
+             control = lmerControl(optimizer="bobyqa", optCtrl = list(maxfun = 10000)))
+#check_model(foo)
+
+#loop through measure vars and regress each one against treatment vars
+for(i in 1:length(measure.vars)){
+  
+  #get response of interest
+  response_var = measure.vars[i]
+  #regress against environment and treatment and extract p-vals
+  # foo = lmer(scale(get(response_var))~Environment + Wild_Dom + Environment:Wild_Dom + (1|Wild_Dom/Population), 
+  #            data=phenodata.gen2.clean.raph, 
+  #            control = lmerControl(optimizer="bobyqa", optCtrl = list(maxfun = 10000)))
+  foo = glmer(get(response_var)~Environment + Wild_Dom + Environment:Wild_Dom + (1|Wild_Dom/Population),
+      data=phenodata.gen2.clean.raph,family="Gamma",glmerControl(optimizer="bobyqa", optCtrl = list(maxfun = 10000)))
+  #check_model(foo)
+  foo = summary(foo)$coefficients 
+  #if first loop, instantiate df to store outputs
+  if(i==1){
+    raphanus.coefs = data.frame(row.names = row.names(foo))
+    raphanus.vals = data.frame(row.names = row.names(foo))
+    }
+  #cbind coefs to df
+  #raphanus.coefs = cbind(raphanus.coefs,foo[,5])
+  raphanus.coefs = cbind(raphanus.coefs,foo[,4])
+  raphanus.vals = cbind(raphanus.vals,foo[,1])
+
+  #if last loop, give colnames
+  if(i==length(measure.vars)){colnames(raphanus.coefs)=measure.vars}
+  
+
+}
+
+#get labels for plot
+raphanus.coef.labels = paste0(as.matrix(signif(raphanus.coefs,2)),"\n(",as.matrix(signif(raphanus.vals,2)),")")
+#coerce df for ggplot and apply FDR correction
+raphanus.coefs.fdr = reshape2::melt(rownames_to_column(raphanus.coefs)) %>% mutate(value = p.adjust(value, method = "BH"))
+
+#plot
+raphanus.traits.fdr.plot = ggplot(data = raphanus.coefs.fdr, aes(x = variable, y = rowname, fill = value)) +
+  geom_tile(color = "grey50", size = 0.5) +
+  #geom_text(aes(label=round(value,4)), size = 3, face = "bold") +
+  geom_tile(aes(fill = value),color = "gray", size=.75, width=1, height = 1) +
+  geom_text(aes(label=c(raphanus.coef.labels), 
+            lineheight = 0.75, size = 2)) +
+  scale_fill_gradientn(colours = colorRampPalette(rev(c("#FFFFFF",brewer.pal(n = 9, name = "Reds")[1:5])),bias=6)(20),
+                       breaks = c(0.0,0.05,1),
+                       expand = c(0,0),
+                       limits = c(0,1),
+                       guide = guide_colourbar(barheight = 25,
+                                               #title = "p-value\n(adjusted)",
+                                               title = "p-value\n(adjusted)",
+                                               title.vjust = 2,
+                                               frame.colour = "black", 
+                                               frame.linewidth = 1.5)) +
+  # scale_x_discrete(labels = c("Domestication",
+  #                             "Dom.(European)",
+  #                             "Domestication:Environment",
+  #                             "Domestication:Environment:Origin",
+  #                             "Environment",
+  #                             "Intercept")) +
+  theme_minimal() + 
+  theme(#aspect.ratio = 1,
+        panel.grid = element_line(size = 0.2, colour = "gray80"),
+        axis.text.x = element_text(angle = 45, vjust = 1, size = 12, hjust = 1),
+        axis.text.y = element_text(size = 12),
+        axis.title = element_blank()#,
+        #legend.text = element_text(size=12),
+        #legend.title = element_text(size=15, face = "bold")
+        ) +
+  coord_fixed()
+```
+
+```{r}
+traits.arrange = ggarrange(brassica.traits.fdr.plot, raphanus.traits.fdr.plot, nrow = 2, ncol = 1,
+                           common.legend = F,labels = c("Brassica","Raphanus"), legend = "none")
+
+ggsave(traits.arrange, filename = "phenotypic_glmer_pvals.pdf",
+       device = "pdf", path = "Analysis/Phenotypic_analysis/Images",
+       width =  25, height = 25, units = "cm")
+```
+
 
 
 My initial instinct is to look for a way to reduce the dimensionality of the data, so let's try generating PCAs. We'll start with the Brassicas.
@@ -177,16 +347,47 @@ data.pca = prcomp(pca.counts,scale. = T)
 #generate scree plot
 fviz_eig(data.pca)
 ```
+```{r}
+##pca for raphanus
+# subset to brassicas and complete cases
+pca.counts.raph = phenodata.gen2.clean.compcases %>% 
+  subset(substr(Species,1,8)=="Raphanus") %>%
+  remove_rownames() %>%
+  column_to_rownames("Label_front") %>%
+  select(measure.vars) #%>% 
+  #scale() 
+
+#generate PCA object
+#NB: pre-scaling is important for PCA, in order to prevent high-variance covariates dominating the PC calculations
+data.pca.raph = prcomp(pca.counts.raph,scale. = T)
+
+#generate scree plot
+fviz_eig(data.pca.raph)
+```
+
 
 Looking at the loading of these two PCs, we can see that they decompose fairly cleanly into a component that represents leaf size/length/weight, and a second component that represents other metrics related to size and weight. Notably, individuals that germinated more quickly are also larger. We also predict that time to flowering will be loaded in the opposite direction to size, but because we have very few complete cases when including flowering time, those data aren't in this plot. 
 
 ```{r}
 #visualize PC loadings
-fviz_pca_var(data.pca,
-             col.var = "contrib", # Color by contributions to the PC
-             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
-             repel = TRUE     # Avoid text overlapping
-)
+pca.var.plot = fviz_pca_var(data.pca,
+                            col.var = "contrib", # Color by contributions to the PC
+                            gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+                            repel = TRUE,     # Avoid text overlapping
+                            title = "Brassica")
+
+#visualize PC loadings
+pca.var.plot.raph = fviz_pca_var(data.pca.raph,
+                                 col.var = "contrib", # Color by contributions to the PC
+                                 gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+                                 repel = TRUE ,    # Avoid text overlapping
+                                 title = "Raphanus")
+
+pca.var.arrange = ggarrange(pca.var.plot, pca.var.plot.raph, common.legend = T)
+
+ggsave(pca.var.arrange, filename = "PCA_loadings.pdf",
+       device = "pdf", path = "Analysis/Phenotypic_analysis/Images",
+       width =  25, height = 15, units = "cm")
 ```
 
 Now let's plot individuals on these PCs and color according either to species or to wild vs domesticated origins:
@@ -202,24 +403,72 @@ fviz_pca_ind(data.pca,
   scale_shape_manual(values = rep(20,7)) #hacky way of preventing the plot from using different shapes for each group
 
 #plot by environment of origin
-fviz_pca_ind(data.pca,
+pca.ind.brass.wildDom = fviz_pca_ind(data.pca,
              habillage = subset(phenodata.gen2.clean.compcases, substr(Species,1,8)=="Brassica")$Wild_Dom, #label by spp
+             label = F, 
+             pointsize = 3.5,
+             title = "\t", #hacky way of removing plot title
+             invisible = "quali", #removes centre point for groups from plot
+             ggtheme = theme_gray()) + #grey background makes picking out patterns easier
+  scale_shape_manual(values = rep(20,7)) #hacky way of preventing the plot from using different shapes for each group
+
+#plot by treatment
+pca.ind.brass.treatment = fviz_pca_ind(data.pca,
+             habillage = subset(phenodata.gen2.clean.compcases, substr(Species,1,8)=="Brassica")$Environment, #label by spp
+             label = F, 
+             col.ind = c("blue","green"),
+             pointsize = 3.5,
+             title = "\t", #hacky way of removing plot title
+             invisible = "quali", #removes centre point for groups from plot
+             ggtheme = theme_gray()) + #grey background makes picking out patterns easier
+  scale_shape_manual(values = rep(20,7)) + #hacky way of preventing the plot from using different shapes for each group
+  scale_color_brewer(palette="Dark2")
+
+pca.ind.brass.arrange = ggarrange(pca.ind.brass.wildDom,pca.ind.brass.treatment)  
+
+ggsave(pca.ind.brass.arrange, filename = "PCA_scatters_brass.pdf",
+       device = "pdf", path = "Analysis/Phenotypic_analysis/Images",
+       width =  25, height = 15, units = "cm")
+```
+
+```{r}
+#plot by species
+fviz_pca_ind(data.pca.raph,
+             habillage = subset(phenodata.gen2.clean.compcases, substr(Species,1,8)=="Raphanus")$Species, #label by spp
              label = F, 
              pointsize = 3.5,
              invisible = "quali", #removes centre point for groups from plot
              ggtheme = theme_gray()) + #grey background makes picking out patterns easier
   scale_shape_manual(values = rep(20,7)) #hacky way of preventing the plot from using different shapes for each group
 
-#plot by treatment
-fviz_pca_ind(data.pca,
-             habillage = subset(phenodata.gen2.clean.compcases, substr(Species,1,8)=="Brassica")$Environment, #label by spp
+#plot by environment of origin
+pca.ind.raph.wildDom = fviz_pca_ind(data.pca.raph,
+             habillage = subset(phenodata.gen2.clean.compcases, substr(Species,1,8)=="Raphanus")$Wild_Dom, #label by spp
              label = F, 
              pointsize = 3.5,
+             title = "\t", #hacky way of removing plot title
              invisible = "quali", #removes centre point for groups from plot
              ggtheme = theme_gray()) + #grey background makes picking out patterns easier
   scale_shape_manual(values = rep(20,7)) #hacky way of preventing the plot from using different shapes for each group
-  
+
+#plot by treatment
+pca.ind.raph.treatment = fviz_pca_ind(data.pca.raph,
+             habillage = subset(phenodata.gen2.clean.compcases, substr(Species,1,8)=="Raphanus")$Environment, #label by spp
+             label = F, 
+             pointsize = 3.5,
+             title = "\t", #hacky way of removing plot title
+             invisible = "quali", #removes centre point for groups from plot
+             ggtheme = theme_gray()) + #grey background makes picking out patterns easier
+  scale_shape_manual(values = rep(20,7))  + #hacky way of preventing the plot from using different shapes for each group
+  scale_color_brewer(palette="Dark2")
+
+pca.ind.raph.arrange = ggarrange(pca.ind.raph.wildDom,pca.ind.raph.treatment)  
+
+ggsave(pca.ind.raph.arrange, filename = "PCA_scatters_raph.pdf",
+       device = "pdf", path = "Analysis/Phenotypic_analysis/Images",
+       width =  25, height = 15, units = "cm")
 ```
+
 We now want to ask whether individuals' assignments along the first two PCs are predicted well by cultivated stats, treatment, or their interaction. Let's begin by checking distributions of the PCs. First with PC1:
 
 ```{r}
@@ -236,10 +485,13 @@ PC1.model.gaus = lmer(scale(PC1)~Environment + Wild_Dom + Environment:Wild_Dom +
                       data=pca.out, 
                       control = lmerControl(optimizer="bobyqa", optCtrl = list(maxfun = 10000)))
 #that helped! Let's check out the model performance- it looks decent
-check_model(PC1.model.gaus)
+#check_model(PC1.model.gaus)
 
 #looking at the output, however, we have no meaningful effects:
 summary(PC1.model.gaus)$coefficients
+
+write.csv(signif(summary(PC1.model.gaus)$coefficients,3),
+          file = "Analysis/Phenotypic_analysis/Tables/brass_PC1_coefs.csv")
 ```
 Now with PC2:
 
@@ -248,8 +500,11 @@ PC2.model.gaus = lmer(scale(PC2)~Environment + Wild_Dom + Environment:Wild_Dom +
                       data=pca.out, 
                       control = lmerControl(optimizer="bobyqa", optCtrl = list(maxfun = 10000)))
 #model performance is much worse for this PC
-check_model(PC2.model.gaus)
+#check_model(PC2.model.gaus)
 summary(PC2.model.gaus)$coefficients
+
+write.csv(signif(summary(PC2.model.gaus)$coefficients,3),
+          file = "Analysis/Phenotypic_analysis/Tables/brass_PC2_coefs.csv")
 
 #let's try a log link to see if that improves the model at all
 PC2.model.gaus.log = glmer(scale(PC2)~Environment + Wild_Dom + Environment:Wild_Dom + (1|Wild_Dom/Population), 
@@ -259,9 +514,54 @@ PC2.model.gaus.log = glmer(scale(PC2)~Environment + Wild_Dom + Environment:Wild_
                       control = glmerControl(optimizer="bobyqa", optCtrl = list(maxfun = 10000)))
 #this sort of works works, but the message 'boundary (singular) fit' indicates either some multicollinearity or alternatively an effect with an estimate close to zero
 #also the model fit's horrible
-check_model(PC2.model.gaus.log)
+#check_model(PC2.model.gaus.log)
 summary(PC2.model.gaus.log)$coefficients
 ```
+
+Now with Raph:
+
+```{r}
+#append values for first two PCs to pheno data
+pca.out.raph = phenodata.gen2.clean.compcases %>% 
+  subset(substr(Species,1,8)=="Raphanus") %>%
+  mutate(pca.counts.raph, PC1 = data.pca.raph$x[,"PC1"], PC2 = data.pca.raph$x[,"PC2"])
+
+#generate an lmm for PC1
+PC1.raph.model.gaus = lmer(PC1~Environment + Wild_Dom + Environment:Wild_Dom + (1|Wild_Dom/Population), data=pca.out.raph)
+
+# #initial model throws an error so we add a control parameter and also scale the response variable
+# PC1.raph.model.gaus = lmer(scale(PC1)~Environment + Wild_Dom + Environment:Wild_Dom + (1|Wild_Dom/Population), 
+#                       data=pca.out.raph, 
+#                       control = lmerControl(optimizer="bobyqa", optCtrl = list(maxfun = 10000)))
+# #that helped! Let's check out the model performance- it looks decent
+# #check_model(PC1.model.gaus)
+
+#looking at the output, however, we have no meaningful effects:
+summary(PC1.raph.model.gaus)$coefficients
+
+write.csv(signif(summary(PC1.raph.model.gaus)$coefficients,3),
+          file = "Analysis/Phenotypic_analysis/Tables/raph_PC1_coefs.csv")
+```
+
+```{r}
+#generate an lmm for PC2
+PC2.raph.model.gaus = lmer(PC2~Environment + Wild_Dom + Environment:Wild_Dom + (1|Wild_Dom/Population), data=pca.out.raph)
+
+#initial model throws an error so we add a control parameter and also scale the response variable
+PC2.raph.model.gaus = lmer(scale(PC2)~Environment + Wild_Dom + Environment:Wild_Dom + (1|Wild_Dom/Population), 
+                      data=pca.out.raph, 
+                      control = lmerControl(optimizer="bobyqa", optCtrl = list(maxfun = 10000)))
+#that helped! Let's check out the model performance- it looks decent
+#check_model(PC2.model.gaus)
+
+#looking at the output, however, we have no meaningful effects:
+summary(PC2.raph.model.gaus)$coefficients
+
+write.csv(signif(summary(PC2.raph.model.gaus)$coefficients,3),
+          file = "Analysis/Phenotypic_analysis/Tables/raph_PC2_coefs.csv")
+```
+
+
 Okay, all the above is a bit moot anyway because of our preponderance of incomplete cases. By the protocol, biomass measurements were taken separately from height/leaf measurements, so it's possible we'll be able to include more data is we trat these things separately.
 
 ```{r}

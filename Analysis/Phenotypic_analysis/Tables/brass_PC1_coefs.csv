@@ -1,0 +1,5 @@
+"","Estimate","Std. Error","df","t value","Pr(>|t|)"
+"(Intercept)",-0.0127,0.399,201,-0.0319,0.975
+"Environmentwheat",-0.265,0.184,312,-1.44,0.15
+"Wild_DomWild",0.00235,0.518,262,0.00454,0.996
+"Environmentwheat:Wild_DomWild",0.251,0.205,311,1.23,0.22
