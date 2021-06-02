@@ -35,6 +35,9 @@ for (lib in basic_libraries) {
                 library(lib, character.only = TRUE )
         }
 }
+
+#prevent other packages overriding dplyr's select
+select = dplyr::select
 ```
 
 Import morphology data and clean up the formatting:
@@ -56,19 +59,44 @@ phenodata.gen2$Environment =  ifelse(phenodata.gen2$Environment == "wheat compet
 # for now simplify down to wild vs domesticated
 phenodata.gen2$Wild_Dom =  ifelse(phenodata.gen2$Wild_Dom == "Wild", "Wild", "Cultivated")
 
+# for some factors, we need to take into account timepoint of measurement
+table(phenodata.gen2$Days_meas_taken)
+phenodata.gen2$DayMeasured = ifelse(phenodata.gen2$Days_meas_taken %in% c(18:20,23:26), 
+                                    ifelse(phenodata.gen2$Days_meas_taken %in% c(18:20), 
+                                           "d18to20", "d23to26"), NA)
+#subset height, num leaves, sla, sldw, leaf length based on measure data
+repeated.measures = c("Height","Leaf_length","Num_leaves","Sla","Sldw")
+#new cols for days 18-20
+newcols = select(phenodata.gen2, repeated.measures)
+newcols[which(phenodata.gen2$DayMeasured != "d18to20"),] = NA
+colnames(newcols) = paste0(colnames(newcols),"_1820")
+phenodata.gen2 = cbind(phenodata.gen2, newcols)
+#new cols for days 23-26
+newcols = select(phenodata.gen2, repeated.measures)
+newcols[which(phenodata.gen2$DayMeasured != "d23to26"),] = NA
+colnames(newcols) = paste0(colnames(newcols),"_2326")
+phenodata.gen2 = cbind(phenodata.gen2, newcols)
+#remove old, now-defunct measure cols
+phenodata.gen2 = select(phenodata.gen2, -repeated.measures)
+
 # take note of the most relevant measured variables
 measure.vars = c("Days_germ", #days from potting to germination
-                 "Height", #max distance from soil to plant
-                 "Leaf_length", #base to tip of longest non-cotyledon
-                 "Num_leaves", #number of leaves
-                 "Sla", #single leaf area of oldest non-cotyledon
-                 "Sldw", #single lead dry weight of oldest non-cotyledon
+                 "Height_1820", #max distance from soil to plant
+                 "Height_2326",
+                 "Leaf_length_1820", #base to tip of longest non-cotyledon
+                 "Leaf_length_2326",
+                 "Num_leaves_1820", #number of leaves
+                 "Num_leaves_2326", 
+                 "Sla_1820", #single leaf area of oldest non-cotyledon
+                 "Sla_2326",
+                 "Sldw_1820", #single lead dry weight of oldest non-cotyledon
+                 "Sldw_2326",
                  #"Sp_la", #specific leaf area
                  "Aboveground_dw", #all biomass above soil
                  #"Day_flowering", #days from germination to flowering
-                 "Root_dw" #all biomass below soil
+                 "Root_dw", #all biomass below soil
                  #"Total_biomass", #sum of above and below ground biomass
-                 #"Root_to_shoot_ratio" #ratio of below to above-ground biomass (I think)
+                 "Root_to_shoot_ratio" #ratio of below to above-ground biomass (I think)
 ) 
 
 # convert to numeric where applicable
