@@ -25,5 +25,12 @@ txi.raph = tximport(salmfiles.raph, type = "salmon", tx2gene = tx2gene)
 #if passing to DESeq2, the recommendation is to use DESeqDataSetFromTximport to round the estimated values...
 #however, per Mike Love, all DESeq2 does is round the values anyway, so there's no harm in doing it the old-fashioned way
 txi.raph.counts = round(txi.raph$counts)
+#convert nextflow labels to original metadata labels
+nextflowsheet.raph = read.csv("/home/benjamin/Documents/Brassicas_repo/Data/RNAseq/nextflow_samplesheet_raph.csv") %>%
+  mutate(sampleID = stringr::str_match(fastq_1,"A[0-9]+")[,1],
+         replicate = paste0("R",replicate))
+colnames(txi.raph.counts) = nextflowsheet.raph$sampleID[match(colnames(txi.raph.counts),nextflowsheet.raph$replicate)]
 
+#save
+write.csv(txi.raph.counts,file = "Data/RNAseq/raph.gene.counts.csv")
 
