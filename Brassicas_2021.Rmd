@@ -233,11 +233,9 @@ brassica.coefs.fdr = reshape2::melt(rownames_to_column(brassica.coefs)) %>% muta
 
 #plot
 brassica.traits.fdr.plot = ggplot(data = brassica.coefs.fdr, aes(x = variable, y = rowname, fill = value)) +
-  geom_tile(color = "grey50", size = 0.5) +
-  #geom_text(aes(label=round(value,4)), size = 3, face = "bold") +
   geom_tile(aes(fill = value),color = "gray", size=.75, width=1, height = 1) +
   geom_text(aes(label=c(brassica.coef.labels), 
-            lineheight = 0.75, size = 2)) +
+            lineheight = 0.75, size = 2), show.legend = FALSE) +
   scale_fill_gradientn(colours = colorRampPalette(rev(c("#FFFFFF",brewer.pal(n = 9, name = "Reds")[1:5])),bias=6)(20),
                        breaks = c(0.0,0.05,1),
                        expand = c(0,0),
@@ -309,11 +307,9 @@ raphanus.coefs.fdr = reshape2::melt(rownames_to_column(raphanus.coefs)) %>% muta
 
 #plot
 raphanus.traits.fdr.plot = ggplot(data = raphanus.coefs.fdr, aes(x = variable, y = rowname, fill = value)) +
-  geom_tile(color = "grey50", size = 0.5) +
-  #geom_text(aes(label=round(value,4)), size = 3, face = "bold") +
   geom_tile(aes(fill = value),color = "gray", size=.75, width=1, height = 1) +
   geom_text(aes(label=c(raphanus.coef.labels), 
-            lineheight = 0.75, size = 2)) +
+            lineheight = 0.75, size = 2), show.legend = FALSE) +
   scale_fill_gradientn(colours = colorRampPalette(rev(c("#FFFFFF",brewer.pal(n = 9, name = "Reds")[1:5])),bias=6)(20),
                        breaks = c(0.0,0.05,1),
                        expand = c(0,0),
@@ -331,7 +327,7 @@ raphanus.traits.fdr.plot = ggplot(data = raphanus.coefs.fdr, aes(x = variable, y
   #                             "Environment",
   #                             "Intercept")) +
   theme_minimal() + 
-  theme(#aspect.ratio = 1,
+  theme(#aspect.ratio = 0.5,
         panel.grid = element_line(size = 0.2, colour = "gray80"),
         axis.text.x = element_text(angle = 45, vjust = 1, size = 12, hjust = 1),
         axis.text.y = element_text(size = 12),
@@ -340,15 +336,24 @@ raphanus.traits.fdr.plot = ggplot(data = raphanus.coefs.fdr, aes(x = variable, y
         #legend.title = element_text(size=15, face = "bold")
         ) +
   coord_fixed()
+
 ```
 
 ```{r}
 traits.arrange = ggarrange(brassica.traits.fdr.plot, raphanus.traits.fdr.plot, nrow = 2, ncol = 1,
                            common.legend = F,labels = c("Brassica","Raphanus"), legend = "none")
 
+ggsave(brassica.traits.fdr.plot, filename = "phenotypic_glmer_pvals_brassica.pdf",
+       device = "pdf", path = "Analysis/Phenotypic_analysis/Images",
+       width =  40, height = 20, units = "cm")
+
+ggsave(raphanus.traits.fdr.plot, filename = "phenotypic_glmer_pvals_raphanus.pdf",
+       device = "pdf", path = "Analysis/Phenotypic_analysis/Images",
+       width =  40, height = 20, units = "cm")
+
 ggsave(traits.arrange, filename = "phenotypic_glmer_pvals.pdf",
        device = "pdf", path = "Analysis/Phenotypic_analysis/Images",
-       width =  25, height = 25, units = "cm")
+       width =  40, height = 20, units = "cm")
 ```
 
 
