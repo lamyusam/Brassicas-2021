@@ -6,11 +6,16 @@ setwd("/home/benjamin/Documents/Brassicas_repo")
 #oull relevant metadata
 data.meta = read.csv("/home/benjamin/Documents/Brassicas_repo/Data/RNAseq/RNASeq_sample_info.csv") %>%
   mutate(Domesticated = ifelse(Wild..Domesticated=="Wild","Wild","Cultivated")) %>%
-  mutate(Environment = ifelse(Environment=="wheat competition","wheat","control"),
-         Parental.effects.status = ifelse(Parental.effects.status == "'\"standardised\"","standardised","unstandardised")) %>%
+  mutate(Environment = ifelse(Environment=="wheat competition","Wheat","Control"),
+         Parental.effects.status = ifelse(Parental.effects.status == "'\"standardised\"","Standardised","Unstandardised")) %>%
   select(c("RNAseq.sample.name","Species","Parental.effects.status","Environment","Domesticated")) %>%
   'colnames<-'(c("sample","species","parental.effects","treatment","domesticated")) %>%
   mutate_all(as.factor)
+
+data.meta = mutate(data.meta, 
+                   treatment = fct_relevel(treatment, c("Control","Wheat")),
+                   domesticated = fct_relevel(domesticated, c("Wild","Cultivated")))
+
 
 #subset by genus
 metadata.brass = subset(data.meta, substr(species,1,3)=="Bra")
@@ -21,12 +26,27 @@ raph.gene.counts = read.csv("/home/benjamin/Documents/Brassicas_repo/Data/RNAseq
 
 #filter by expression
 raph.gene.counts.clean = raph.gene.counts[(which(rowMeans(raph.gene.counts)>=1)),]
-paste0(nrow(raph.gene.counts)-nrow(raph.gene.counts.clean),"/",nrow(raph.gene.counts)," Raphanus counts filtered due to low expression.")
+paste0(nrow(raph.gene.counts)-nrow(raph.gene.counts.clean),"/",nrow(raph.gene.counts)," Raphanus genes filtered due to very low expression.")
+
+#an additional filter- remove genes that have too many 0 counts
+paste0("Removing an additional ",nrow(raph.gene.counts.clean[rowSums(raph.gene.counts.clean >= 5) < 3,])," genes with many low counts.")
+raph.gene.counts.clean = raph.gene.counts.clean[rowSums(raph.gene.counts.clean >= 5) >= 3,]
 
 #check that metadata and count matrices conform
 table(metadata.raph$sample %in% colnames(raph.gene.counts.clean))
 raph.gene.counts.clean = raph.gene.counts.clean[,as.character(metadata.raph$sample)]
 
+#next step is to check for genes with parental effects and exclude these
+dds.parental = DESeqDataSetFromMatrix(countData = raph.gene.counts.clean,
+                                      colData = metadata.raph,
+                                      design = as.formula(~parental.effects))
+dds.parental.deg = DESeq(dds.parental, fitType = "local", betaPrior = FALSE)
+parental.degs = results(dds.parental.deg)
+#very few genes have even a hint of parental effect, so let's just drop these
+table(parental.degs$padj<0.1)
+raph.gene.counts.clean = raph.gene.counts.clean[rownames(subset(parental.degs, padj>=0.1)),]
+
+#now run proper model
 dds.gene = DESeqDataSetFromMatrix(countData = raph.gene.counts.clean,
                                   colData = metadata.raph,
                                   design = as.formula(~treatment+domesticated+treatment*domesticated))
@@ -43,6 +63,30 @@ plotDispEsts(dds.gene.deg)
 
 #check effectof a parametric rather than local fit
 parametric.gene.deg = DESeq(dds.gene, fitType = "parametric", betaPrior = FALSE)
-plotDispEsts(parametric.gene.deg)
+plotDispEsts(parametric.gene.deg) 
+# parametric seems to follow the data better so let's go with that
+dds.gene.deg = parametric.gene.deg
 
-#SHOULD ADD ADDITIONAL FILTER TO REMOVE GENES WITH A SINGLE HIGH VALUE AND ALL ZEROS OTHERWISE
+resultsNames(dds.gene.deg)
+
+#wheat vs control
+comparison = results(dds.gene.deg, 
+                     name="treatment_Wheat_vs_Control",     
+                     alpha = 0.05,
+                     lfcThreshold = log2(2))
+summary(comparison)
+
+#cultivated vs wild
+comparison = results(dds.gene.deg, 
+                     name="domesticated_Cultivated_vs_Wild",     
+                     alpha = 0.05,
+                     lfcThreshold = log2(2))
+summary(comparison)
+
+#cultivated vs wild
+comparison = results(dds.gene.deg, 
+                     name="treatmentWheat.domesticatedCultivated",     
+                     alpha = 0.05,
+                     lfcThreshold = log2(2))
+summary(comparison)
+
