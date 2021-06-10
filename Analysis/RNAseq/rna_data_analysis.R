@@ -3,7 +3,10 @@ library("tidyverse")
 
 setwd("/home/benjamin/Documents/Brassicas_repo")
 
-#oull relevant metadata
+#import functions
+source("Functions/expression_heatmap.R")
+
+#pull relevant metadata
 data.meta = read.csv("/home/benjamin/Documents/Brassicas_repo/Data/RNAseq/RNASeq_sample_info.csv") %>%
   mutate(Domesticated = ifelse(Wild..Domesticated=="Wild","Wild","Cultivated")) %>%
   mutate(Environment = ifelse(Environment=="wheat competition","Wheat","Control"),
@@ -35,6 +38,48 @@ raph.gene.counts.clean = raph.gene.counts.clean[rowSums(raph.gene.counts.clean >
 #check that metadata and count matrices conform
 table(metadata.raph$sample %in% colnames(raph.gene.counts.clean))
 raph.gene.counts.clean = raph.gene.counts.clean[,as.character(metadata.raph$sample)]
+
+#some basic QC: heatmaps and pca
+# heatMap = expression.heatmap(countdata = sample_n(raph.gene.counts.clean,5000), 
+#                              data.phenotype = metadata.raph,
+#                              labels = c("parental.effects",
+#                                         "treatment",
+#                                         "domesticated"),
+#                              pass_on = F,
+#                              ID_var = "sample")
+
+# # log-transform with a pseudocount
+# pca.counts = log2(raph.gene.counts.clean+1)
+# #create pca object
+# data.pca = prcomp(t(pca.counts))
+# #extract PC data
+# percent.var = (data.pca$sdev^2 / sum(data.pca$sdev^2))
+# pca.out = list(values = data.frame(data.pca$x),
+#                percent.var = percent.var)
+# #connect to phenotypic data
+# ggpcadata = pca.out$values %>% 
+#   rownames_to_column(var = "sample") %>%
+#   left_join(metadata.raph,
+#             by = "sample")
+# #plot
+# ggplot(ggpcadata, aes(x = PC1, y = PC2, color = domesticated, shape = treatment, label = sample)) +
+#   geom_point(size = 5, position = position_jitter(width = 0.5,height=0.5)) +
+#   #geom_text(vjust = -1) +
+#   xlab(paste0("PC",1,": ",signif(pca.out$percent.var[1]*100, 3),"%")) +
+#   ylab(paste0("PC",2,": ",signif(pca.out$percent.var[2]*100, 3),"%")) +
+#   theme_bw() +
+#   # scale_color_manual(name = "Treatment",
+#   #                    values = brewer.pal(7, "Paired")) +
+#   scale_shape_manual(name = "Treatment",
+#                      values = c(8,15:20)) +
+#   theme(panel.grid = element_line(color = "grey95"),
+#         legend.title = element_text(face = "bold"),
+#         axis.text.x = element_text(size = 11),
+#         axis.text.y = element_text(size = 11),
+#         axis.title = element_text(face = "bold", size =12))
+
+
+
 
 #next step is to check for genes with parental effects and exclude these
 dds.parental = DESeqDataSetFromMatrix(countData = raph.gene.counts.clean,
