@@ -79,8 +79,6 @@ raph.gene.counts.clean = raph.gene.counts.clean[,as.character(metadata.raph$samp
 #         axis.title = element_text(face = "bold", size =12))
 
 
-
-
 #next step is to check for genes with parental effects and exclude these
 dds.parental = DESeqDataSetFromMatrix(countData = raph.gene.counts.clean,
                                       colData = metadata.raph,
@@ -88,8 +86,9 @@ dds.parental = DESeqDataSetFromMatrix(countData = raph.gene.counts.clean,
 dds.parental.deg = DESeq(dds.parental, fitType = "local", betaPrior = FALSE)
 parental.degs = results(dds.parental.deg)
 #very few genes have even a hint of parental effect, so let's just drop these
-table(parental.degs$padj<0.1)
-raph.gene.counts.clean = raph.gene.counts.clean[rownames(subset(parental.degs, padj>=0.1)),]
+print(paste0("Number of genes with parental effects at p<0.1: ",length(which(parental.degs$padj<0.1)),"/",nrow(parental.degs)))
+parental.degs.ids = rownames(subset(parental.degs, padj<=0.1))
+#raph.gene.counts.clean = raph.gene.counts.clean[rownames(subset(parental.degs, padj>=0.1)),]
 
 #now run proper model
 dds.gene = DESeqDataSetFromMatrix(countData = raph.gene.counts.clean,
@@ -118,20 +117,283 @@ resultsNames(dds.gene.deg)
 comparison = results(dds.gene.deg, 
                      name="treatment_Wheat_vs_Control",     
                      alpha = 0.05,
-                     lfcThreshold = log2(2))
+                     lfcThreshold = log2(1))
 summary(comparison)
+#1 of these degs is shared with parental degs
+table(row.names(subset(comparison,padj<0.05))%in%parental.degs.ids)
 
 #cultivated vs wild
 comparison = results(dds.gene.deg, 
                      name="domesticated_Cultivated_vs_Wild",     
                      alpha = 0.05,
-                     lfcThreshold = log2(2))
+                     lfcThreshold = log2(1))
 summary(comparison)
+#12 of these degs is shared with parental degs
+table(row.names(subset(comparison,padj<0.05))%in%parental.degs.ids)
 
 #cultivated vs wild
 comparison = results(dds.gene.deg, 
                      name="treatmentWheat.domesticatedCultivated",     
                      alpha = 0.05,
-                     lfcThreshold = log2(2))
+                     lfcThreshold = log2(1))
 summary(comparison)
+#1 of these degs is shared with parental degs
+table(row.names(subset(comparison,padj<0.05))%in%parental.degs.ids)
 
+
+
+
+####### wgcna
+
+# Perform filtering- we apply a more stringent filtering process here, because WGCNA benefits from cleaner data
+# Here we remove any samples that don't have at least 5 counts in at least ~90% of samples
+#SHOULD REALLY DO THIS ON COMPLETE DATA BEFORE SUBSETTING, ASSUMING WE WISH TO RUN THROUGH BRASS AND RAPH IN THE SAME ANALYSIS 
+raph.gene.counts.clean.wgcna = raph.gene.counts.clean[rowSums(raph.gene.counts.clean > 5) > (ncol(raph.gene.counts.clean)*0.9),]
+
+# We also normalize the data prior to subsetting
+data.gene.count.clean.normalize = data.gene.count.clean.normalize  %>% varianceStabilizingTransformation() %>% normalizeBetweenArrays()
+
+#subset data
+qrData = data.gene.count.clean.normalize[,colnames(data.gene.count.clean.normalize)%in%data.phenotype.clean.worker_qr$Novogene_ID]
+ctrlData = data.gene.count.clean.normalize[,colnames(data.gene.count.clean.normalize)%in%data.phenotype.clean.worker_ctrl$Novogene_ID]
+queenData = data.gene.count.clean.normalize[,colnames(data.gene.count.clean.normalize)%in%data.phenotype.clean.queen$Novogene_ID]
+
+nSets = 3;
+
+# For easier labeling of plots, create a vector holding descriptive names of the two sets.
+setLabels = c("Worker qr","Worker ctrl","Queen")
+shortLabels = c("qr","ctrl","queen")
+multiExpr = vector(mode = "list", length = nSets)
+
+multiExpr[[1]] = list(data = as.data.frame(t(qrData)))
+names(multiExpr[[1]]$data) = rownames(qrData)
+rownames(multiExpr[[1]]$data) = colnames(qrData)
+
+multiExpr[[2]] = list(data = as.data.frame(t(ctrlData)))
+names(multiExpr[[2]]$data) = rownames(ctrlData)
+rownames(multiExpr[[2]]$data) = colnames(ctrlData)
+
+multiExpr[[3]] = list(data = as.data.frame(t(queenData)))
+names(multiExpr[[3]]$data) = rownames(queenData)
+rownames(multiExpr[[3]]$data) = colnames(queenData)
+
+exprSize = checkSets(multiExpr)
+
+gsg = goodSamplesGenesMS(multiExpr, verbose = 3);
+gsg$allOK
+
+#cut genes without enough reads 
+if (!gsg$allOK){
+  # Print information about the removed genes:
+  if (sum(!gsg$goodGenes) > 0)
+    printFlush(paste("Removing genes:", paste(names(multiExpr[[1]]$data)[!gsg$goodGenes],
+                                              collapse = ", ")))
+  for (set in 1:exprSize$nSets)
+  {
+    
+    if (sum(!gsg$goodSamples[[set]]))
+      printFlush(paste("In set", setLabels[set], "removing samples",
+                       paste(rownames(multiExpr[[set]]$data)[!gsg$goodSamples[[set]]], collapse = ", ")))
+    # Remove the offending genes and samples
+    multiExpr[[set]]$data = multiExpr[[set]]$data[gsg$goodSamples[[set]], gsg$goodGenes];
+  }
+  # Update exprSize
+  exprSize = checkSets(multiExpr)
+}
+
+#cluster samples by euclidean distance (separately in each set)
+sampleTrees = list()
+for (set in 1:nSets){
+  sampleTrees[[set]] = hclust(dist(multiExpr[[set]]$data), method = "average")
+}
+
+# par(mfrow=c(nSets,1))
+# par(mar = c(0, 4, 2, 0))
+# for (set in 1:nSets){
+#   plot(sampleTrees[[set]], main = paste("Sample clustering on all genes in", setLabels[set]),
+#        xlab="", sub="", cex = 0.7)
+# }
+
+
+# Choose the "base" cut height for the female data set
+baseHeight = 48
+# Adjust the cut height for the male data set for the number of samples
+#cutHeights = c(baseHeight, baseHeight*exprSize$nSamples[2]/exprSize$nSamples[1], baseHeight*exprSize$nSamples[3]/exprSize$nSamples[1]);
+cutHeights = c(baseHeight,baseHeight,baseHeight)
+# Choose the "base" cut height for the female data set
+# Re-plot the dendrograms including the cut lines
+# #pdf(file = "Plots/SampleClustering.pdf", width = 12, height = 12);
+# par(mfrow=c(nSets,1))
+# par(mar = c(0, 4, 2, 0))
+# for(set in 1:nSets){
+#   plot(sampleTrees[[set]], main = paste("Sample clustering on all genes in", setLabels[set]),
+#        xlab="", sub="", cex = 0.7);
+#   abline(h=cutHeights[set], col = "red");
+# }
+
+#cut outlier samples
+for (set in 1:nSets){
+  # Find clusters cut by the line
+  labels = cutreeStatic(sampleTrees[[set]], cutHeight = cutHeights[set], minSize = 10)
+  # Keep the largest one (labeled by the number 1)
+  keep = (labels==1)
+  print(labels)
+  multiExpr[[set]]$data = multiExpr[[set]]$data[keep, ]
+}
+# Check the size of the leftover data
+exprSize = checkSets(multiExpr)
+exprSize
+
+#attach phenotypic data
+allTraits = dplyr::select(data.phenotype.clean, -c("BORIS_ID",
+                                                   "treatment",
+                                                   "finalrole",
+                                                   "nest",
+                                                   "agnosticrole"))
+
+foobqueen = lm(queenness~age, data = allTraits, na.action = na.exclude)
+foobelo = lm(elo~age, data = allTraits, na.action = na.exclude)
+foobova = lm(ovaries~age, data = allTraits, na.action = na.exclude)
+
+allTraits = mutate(allTraits, 
+                   queenAgeResiduals = resid(foobqueen),
+                   eloAgeResiduals = resid(foobelo),
+                   ovariesAgeResiduals = resid(foobova))
+
+# Form a multi-set structure that will hold the clinical traits.
+Traits = vector(mode="list", length = nSets)
+for (set in 1:nSets){
+  setSamples = rownames(multiExpr[[set]]$data)
+  traitRows = match(setSamples, allTraits$Novogene_ID)
+  Traits[[set]] = list(data = allTraits[traitRows,])
+  rownames(Traits[[set]]$data) = allTraits[traitRows, 1]
+}
+collectGarbage();
+# Define data set dimensions
+nGenes = exprSize$nGenes;
+nSamples = exprSize$nSamples;
+
+# Choose a set of soft-thresholding powers
+powers = c(seq(4,10,by=1), seq(12,20, by=2));
+# Initialize a list to hold the results of scale-free analysis
+powerTables = vector(mode = "list", length = nSets);
+# Call the network topology analysis function for each set in turn
+for (set in 1:nSets){
+  powerTables[[set]] = list(data = pickSoftThreshold(multiExpr[[set]]$data, powerVector=powers, networkType="signed",
+                                                     verbose = 2)[[2]])
+}
+
+# Plot the results:
+colors = c("black", "red")
+# Will plot these columns of the returned scale free analysis tables
+plotCols = c(2,5,6,7)
+colNames = c("Scale Free Topology Model Fit", "Mean connectivity", "Median connectivity",
+             "Max connectivity");
+# Get the minima and maxima of the plotted points
+ylim = matrix(NA, nrow = 2, ncol = 4);
+for (set in 1:nSets){
+  for (col in 1:length(plotCols)){
+    ylim[1, col] = min(ylim[1, col], powerTables[[set]]$data[, plotCols[col]], na.rm = TRUE);
+    ylim[2, col] = max(ylim[2, col], powerTables[[set]]$data[, plotCols[col]], na.rm = TRUE);
+  }
+}
+# Plot the quantities in the chosen columns vs. the soft thresholding power
+sizeGrWindow(8, 6)
+pdf(file = "/home/benjamin/Dropbox/Ben PhD/Chapter_2_Manuscript/figures/softpowerplots.pdf", width = 18/2.54, height = 14/2.54)
+par(mfcol = c(2,2));
+par(mar = c(2.2, 2.2, 2.2, 2.2))
+cex1 = 1;
+for (col in 1:length(plotCols)) for (set in 1:nSets)
+{
+  if (set==1){
+    plot(powerTables[[set]]$data[,1], -sign(powerTables[[set]]$data[,3])*powerTables[[set]]$data[,2],
+         xlab="Soft Threshold (power)",ylab=colNames[col],type="n", ylim = ylim[, col],
+         main = colNames[col]);
+    addGrid();
+  }
+  if (col==1)
+  {
+    text(powerTables[[set]]$data[,1], -sign(powerTables[[set]]$data[,3])*powerTables[[set]]$data[,2],
+         labels=powers,cex=cex1,col=colors[set]);
+  } else
+    text(powerTables[[set]]$data[,1], powerTables[[set]]$data[,plotCols[col]],
+         labels=powers,cex=cex1,col=colors[set]);
+  if (col==1)
+  {
+    legend("bottomright", legend = setLabels, col = colors, pch = 20) ;
+  } else
+    legend("topright", legend = setLabels, col = colors, pch = 20) ;
+}
+dev.off()
+
+softPower = 9;
+# Initialize an appropriate array to hold the adjacencies
+adjacencies = array(0, dim = c(nSets, nGenes, nGenes));
+# Calculate adjacencies in each individual data set
+for (set in 1:nSets){
+  #adjacencies[set, , ] = abs(cor(multiExpr[[set]]$data, use = "p"))^softPower
+  adjacencies[set, , ] = adjacency(multiExpr[[set]]$data, power = softPower, type = "signed")
+}
+
+# Scaling of Topological Overlap Matrices to make them comparable across sets
+
+# # Initialize an appropriate array to hold the TOMs
+# TOM = array(0, dim = c(nSets, nGenes, nGenes));
+# # Calculate TOMs in each individual data set
+# for (set in 1:nSets){
+#   TOM[set, , ] = TOMsimilarity(adjacencies[set, , ])
+# }
+
+#calculating TOMs is very slow, so here we just load the output of a pre-performed analysis directly
+load("/home/benjamin/Desktop/Pdom_TOM.RData")
+
+#get TOM dissimilarities
+dissTOM = 1-pmin(TOM[1,,])
+
+##### Clustering and module identification
+# Clustering
+consTree = hclust(as.dist(dissTOM), method = "average");
+# We like large modules, so we set the minimum module size relatively high:
+minModuleSize = 30;
+# Module identification using dynamic tree cut:
+unmergedLabels = cutreeDynamic(dendro = consTree, distM = dissTOM,
+                               deepSplit = 2, cutHeight = 0.995,
+                               minClusterSize = minModuleSize,
+                               pamRespectsDendro = FALSE );
+unmergedColors = labels2colors(unmergedLabels)
+
+# sizeGrWindow(8,6)
+# plotDendroAndColors(consTree, unmergedColors, "Dynamic Tree Cut",
+#                     dendroLabels = FALSE, hang = 0.03,
+#                     addGuide = TRUE, guideHang = 0.05)
+
+###### merge highly co-expressed modules
+# Calculate module eigengenes
+unmergedMEs = multiSetMEs(multiExpr, colors = NULL, universalColors = unmergedColors)
+# Calculate consensus dissimilarity of consensus module eigengenes
+consMEDiss = consensusMEDissimilarity(unmergedMEs);
+# Cluster consensus modules
+consMETree = hclust(as.dist(consMEDiss), method = "average");
+
+# plot(consMETree, main = "Consensus clustering of consensus module eigengenes",
+#      xlab = "", sub = "")
+# abline(h=0.1, col = "red")
+
+merge = mergeCloseModules(multiExpr, unmergedLabels, cutHeight = 0.25, verbose = 3)
+
+# Numeric module labels
+moduleLabels = merge$colors;
+# Convert labels to colors
+moduleColors = labels2colors(moduleLabels)
+# Eigengenes of the new merged modules:
+consMEs = merge$newMEs
+
+sizeGrWindow(8, 6)
+pdf(file = "/home/benjamin/Dropbox/Ben PhD/Chapter_2_Manuscript/figures/dendrogram_merged.pdf", wi = 18/2.54, he = 12/2.54)
+par(mfcol = c(1,1));
+par(mar = c(3.2, 3.2 , 3.2, 3.2))
+plotDendroAndColors(consTree, cbind(unmergedColors, moduleColors),
+                    c("Unmerged", "Merged"),
+                    dendroLabels = FALSE, hang = 0.03,
+                    addGuide = TRUE, guideHang = 0.05)
+dev.off()
