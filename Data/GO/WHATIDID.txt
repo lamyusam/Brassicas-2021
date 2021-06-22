@@ -1,0 +1,3 @@
+#get arabadopsis annotations (last performed 15/06/2021)
+wget http://current.geneontology.org/annotations/tair.gaf.gz
+gunzip tair.gaf.gz
