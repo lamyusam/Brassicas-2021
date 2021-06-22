@@ -1,3 +1,12 @@
 #get arabadopsis annotations (last performed 15/06/2021)
 wget http://current.geneontology.org/annotations/tair.gaf.gz
 gunzip tair.gaf.gz
+#narrow down to just gene names and GO terms
+grep TAIR tair.gaf | cut -d ' ' -f 3,5 | sed '1d' | uniq > arabid_gene2GO.tsv 
+
+#extract gene to transcript IDs from arabidopsis gtf
+wget https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/001/735/GCF_000001735.4_TAIR10.1/GCF_000001735.4_TAIR10.1_genomic.gtf.gz
+gunzip GCF_000001735.4_TAIR10.1_genomic.gtf.gz
+#grep -v "#" GCF_000001735.4_TAIR10.1_genomic.gtf | awk '$3=="exon"' | cut -d ';' -f 1,2 |  sed  's/.*gene_id/gene_id/'  | sed 's/transcript_id//g' | sed 's/gene_id//g'  | sed 's/;/\t/g' | uniq > arabid_gene2transcript.tsv
+grep -v "#" GCF_000001735.4_TAIR10.1_genomic.gtf  | grep -o 'transcript_id.*gene "[^"]*"' | sed 's/;.*; gene//' | sed 's/transcript_id //' | uniq > arabid_transcript2gene.tsv
+
