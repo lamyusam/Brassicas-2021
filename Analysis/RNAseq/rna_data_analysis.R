@@ -5,6 +5,7 @@ setwd("/home/benjamin/Documents/Brassicas_repo")
 
 #import functions
 source("Functions/expression_heatmap.R")
+source("Functions/topGO_wrapper.R")
 
 #pull relevant metadata
 data.meta = read.csv("/home/benjamin/Documents/Brassicas_repo/Data/RNAseq/RNASeq_sample_info.csv") %>%
@@ -89,6 +90,19 @@ parental.degs = results(dds.parental.deg)
 print(paste0("Number of genes with parental effects at p<0.1: ",length(which(parental.degs$padj<0.1)),"/",nrow(parental.degs)))
 parental.degs.ids = rownames(subset(parental.degs, padj<=0.1))
 #raph.gene.counts.clean = raph.gene.counts.clean[rownames(subset(parental.degs, padj>=0.1)),]
+#also check for parental deg GO terms 
+GOscores.parental = as.numeric(row.names(raph.gene.counts.clean)%in%parental.degs.ids) %>% 'names<-'(row.names(raph.gene.counts.clean))
+parentGO = topGO_wrapper(geneScores = GOscores.parental,
+                         geneScoresDE = F,
+                         geneScoresDirection = NA,
+                         GOmapping = GOmapping.raph,
+                         algorithm = "weight01",
+                         statistic = "fisher",
+                         nodeSize = 10,
+                         discretisedDE = F,
+                         p = 0.01)
+parentGO$consolidated_result
+#only 1 GO term: "plant-type vacuole membrane"
 
 #now run proper model
 dds.gene = DESeqDataSetFromMatrix(countData = raph.gene.counts.clean,
@@ -113,32 +127,109 @@ dds.gene.deg = parametric.gene.deg
 
 resultsNames(dds.gene.deg)
 
+
+
 #wheat vs control
-comparison = results(dds.gene.deg, 
-                     name="treatment_Wheat_vs_Control",     
-                     alpha = 0.05,
-                     lfcThreshold = log2(1))
-summary(comparison)
+degs.raph.treatment = results(dds.gene.deg, 
+                              name="treatment_Wheat_vs_Control",     
+                              alpha = 0.05,
+                              lfcThreshold = log2(1))
+summary(degs.raph.treatment) #126 DEGs
+degs.raph.treatment.ids = rownames(subset(degs.raph.treatment, padj<=0.05))
 #1 of these degs is shared with parental degs
-table(row.names(subset(comparison,padj<0.05))%in%parental.degs.ids)
+table(degs.raph.treatment.ids%in%parental.degs.ids)
+#also check for parental deg GO terms 
+GOscores.raph.treatment = as.numeric(row.names(raph.gene.counts.clean)%in%degs.raph.treatment.ids) %>% 'names<-'(row.names(raph.gene.counts.clean))
+raph.treatment.GO = topGO_wrapper(geneScores = GOscores.raph.treatment,
+                         geneScoresDE = F,
+                         geneScoresDirection = NA,
+                         GOmapping = GOmapping.raph,
+                         algorithm = "weight01",
+                         statistic = "fisher",
+                         nodeSize = 10,
+                         discretisedDE = F,
+                         p = 0.05)
+raph.treatment.GO$consolidated_result
+#25 GO terms: mostly metabolic but also a couple defensive against fungus e.g. "defense response to fungus" and "response to chitin"
+#"also response to cold" and "response to water deprivation"
+
 
 #cultivated vs wild
-comparison = results(dds.gene.deg, 
-                     name="domesticated_Cultivated_vs_Wild",     
-                     alpha = 0.05,
-                     lfcThreshold = log2(1))
-summary(comparison)
+degs.raph.cultivated = results(dds.gene.deg, 
+                               name="domesticated_Cultivated_vs_Wild",     
+                               alpha = 0.05,
+                               lfcThreshold = log2(1))
+summary(degs.raph.cultivated) #~1500 degs
+degs.raph.cultivated.ids = rownames(subset(degs.raph.cultivated, padj<=0.05))
 #12 of these degs is shared with parental degs
-table(row.names(subset(comparison,padj<0.05))%in%parental.degs.ids)
+table(degs.raph.cultivated.ids%in%parental.degs.ids)
+#also check for parental deg GO terms 
+GOscores.raph.cultivated = as.numeric(row.names(raph.gene.counts.clean)%in%degs.raph.cultivated.ids) %>% 'names<-'(row.names(raph.gene.counts.clean))
+raph.cultivated.GO = topGO_wrapper(geneScores = GOscores.raph.cultivated,
+                                  geneScoresDE = F,
+                                  geneScoresDirection = NA,
+                                  GOmapping = GOmapping.raph,
+                                  algorithm = "weight01",
+                                  statistic = "fisher",
+                                  nodeSize = 10,
+                                  discretisedDE = F,
+                                  p = 0.05)
+raph.cultivated.GO$consolidated_result
+#36 GO terms: mostly metabolic and developmental but also a couple defensive against fungus, 
+#also epigenetic "histone binding" and "histone methylation", reproduction response to wounding, seed development, carpel development
+
+
+
 
 #cultivated vs wild
-comparison = results(dds.gene.deg, 
-                     name="treatmentWheat.domesticatedCultivated",     
-                     alpha = 0.05,
-                     lfcThreshold = log2(1))
-summary(comparison)
+degs.raph.interaction = results(dds.gene.deg, 
+                                name="treatmentWheat.domesticatedCultivated",     
+                                alpha = 0.05,
+                                lfcThreshold = log2(1))
+summary(degs.raph.interaction) #96 degs
+degs.raph.interaction.ids = rownames(subset(degs.raph.interaction, padj<=0.05))
 #1 of these degs is shared with parental degs
-table(row.names(subset(comparison,padj<0.05))%in%parental.degs.ids)
+table(degs.raph.interaction.ids%in%parental.degs.ids)
+#also check for parental deg GO terms 
+GOscores.raph.interaction = as.numeric(row.names(raph.gene.counts.clean)%in%degs.raph.interaction.ids) %>% 'names<-'(row.names(raph.gene.counts.clean))
+raph.interaction.GO = topGO_wrapper(geneScores = GOscores.raph.interaction,
+                                   geneScoresDE = F,
+                                   geneScoresDirection = NA,
+                                   GOmapping = GOmapping.raph,
+                                   algorithm = "weight01",
+                                   statistic = "fisher",
+                                   nodeSize = 10,
+                                   discretisedDE = F,
+                                   p = 0.05)
+raph.interaction.GO$consolidated_result
+#26 GO terms: many epigenetic "histone binding" and "histone methylation", "chromatin binding", "regulation of histone modification"
+#several response to sugar (fructose, glucose, sucrose), many developmental
+#for the interaction terms, we also plot the output to understand what exactly is going on
+#get the 12 terms with lowest padj
+degs.raph.interaction.signif = subset(degs.raph.interaction, padj<0.05)
+interestgenes = row.names(degs.raph.interaction.signif)[order(degs.raph.interaction.signif$log2FoldChange,decreasing = T)[1:12]]
+#for each gene, extract the counts for plotting and label by gene
+for(i in 1:length(interestgenes)){
+  #if first element, instantiate frame, otherwise rbind to frame
+  if(i==1) {
+    raph.intplotdata = plotCounts(dds.gene.deg, gene=interestgenes[i], intgroup=c("domesticated","treatment"), returnData = T)
+    raph.intplotdata$gene = interestgenes[i]
+  } else {
+    addrows = data.frame(plotCounts(dds.gene.deg, gene=interestgenes[i], intgroup=c("domesticated","treatment"), returnData = T), 
+                         gene = interestgenes[i])
+    raph.intplotdata = rbind(raph.intplotdata, addrows)
+    }
+}
+#plot with ggplot facet wrap
+ggplot(raph.intplotdata, aes(x = treatment, y = count)) +
+  stat_summary(aes(group = domesticated), fun.y = mean, geom = "path") +
+  stat_summary(aes(color = domesticated), fun.data = mean_cl_boot, geom = "errorbar", width = 0.1) +
+  stat_summary(aes(color = domesticated), fun.y = mean, geom = "point", size = 4) +
+  geom_point(aes(color = domesticated), size = 2) +
+  facet_wrap(~gene, scales = "free")
+
+
+
 
 
 
