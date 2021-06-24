@@ -1,5 +1,7 @@
 library("DESeq2")
 library("tidyverse")
+library("WGCNA")
+library("RColorBrewer")
 
 setwd("/home/benjamin/Documents/Brassicas_repo")
 
@@ -100,9 +102,9 @@ parentGO = topGO_wrapper(geneScores = GOscores.parental,
                          statistic = "fisher",
                          nodeSize = 10,
                          discretisedDE = F,
-                         p = 0.01)
+                         p = 0.05)
 parentGO$consolidated_result
-#only 1 GO term: "plant-type vacuole membrane"
+#only 12 GO terms, with no clear interesting trend
 
 #now run proper model
 dds.gene = DESeqDataSetFromMatrix(countData = raph.gene.counts.clean,
@@ -139,20 +141,32 @@ degs.raph.treatment.ids = rownames(subset(degs.raph.treatment, padj<=0.05))
 #1 of these degs is shared with parental degs
 table(degs.raph.treatment.ids%in%parental.degs.ids)
 #also check for parental deg GO terms 
-GOscores.raph.treatment = as.numeric(row.names(raph.gene.counts.clean)%in%degs.raph.treatment.ids) %>% 'names<-'(row.names(raph.gene.counts.clean))
-raph.treatment.GO = topGO_wrapper(geneScores = GOscores.raph.treatment,
-                         geneScoresDE = F,
-                         geneScoresDirection = NA,
+#GOscores.raph.treatment = as.numeric(row.names(raph.gene.counts.clean)%in%degs.raph.treatment.ids) %>% 'names<-'(row.names(raph.gene.counts.clean))
+#terms up:
+raph.treatment.GO.up = topGO_wrapper(geneScores = degs.raph.treatment,
+                         geneScoresDE = T,
+                         geneScoresDirection = "Up",
                          GOmapping = GOmapping.raph,
                          algorithm = "weight01",
                          statistic = "fisher",
                          nodeSize = 10,
-                         discretisedDE = F,
+                         discretisedDE = T,
                          p = 0.05)
-raph.treatment.GO$consolidated_result
-#25 GO terms: mostly metabolic but also a couple defensive against fungus e.g. "defense response to fungus" and "response to chitin"
-#"also response to cold" and "response to water deprivation"
-
+raph.treatment.GO.up$consolidated_result
+#21 GO terms up, inc. histone binding, chromatin binding, 'response to chitin', response to salt stress, 
+#response to sucrose, response to glucose, plant ovule development, regulation of flower development, telomere maintenance
+#terms down:
+raph.treatment.GO.down = topGO_wrapper(geneScores = degs.raph.treatment,
+                                     geneScoresDE = T,
+                                     geneScoresDirection = "Down",
+                                     GOmapping = GOmapping.raph,
+                                     algorithm = "weight01",
+                                     statistic = "fisher",
+                                     nodeSize = 10,
+                                     discretisedDE = T,
+                                     p = 0.05)
+raph.treatment.GO.down$consolidated_result
+#19 Go terms down, inc. cold acclimation, response to cold, response to chitin, response to water deprivation, response to ozone 
 
 #cultivated vs wild
 degs.raph.cultivated = results(dds.gene.deg, 
@@ -164,24 +178,34 @@ degs.raph.cultivated.ids = rownames(subset(degs.raph.cultivated, padj<=0.05))
 #12 of these degs is shared with parental degs
 table(degs.raph.cultivated.ids%in%parental.degs.ids)
 #also check for parental deg GO terms 
-GOscores.raph.cultivated = as.numeric(row.names(raph.gene.counts.clean)%in%degs.raph.cultivated.ids) %>% 'names<-'(row.names(raph.gene.counts.clean))
-raph.cultivated.GO = topGO_wrapper(geneScores = GOscores.raph.cultivated,
-                                  geneScoresDE = F,
-                                  geneScoresDirection = NA,
+#GOscores.raph.cultivated = as.numeric(row.names(raph.gene.counts.clean)%in%degs.raph.cultivated.ids) %>% 'names<-'(row.names(raph.gene.counts.clean))
+raph.cultivated.GO.up = topGO_wrapper(geneScores = degs.raph.cultivated,
+                                  geneScoresDE = T,
+                                  geneScoresDirection = "Up",
                                   GOmapping = GOmapping.raph,
                                   algorithm = "weight01",
                                   statistic = "fisher",
                                   nodeSize = 10,
-                                  discretisedDE = F,
+                                  discretisedDE = T,
                                   p = 0.05)
-raph.cultivated.GO$consolidated_result
-#36 GO terms: mostly metabolic and developmental but also a couple defensive against fungus, 
-#also epigenetic "histone binding" and "histone methylation", reproduction response to wounding, seed development, carpel development
+raph.cultivated.GO.up$consolidated_result
+#33 GO terms up: mostly metabolic and developmental but also response to cold, chromatin assembly, aging, 
+#leaf  senescence, regulation of chromatin organization
+raph.cultivated.GO.down = topGO_wrapper(geneScores = degs.raph.cultivated,
+                                      geneScoresDE = T,
+                                      geneScoresDirection = "Down",
+                                      GOmapping = GOmapping.raph,
+                                      algorithm = "weight01",
+                                      statistic = "fisher",
+                                      nodeSize = 10,
+                                      discretisedDE = T,
+                                      p = 0.05)
+raph.cultivated.GO.down$consolidated_result
+#57 down: heavy on the chloroplasts, 'choroplast','chloroplast envelope','photorespriartion','response to chitin', 'response to chitin',
+#'response to woudning', lots and lots of biosynthetic processes
 
 
-
-
-#cultivated vs wild
+#interaction
 degs.raph.interaction = results(dds.gene.deg, 
                                 name="treatmentWheat.domesticatedCultivated",     
                                 alpha = 0.05,
@@ -221,17 +245,18 @@ for(i in 1:length(interestgenes)){
     }
 }
 #plot with ggplot facet wrap
-ggplot(raph.intplotdata, aes(x = treatment, y = count)) +
-  stat_summary(aes(group = domesticated), fun.y = mean, geom = "path") +
+raph.intplot= ggplot(raph.intplotdata, aes(x = treatment, y = count)) +
+  stat_summary(aes(group = domesticated), fun = mean, geom = "path") +
   stat_summary(aes(color = domesticated), fun.data = mean_cl_boot, geom = "errorbar", width = 0.1) +
-  stat_summary(aes(color = domesticated), fun.y = mean, geom = "point", size = 4) +
+  stat_summary(aes(color = domesticated), fun = mean, geom = "point", size = 4) +
   geom_point(aes(color = domesticated), size = 2) +
+  scale_color_manual(values = brewer.pal(6,"Set3")[c(5,6)]) +
   facet_wrap(~gene, scales = "free")
 
-
-
-
-
+ggsave(raph.intplot, 
+       filename = "raphanus_interaction_deg_plots.png",
+       device = "png", path = "Analysis/RNAseq/Images/",
+       width =  40, height = 25, units = "cm")
 
 
 ####### wgcna
@@ -239,34 +264,29 @@ ggplot(raph.intplotdata, aes(x = treatment, y = count)) +
 # Perform filtering- we apply a more stringent filtering process here, because WGCNA benefits from cleaner data
 # Here we remove any samples that don't have at least 5 counts in at least ~90% of samples
 #SHOULD REALLY DO THIS ON COMPLETE DATA BEFORE SUBSETTING, ASSUMING WE WISH TO RUN THROUGH BRASS AND RAPH IN THE SAME ANALYSIS 
-raph.gene.counts.clean.wgcna = raph.gene.counts.clean[rowSums(raph.gene.counts.clean > 5) > (ncol(raph.gene.counts.clean)*0.9),]
+raph.gene.count.clean.wgcna = raph.gene.counts.clean[rowSums(raph.gene.counts.clean > 5) > (ncol(raph.gene.counts.clean)*0.9),]
 
 # We also normalize the data prior to subsetting
-data.gene.count.clean.normalize = data.gene.count.clean.normalize  %>% varianceStabilizingTransformation() %>% normalizeBetweenArrays()
+raph.gene.count.clean.wgcna = as.matrix(raph.gene.count.clean.wgcna)  %>% 
+  varianceStabilizingTransformation() %>% limma::normalizeBetweenArrays()
 
 #subset data
-qrData = data.gene.count.clean.normalize[,colnames(data.gene.count.clean.normalize)%in%data.phenotype.clean.worker_qr$Novogene_ID]
-ctrlData = data.gene.count.clean.normalize[,colnames(data.gene.count.clean.normalize)%in%data.phenotype.clean.worker_ctrl$Novogene_ID]
-queenData = data.gene.count.clean.normalize[,colnames(data.gene.count.clean.normalize)%in%data.phenotype.clean.queen$Novogene_ID]
-
-nSets = 3;
+wildData = raph.gene.count.clean.wgcna[,colnames(raph.gene.count.clean.wgcna)%in%subset(metadata.raph,domesticated=="Wild")$sample]
+domesticatedData = raph.gene.count.clean.wgcna[,colnames(raph.gene.count.clean.wgcna)%in%subset(metadata.raph,domesticated=="Cultivated")$sample]
+nSets = 2;
 
 # For easier labeling of plots, create a vector holding descriptive names of the two sets.
-setLabels = c("Worker qr","Worker ctrl","Queen")
-shortLabels = c("qr","ctrl","queen")
+setLabels = c("Wild","Domesticated")
+shortLabels = c("wild","domestic")
 multiExpr = vector(mode = "list", length = nSets)
 
-multiExpr[[1]] = list(data = as.data.frame(t(qrData)))
-names(multiExpr[[1]]$data) = rownames(qrData)
-rownames(multiExpr[[1]]$data) = colnames(qrData)
+multiExpr[[1]] = list(data = as.data.frame(t(wildData)))
+names(multiExpr[[1]]$data) = rownames(wildData)
+rownames(multiExpr[[1]]$data) = colnames(wildData)
 
-multiExpr[[2]] = list(data = as.data.frame(t(ctrlData)))
-names(multiExpr[[2]]$data) = rownames(ctrlData)
-rownames(multiExpr[[2]]$data) = colnames(ctrlData)
-
-multiExpr[[3]] = list(data = as.data.frame(t(queenData)))
-names(multiExpr[[3]]$data) = rownames(queenData)
-rownames(multiExpr[[3]]$data) = colnames(queenData)
+multiExpr[[2]] = list(data = as.data.frame(t(domesticatedData)))
+names(multiExpr[[2]]$data) = rownames(domesticatedData)
+rownames(multiExpr[[2]]$data) = colnames(domesticatedData)
 
 exprSize = checkSets(multiExpr)
 
@@ -298,29 +318,29 @@ for (set in 1:nSets){
   sampleTrees[[set]] = hclust(dist(multiExpr[[set]]$data), method = "average")
 }
 
-# par(mfrow=c(nSets,1))
-# par(mar = c(0, 4, 2, 0))
-# for (set in 1:nSets){
-#   plot(sampleTrees[[set]], main = paste("Sample clustering on all genes in", setLabels[set]),
-#        xlab="", sub="", cex = 0.7)
-# }
+par(mfrow=c(nSets,1))
+par(mar = c(0, 4, 2, 0))
+for (set in 1:nSets){
+  plot(sampleTrees[[set]], main = paste("Sample clustering on all genes in", setLabels[set]),
+       xlab="", sub="", cex = 0.7)
+}
 
 
-# Choose the "base" cut height for the female data set
-baseHeight = 48
-# Adjust the cut height for the male data set for the number of samples
+# Choose the cut height for the data set
+baseHeight = 180
+# Adjust the cut height for the data set for the number of samples?
 #cutHeights = c(baseHeight, baseHeight*exprSize$nSamples[2]/exprSize$nSamples[1], baseHeight*exprSize$nSamples[3]/exprSize$nSamples[1]);
-cutHeights = c(baseHeight,baseHeight,baseHeight)
+cutHeights = c(baseHeight,baseHeight)
 # Choose the "base" cut height for the female data set
 # Re-plot the dendrograms including the cut lines
-# #pdf(file = "Plots/SampleClustering.pdf", width = 12, height = 12);
-# par(mfrow=c(nSets,1))
-# par(mar = c(0, 4, 2, 0))
-# for(set in 1:nSets){
-#   plot(sampleTrees[[set]], main = paste("Sample clustering on all genes in", setLabels[set]),
-#        xlab="", sub="", cex = 0.7);
-#   abline(h=cutHeights[set], col = "red");
-# }
+#pdf(file = "Plots/SampleClustering.pdf", width = 12, height = 12);
+par(mfrow=c(nSets,1))
+par(mar = c(0, 4, 2, 0))
+for(set in 1:nSets){
+  plot(sampleTrees[[set]], main = paste("Sample clustering on all genes in", setLabels[set]),
+       xlab="", sub="", cex = 0.7);
+  abline(h=cutHeights[set], col = "red");
+}
 
 #cut outlier samples
 for (set in 1:nSets){
@@ -336,98 +356,93 @@ exprSize = checkSets(multiExpr)
 exprSize
 
 #attach phenotypic data
-allTraits = dplyr::select(data.phenotype.clean, -c("BORIS_ID",
-                                                   "treatment",
-                                                   "finalrole",
-                                                   "nest",
-                                                   "agnosticrole"))
+allTraits = dplyr::select(metadata.raph, c("sample",
+                                           "treatment",
+                                           "domesticated"))
 
-foobqueen = lm(queenness~age, data = allTraits, na.action = na.exclude)
-foobelo = lm(elo~age, data = allTraits, na.action = na.exclude)
-foobova = lm(ovaries~age, data = allTraits, na.action = na.exclude)
-
-allTraits = mutate(allTraits, 
-                   queenAgeResiduals = resid(foobqueen),
-                   eloAgeResiduals = resid(foobelo),
-                   ovariesAgeResiduals = resid(foobova))
-
-# Form a multi-set structure that will hold the clinical traits.
+# Form a multi-set structure that will hold the traits.
 Traits = vector(mode="list", length = nSets)
 for (set in 1:nSets){
   setSamples = rownames(multiExpr[[set]]$data)
-  traitRows = match(setSamples, allTraits$Novogene_ID)
+  traitRows = match(setSamples, allTraits$sample)
   Traits[[set]] = list(data = allTraits[traitRows,])
   rownames(Traits[[set]]$data) = allTraits[traitRows, 1]
 }
-collectGarbage();
+collectGarbage(); #clean up memory
 # Define data set dimensions
 nGenes = exprSize$nGenes;
 nSamples = exprSize$nSamples;
 
-# Choose a set of soft-thresholding powers
-powers = c(seq(4,10,by=1), seq(12,20, by=2));
-# Initialize a list to hold the results of scale-free analysis
-powerTables = vector(mode = "list", length = nSets);
-# Call the network topology analysis function for each set in turn
-for (set in 1:nSets){
-  powerTables[[set]] = list(data = pickSoftThreshold(multiExpr[[set]]$data, powerVector=powers, networkType="signed",
-                                                     verbose = 2)[[2]])
-}
+# # Choose a set of soft-thresholding powers
+# #higher powers reduce heterogeneity more 
+# powers = c(seq(4,10,by=1), seq(12,20, by=2));
+# # Initialize a list to hold the results of scale-free analysis
+# powerTables = vector(mode = "list", length = nSets);
+# # Call the network topology analysis function for each set in turn
+# for (set in 1:nSets){
+#   powerTables[[set]] = list(data = pickSoftThreshold(multiExpr[[set]]$data, powerVector=powers, networkType="signed",
+#                                                      verbose = 2)[[2]])
+# }
 
-# Plot the results:
-colors = c("black", "red")
-# Will plot these columns of the returned scale free analysis tables
-plotCols = c(2,5,6,7)
-colNames = c("Scale Free Topology Model Fit", "Mean connectivity", "Median connectivity",
-             "Max connectivity");
-# Get the minima and maxima of the plotted points
-ylim = matrix(NA, nrow = 2, ncol = 4);
-for (set in 1:nSets){
-  for (col in 1:length(plotCols)){
-    ylim[1, col] = min(ylim[1, col], powerTables[[set]]$data[, plotCols[col]], na.rm = TRUE);
-    ylim[2, col] = max(ylim[2, col], powerTables[[set]]$data[, plotCols[col]], na.rm = TRUE);
-  }
-}
-# Plot the quantities in the chosen columns vs. the soft thresholding power
-sizeGrWindow(8, 6)
-pdf(file = "/home/benjamin/Dropbox/Ben PhD/Chapter_2_Manuscript/figures/softpowerplots.pdf", width = 18/2.54, height = 14/2.54)
-par(mfcol = c(2,2));
-par(mar = c(2.2, 2.2, 2.2, 2.2))
-cex1 = 1;
-for (col in 1:length(plotCols)) for (set in 1:nSets)
-{
-  if (set==1){
-    plot(powerTables[[set]]$data[,1], -sign(powerTables[[set]]$data[,3])*powerTables[[set]]$data[,2],
-         xlab="Soft Threshold (power)",ylab=colNames[col],type="n", ylim = ylim[, col],
-         main = colNames[col]);
-    addGrid();
-  }
-  if (col==1)
-  {
-    text(powerTables[[set]]$data[,1], -sign(powerTables[[set]]$data[,3])*powerTables[[set]]$data[,2],
-         labels=powers,cex=cex1,col=colors[set]);
-  } else
-    text(powerTables[[set]]$data[,1], powerTables[[set]]$data[,plotCols[col]],
-         labels=powers,cex=cex1,col=colors[set]);
-  if (col==1)
-  {
-    legend("bottomright", legend = setLabels, col = colors, pch = 20) ;
-  } else
-    legend("topright", legend = setLabels, col = colors, pch = 20) ;
-}
-dev.off()
 
-softPower = 9;
-# Initialize an appropriate array to hold the adjacencies
-adjacencies = array(0, dim = c(nSets, nGenes, nGenes));
-# Calculate adjacencies in each individual data set
-for (set in 1:nSets){
-  #adjacencies[set, , ] = abs(cor(multiExpr[[set]]$data, use = "p"))^softPower
-  adjacencies[set, , ] = adjacency(multiExpr[[set]]$data, power = softPower, type = "signed")
-}
+# # Plot the results:
+# colors = c("black", "red")
+# # Will plot these columns of the returned scale free analysis tables
+# plotCols = c(2,5,6,7)
+# colNames = c("Scale Free Topology Model Fit", "Mean connectivity", "Median connectivity",
+#              "Max connectivity");
+# # Get the minima and maxima of the plotted points
+# ylim = matrix(NA, nrow = 2, ncol = 4);
+# for (set in 1:nSets){
+#   for (col in 1:length(plotCols)){
+#     ylim[1, col] = min(ylim[1, col], powerTables[[set]]$data[, plotCols[col]], na.rm = TRUE);
+#     ylim[2, col] = max(ylim[2, col], powerTables[[set]]$data[, plotCols[col]], na.rm = TRUE);
+#   }
+# }
+# # Plot the quantities in the chosen columns vs. the soft thresholding power
+# sizeGrWindow(8, 6)
+# #pdf(file = "/home/benjamin/Dropbox/Ben PhD/Chapter_2_Manuscript/figures/softpowerplots.pdf", width = 18/2.54, height = 14/2.54)
+# par(mfcol = c(2,2));
+# par(mar = c(2.2, 2.2, 2.2, 2.2))
+# cex1 = 1;
+# for (col in 1:length(plotCols)) for (set in 1:nSets)
+# {
+#   if (set==1){
+#     plot(powerTables[[set]]$data[,1], -sign(powerTables[[set]]$data[,3])*powerTables[[set]]$data[,2],
+#          xlab="Soft Threshold (power)",ylab=colNames[col],type="n", ylim = ylim[, col],
+#          main = colNames[col]);
+#     addGrid();
+#   }
+#   if (col==1)
+#   {
+#     text(powerTables[[set]]$data[,1], -sign(powerTables[[set]]$data[,3])*powerTables[[set]]$data[,2],
+#          labels=powers,cex=cex1,col=colors[set]);
+#   } else
+#     text(powerTables[[set]]$data[,1], powerTables[[set]]$data[,plotCols[col]],
+#          labels=powers,cex=cex1,col=colors[set]);
+#   if (col==1)
+#   {
+#     legend("bottomright", legend = setLabels, col = colors, pch = 20) ;
+#   } else
+#     legend("topright", legend = setLabels, col = colors, pch = 20) ;
+# }
+# dev.off()
 
-# Scaling of Topological Overlap Matrices to make them comparable across sets
 
+# beepr::beep(3)
+# 
+# #lookslike 12 or 14 will be okay- this doesn't get us to a scale-free fit of 0.9, but it's the point where the fit levels off
+# softPower = 14; 
+# # Initialize an appropriate array to hold the adjacencies
+# adjacencies = array(0, dim = c(nSets, nGenes, nGenes));
+# # Calculate adjacencies in each individual data set
+# for (set in 1:nSets){
+#   #adjacencies[set, , ] = abs(cor(multiExpr[[set]]$data, use = "p"))^softPower
+#   adjacencies[set, , ] = adjacency(multiExpr[[set]]$data, power = softPower, type = "signed")
+# }
+# 
+# # Scaling of Topological Overlap Matrices to make them comparable across sets
+# 
 # # Initialize an appropriate array to hold the TOMs
 # TOM = array(0, dim = c(nSets, nGenes, nGenes));
 # # Calculate TOMs in each individual data set
@@ -436,7 +451,7 @@ for (set in 1:nSets){
 # }
 
 #calculating TOMs is very slow, so here we just load the output of a pre-performed analysis directly
-load("/home/benjamin/Desktop/Pdom_TOM.RData")
+load("Analysis/RNAseq/raph_TOM_subsample8000.Rdata")
 
 #get TOM dissimilarities
 dissTOM = 1-pmin(TOM[1,,])
@@ -466,11 +481,11 @@ consMEDiss = consensusMEDissimilarity(unmergedMEs);
 # Cluster consensus modules
 consMETree = hclust(as.dist(consMEDiss), method = "average");
 
-# plot(consMETree, main = "Consensus clustering of consensus module eigengenes",
-#      xlab = "", sub = "")
-# abline(h=0.1, col = "red")
+plot(consMETree, main = "Consensus clustering of consensus module eigengenes",
+     xlab = "", sub = "")
+abline(h=0.4, col = "red")
 
-merge = mergeCloseModules(multiExpr, unmergedLabels, cutHeight = 0.25, verbose = 3)
+merge = mergeCloseModules(multiExpr, unmergedLabels, cutHeight = 0.4, verbose = 3)
 
 # Numeric module labels
 moduleLabels = merge$colors;
@@ -480,7 +495,7 @@ moduleColors = labels2colors(moduleLabels)
 consMEs = merge$newMEs
 
 sizeGrWindow(8, 6)
-pdf(file = "/home/benjamin/Dropbox/Ben PhD/Chapter_2_Manuscript/figures/dendrogram_merged.pdf", wi = 18/2.54, he = 12/2.54)
+png(file = "Analysis/RNAseq/Images/raph_WGCNA_subsample_mergedDendrosAndColors.png", wi = 18/2.54, he = 12/2.54, units = "in", res = 800)
 par(mfcol = c(1,1));
 par(mar = c(3.2, 3.2 , 3.2, 3.2))
 plotDendroAndColors(consTree, cbind(unmergedColors, moduleColors),
@@ -488,3 +503,163 @@ plotDendroAndColors(consTree, cbind(unmergedColors, moduleColors),
                     dendroLabels = FALSE, hang = 0.03,
                     addGuide = TRUE, guideHang = 0.05)
 dev.off()
+
+######
+
+exprSize = checkSets(multiExpr);
+nSets = exprSize$nSets;
+
+
+# Set up variables to contain the module-trait correlations
+moduleTraitCor = list();
+moduleTraitPvalue = list();
+# # Calculate the correlations
+# for(set in 1:nSets){
+#   #convert to numeric first to allow correlations
+#   Traits[[set]]$data = dplyr::select(mutate_at(Traits[[set]]$data, .vars = c("treatment"), .funs = function(x) as.numeric(as.factor(x))),"treatment")
+#   moduleTraitCor[[set]] = cor(consMEs[[set]]$data, Traits[[set]]$data, use = "p");
+#   moduleTraitPvalue[[set]] = corPvalueFisher(moduleTraitCor[[set]], exprSize$nSamples[set]);
+# }
+
+set = 2
+
+pvalues=c()
+for(i in 1:length(consMEs[[set]]$data)) {
+  
+  glim = glm((as.numeric(Traits[[set]]$data$treatment)-1) ~ consMEs[[set]]$data[,i], family = "binomial")
+  pval = summary(glim)$coefficients[2,4]
+  pvalues = c(pvalues,pval)
+}
+
+
+# Convert numerical labels to colors for labeling of modules in the plot
+MEColors = labels2colors(as.numeric(substring(names(consMEs[[1]]$data), 3)));
+MEColorNames = paste("ME", MEColors, sep="");
+
+# Plot the module-trait relationship table for set number 1
+set=1
+options(scipen = 1)
+padjmatrix_1 = matrix(p.adjust(signif(moduleTraitPvalue[[set]], 1),method = "BH"), 
+                      nrow = nrow(moduleTraitPvalue[[set]]), 
+                      ncol = ncol(moduleTraitPvalue[[set]]))
+textMatrix_1 = paste(signif(moduleTraitCor[[set]], 2), "\n(",
+                     signif(c(padjmatrix_1),2), ")", sep = "");
+dim(textMatrix_1) = dim(moduleTraitCor[[set]])
+
+ColorNames = stringr::str_sub(MEColorNames,3,)
+
+padjmelt_1 = 
+  padjmatrix_1 %>% 
+  data.frame() %>% 
+  'colnames<-'(names(Traits[[set]]$data)) %>%
+  'rownames<-'(ColorNames) %>%
+  rownames_to_column(var = "modcolor") %>%
+  reshape2::melt(id.vars = "modcolor") 
+
+padjmelt_1$modcolor = factor(padjmelt_1$modcolor,levels = ColorNames)
+
+NiceColorNames = paste0(toupper(str_sub(padjmelt_1$modcolor,1,1)),str_sub(padjmelt_1$modcolor,2,))
+NiceColorNames = paste0(1:dim(textMatrix_1)[1],": ", NiceColorNames)
+
+SimpleNames = paste0("Module ",c(29:1))
+
+GGheat_1 = ggplot(data = padjmelt_1, aes(x = variable, y = modcolor)) +
+  geom_tile(aes(fill = value),color = "gray", size=.75, width=0.5, height = 1) +
+  geom_text(aes(label=c(textMatrix_1)), 
+            lineheight = 0.75, size = 3.5) +
+  # geom_point(data = padjmelt_1[1:22,],aes(x = 0.45, y = 1:22),
+  #            fill = c(as.character(padjmelt_1$modcolor[1:22])),
+  #            color = "black",
+  #            size = 11,
+  #            shape = 22) +
+  scale_x_discrete("Trait",
+                   expand = c(0,0),
+                   labels = c("Wheat vs Control"),
+                   position = "top") +
+  scale_y_discrete("Module",
+                   expand = c(0,0),
+                   labels = SimpleNames,
+                   limits = rev(levels(padjmelt_1$modcolor))) +
+  scale_fill_gradientn(colours = colorRampPalette(rev(c("#FFFFFF",brewer.pal(n = 9, name = "Reds")[1:5])),bias=6)(20),
+                       breaks = c(0.0,0.05,1),
+                       expand = c(0,0),
+                       limits = c(0,1),
+                       guide = guide_colourbar(barheight = 25,
+                                               title = "p-value\n(adjusted)",
+                                               title.vjust = 2,
+                                               frame.colour = "black", 
+                                               frame.linewidth = 1.5)) +
+  theme_bw() +
+  theme(panel.grid = element_blank(),
+        legend.title = element_text(face = "bold"),
+        axis.text = element_text(face = "bold",size =11, color = "grey40"),
+        axis.title = element_text(face = "bold", size =12),
+        axis.title.x = element_blank())
+
+GGheat_1
+
+ggsave(GGheat_1, filename = "Raph_subset_moduletraitcor_wild.png", device = "png", path ="Analysis/RNAseq/Images/",
+       width = 10, height = 20, units = "cm")
+
+# Plot the module-trait relationship table for set number 2
+set=2
+options(scipen = 1)
+padjmatrix_2 = matrix(p.adjust(signif(moduleTraitPvalue[[set]], 1),method = "BH"), 
+                      nrow = nrow(moduleTraitPvalue[[set]]), 
+                      ncol = ncol(moduleTraitPvalue[[set]]))
+textMatrix_2 = paste(signif(moduleTraitCor[[set]], 2), "\n(",
+                     signif(c(padjmatrix_2),2), ")", sep = "");
+dim(textMatrix_2) = dim(moduleTraitCor[[set]])
+
+ColorNames = stringr::str_sub(MEColorNames,3,)
+
+padjmelt_2 = 
+  padjmatrix_2 %>% 
+  data.frame() %>% 
+  'colnames<-'(names(Traits[[set]]$data)) %>%
+  'rownames<-'(ColorNames) %>%
+  rownames_to_column(var = "modcolor") %>%
+  reshape2::melt(id.vars = "modcolor") 
+
+padjmelt_2$modcolor = factor(padjmelt_2$modcolor,levels = ColorNames)
+
+NiceColorNames = paste0(toupper(str_sub(padjmelt_2$modcolor,1,1)),str_sub(padjmelt_2$modcolor,2,))
+NiceColorNames = paste0(1:dim(textMatrix_2)[1],": ", NiceColorNames)
+
+GGheat_2 = ggplot(data = padjmelt_2, aes(x = variable, y = modcolor)) +
+  geom_tile(aes(fill = value),color = "gray", size=.75, width=1, height = 1) +
+  geom_text(aes(label=c(textMatrix_2)), 
+            lineheight = 0.75, size = 3.5) +
+  # geom_point(data = padjmelt_2[1:22,],aes(x = 0.45, y = 1:22),
+  #            fill = c(as.character(padjmelt_2$modcolor[1:22])),
+  #            color = "black",
+  #            size = 11,
+  #            shape = 22) +
+  scale_x_discrete("Trait",
+                   expand = c(0,0),
+                   labels = c("Wheat vs Control"),
+                   position = "top") +
+  scale_y_discrete("Module",
+                   expand = c(0,0),
+                   labels = SimpleNames,
+                   limits = rev(levels(padjmelt_1$modcolor))) +
+  scale_fill_gradientn(colours = colorRampPalette(rev(c("#FFFFFF",brewer.pal(n = 9, name = "Reds")[1:5])),bias=6)(20),
+                       breaks = c(0.0,0.05,1),
+                       expand = c(0,0),
+                       limits = c(0,1),
+                       guide = guide_colourbar(barheight = 25,
+                                               title = "p-value\n(adjusted)",
+                                               title.vjust = 2,
+                                               frame.colour = "black", 
+                                               frame.linewidth = 1.5)) +
+  theme_bw() +
+  theme(panel.grid = element_blank(),
+        legend.title = element_text(face = "bold"),
+        axis.text = element_text(face = "bold",size =11, color = "grey40"),
+        axis.title = element_text(face = "bold", size =12),
+        axis.title.x = element_blank())
+
+GGheat_2
+  
+ggsave(GGheat_2, filename = "Raph_subset_moduletraitcor_domesticated.png", device = "png", path ="Analysis/RNAseq/Images/",
+       width = 10, height = 20, units = "cm")
