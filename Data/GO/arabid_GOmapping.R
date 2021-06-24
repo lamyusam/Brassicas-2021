@@ -35,8 +35,28 @@ lapfun = function(x){
 #apply function over list to generate GO mapping object
 GOmapping.raph = lapply(rownames(raph.gene.counts), lapfun)
 names(GOmapping.raph) = rownames(raph.gene.counts)
+#remove empty elements from list
+GOmapping.raph = GOmapping.raph[lapply(GOmapping.raph,length)>0]
+save(GOmapping.raph, file = "Data/GO/raph_GOmapping.Rdata")
 
+#now attach brassica data
+brass.arabid.BLAST = read.delim("Data/GO/arabid_brass_RBH.txt", sep = " ", col.names = c("brass","arabid"))
+brass.exon2LOC = read.delim("Data/RNAseq/brass_exon2LOC.tsv", col.names = c("exon","gene"))
 
-# raph.arabid.BLAST
-# "NM_001198228.1" %in% names(arabid.GOmapping)
-# arabid.GOmapping["NM_001198228.1"]
+#reduce to short transcript identifiers
+brass.arabid.BLAST = mutate(brass.arabid.BLAST, 
+                           arabid = str_match(brass.arabid.BLAST$arabid,"(NM_[^_\n]+)|([rt]rna_[^_\n]+)|(mrna_[1-9]+)")[,1],
+                           brass = str_match(brass.arabid.BLAST$brass,"(X[MR]_[^_\n]+)|([rt]rna_[^_\n]+)|(mrna_[1-9]+)|(miscrna_[1-9]+)")[,1])
+
+#function to apply over the list of gene IDs, attaching arabidopsis GO terms where possible
+lapfun = function(x){
+  unname(unlist(arabid.GOmapping[brass.arabid.BLAST$arabid[which(brass.arabid.BLAST$brass %in% 
+                                                                  brass.exon2LOC$exon[which(brass.exon2LOC$gene==x)])]]))
+}
+
+#apply function over list to generate GO mapping object
+GOmapping.brass = lapply(rownames(brass.gene.counts), lapfun)
+names(GOmapping.brass) = rownames(brass.gene.counts)
+#remove empty elements from list
+GOmapping.brass = GOmapping.brass[lapply(GOmapping.brass,length)>0]
+save(GOmapping.brass, file = "Data/GO/brass_GOmapping.Rdata")
