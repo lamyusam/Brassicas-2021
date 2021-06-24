@@ -4,3 +4,6 @@
 #extract exon 2 loc data from gff
 awk '$3=="exon"' Raph.gff| grep -o "Parent=.*gene=[^;]*" | sed 's/Dbx.*gbkey=.*;//' | sed 's/;/        /' | sed 's/Parent=rna-//' | sed 's/gene=/gene-/' | uniq > raph_exon2LOC.tsv
 
+#and for brassica
+awk '$3=="CDS"' Brapa.gff| grep -o "Parent=.*gene=[^;]*" |  sed 's/Dbx.*gbkey=.*;//' | sed 's/;/        /' | sed 's/Parent=rna-//' |  sed 's/gene=/gene-/' | uniq > brass_exon2LOC.tsv 
+
