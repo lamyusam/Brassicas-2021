@@ -1,3 +1,4 @@
+library(tidyverse)
 #### get transcript tp GO term mapping for arabidopsis
 
 setwd("/home/benjamin/Documents/Brassicas_repo")
@@ -13,14 +14,15 @@ arabid.GOmapping = lapply(arabid.transcript2gene$gene, function(x) arabid.gene2G
 names(arabid.GOmapping) = arabid.transcript2gene$transcript
 
 #save
-save(arabid.GOmapping,file = "Data/GO/arabid_GOmapping.Rdata")
+#save(arabid.GOmapping,file = "Data/GO/arabid_GOmapping.Rdata")
 
 load("Data/GO/arabid_GOmapping.Rdata")
 #import gene2LOC adapted from raphanus gff
 raph.exon2LOC = read.delim("Data/RNAseq/raph_exon2LOC.tsv", col.names = c("exon","gene"))
 
 #### now attach Raphanus data
-raph.arabid.BLAST = read.delim("Data/GO/arabid_raph_RBH.txt", sep = " ", col.names = c("raphanus","arabid"))
+#raph.arabid.BLAST = read.delim("Data/GO/arabid_raph_RBH.txt", sep = " ", col.names = c("raphanus","arabid"))
+raph.arabid.BLAST = read.delim("Data/GO/raph_to_arabid_best", sep = " ", col.names = c("raphanus","arabid")) 
 #reduce to short transcript identifiers
 raph.arabid.BLAST = mutate(raph.arabid.BLAST, 
                            arabid = str_match(raph.arabid.BLAST$arabid,"(NM_[^_\n]+)|([rt]rna_[^_\n]+)|(mrna_[1-9]+)")[,1],
@@ -32,6 +34,8 @@ lapfun = function(x){
                                                   raph.exon2LOC$exon[which(raph.exon2LOC$gene==x)])]]))
 }
 
+#pull rnaseq data
+raph.gene.counts = read.csv("/home/benjamin/Documents/Brassicas_repo/Data/RNAseq/raph.gene.counts.csv", row.names = 1)
 #apply function over list to generate GO mapping object
 GOmapping.raph = lapply(rownames(raph.gene.counts), lapfun)
 names(GOmapping.raph) = rownames(raph.gene.counts)
@@ -40,7 +44,8 @@ GOmapping.raph = GOmapping.raph[lapply(GOmapping.raph,length)>0]
 save(GOmapping.raph, file = "Data/GO/raph_GOmapping.Rdata")
 
 #now attach brassica data
-brass.arabid.BLAST = read.delim("Data/GO/arabid_brass_RBH.txt", sep = " ", col.names = c("brass","arabid"))
+#brass.arabid.BLAST = read.delim("Data/GO/arabid_brass_RBH.txt", sep = " ", col.names = c("brass","arabid"))
+brass.arabid.BLAST = read.delim("Data/GO/brass_to_arabid_best", sep = " ", col.names = c("brass","arabid"))
 brass.exon2LOC = read.delim("Data/RNAseq/brass_exon2LOC.tsv", col.names = c("exon","gene"))
 
 #reduce to short transcript identifiers
@@ -53,6 +58,9 @@ lapfun = function(x){
   unname(unlist(arabid.GOmapping[brass.arabid.BLAST$arabid[which(brass.arabid.BLAST$brass %in% 
                                                                   brass.exon2LOC$exon[which(brass.exon2LOC$gene==x)])]]))
 }
+
+#get brass data
+brass.gene.counts = read.csv("/home/benjamin/Documents/Brassicas_repo/Data/RNAseq/brapa.gene.counts.csv", row.names = 1)
 
 #apply function over list to generate GO mapping object
 GOmapping.brass = lapply(rownames(brass.gene.counts), lapfun)
