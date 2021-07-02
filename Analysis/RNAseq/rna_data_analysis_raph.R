@@ -1,8 +1,10 @@
+#### setup ####
 # get libraries
 basic_libraries <- c("DESeq2",
                      "tidyverse",
                      "WGCNA",
-                     "RColorBrewer")
+                     "RColorBrewer",
+                     "forcats")
 
 for (lib in basic_libraries) {
   if (require(package = lib, character.only = TRUE)) {
@@ -29,14 +31,12 @@ data.meta = read.csv("/home/benjamin/Documents/Brassicas_repo/Data/RNAseq/RNASeq
   mutate(Domesticated = ifelse(Wild..Domesticated=="Wild","Wild","Cultivated")) %>%
   mutate(Environment = ifelse(Environment=="wheat competition","Wheat","Control"),
          Parental.effects.status = ifelse(Parental.effects.status == "'\"standardised\"","Standardised","Unstandardised")) %>%
-  select(c("RNAseq.sample.name","Species","Parental.effects.status","Environment","Domesticated")) %>%
+  dplyr::select(c("RNAseq.sample.name","Species","Parental.effects.status","Environment","Domesticated")) %>%
   'colnames<-'(c("sample","species","parental.effects","treatment","domesticated")) %>%
-  mutate_all(as.factor)
-
-data.meta = mutate(data.meta, 
-                   treatment = fct_relevel(treatment, c("Control","Wheat")),
-                   domesticated = fct_relevel(domesticated, c("Wild","Cultivated")))
-
+  mutate_all(as.factor) %>%
+  mutate(treatment = fct_relevel(treatment, c("Wheat","Control")),
+         domesticated = fct_relevel(domesticated, c("Wild","Cultivated")))
+  
 
 #subset by genus
 metadata.brass = subset(data.meta, substr(species,1,3)=="Bra")
@@ -48,6 +48,7 @@ write.csv(metadata.raph, file = "Data/RNAseq/metadata_raph.csv", row.names = F)
 #pull rnaseq data
 raph.gene.counts = read.csv("/home/benjamin/Documents/Brassicas_repo/Data/RNAseq/raph.gene.counts.csv", row.names = 1)
 
+#### filtering and qc ####
 #filter by expression, removing genes with <1 count/sample
 raph.gene.counts.clean = raph.gene.counts[(which(rowMeans(raph.gene.counts)>=1)),]
 paste0(nrow(raph.gene.counts)-nrow(raph.gene.counts.clean),"/",nrow(raph.gene.counts)," Raphanus genes filtered due to very low expression.")
@@ -99,15 +100,16 @@ ggplot(ggpcadata, aes(x = PC1, y = PC2, color = domesticated, shape = treatment,
         axis.text.y = element_text(size = 11),
         axis.title = element_text(face = "bold", size =12))
 
+#### parental effects ####
 #next step is to check for genes with parental effects
 dds.parental = DESeqDataSetFromMatrix(countData = raph.gene.counts.clean,
                                       colData = metadata.raph,
                                       design = as.formula(~parental.effects))
 dds.parental.deg = DESeq(dds.parental, fitType = "parametric", betaPrior = FALSE)
-parental.degs = results(dds.parental.deg)
+parental.degs = results(dds.parental.deg,alpha = 0.1)
 #very few genes have even marginal evidence of parental effects
 print(paste0("Number of genes with parental effects at p<0.1: ",length(which(parental.degs$padj<0.1)),"/",nrow(parental.degs)))
-parental.degs.ids = rownames(subset(parental.degs, padj<=0.1))
+parental.degs.ids = rownames(subset(parental.degs, padj<=0.05))
 #uncomment next line to simply exclude these genes from the analysis
 #raph.gene.counts.clean = raph.gene.counts.clean[rownames(subset(parental.degs, padj>=0.1)),]
 #also check for parental deg GO terms 
@@ -123,6 +125,7 @@ parentGO = topGO_wrapper(geneScores = parental.degs,
 parentGO$consolidated_result
 #48 GO terms- a surprisingly high number given the relatively small number of genes 
 
+#### raphanistrum vs sativus ####
 #subset to remove all but raphanistrum sativus and its wild ancestor
 metadata.raph.subset = subset(metadata.raph, species %in% c("Raphanus raphanistrum","Raphanus sativus"))
 raph.gene.counts.clean.subset = raph.gene.counts.clean[,as.character(metadata.raph.subset$sample)]
@@ -142,6 +145,7 @@ dds.gene.deg = DESeq(dds.gene, fitType = "local", betaPrior = FALSE)
 print("Check for gene expression outliers")
 par(mar=c(8,5,2,2))
 boxplot(log10(assays(dds.gene.deg)[["cooks"]]), range=0, las=2)
+boxplot(log10(assays(dds.gene.deg)[["counts"]]), range=0, las=2)
 
 #Also plot the dispersion extimates to make sure they look fine
 plotDispEsts(dds.gene.deg)
@@ -153,16 +157,19 @@ plotDispEsts(parametric.gene.deg)
 # parametric seems to follow the data better so we'll use that going forward
 dds.gene.deg = parametric.gene.deg
 
+resultsNames(dds.gene.deg)
+
 #results: wheat vs control
 degs.raph.treatment = results(dds.gene.deg, 
-                              name="treatment_Wheat_vs_Control",     
+                              name="treatment_Control_vs_Wheat",     
                               alpha = 0.05,
                               lfcThreshold = log2(1))
-summary(degs.raph.treatment) #126 DEGs
+degs.raph.treatment.Nup = nrow(subset(degs.raph.treatment, padj<=0.05 & log2FoldChange>0)) #35 up in control
+degs.raph.treatment.Ndown = nrow(subset(degs.raph.treatment, padj<=0.05 & log2FoldChange<0)) #47 up in wheat
 degs.raph.treatment.ids = rownames(subset(degs.raph.treatment, padj<=0.05))
-#1 of these degs is shared with parental degs
+#2 of these degs shared with parental degs
 table(degs.raph.treatment.ids%in%parental.degs.ids)
-#also check for parental deg GO terms 
+#also check for  GO terms 
 raph.treatment.GO.up = topGO_wrapper(geneScores = degs.raph.treatment,
                          geneScoresDE = T,
                          geneScoresDirection = "Up",
@@ -172,10 +179,9 @@ raph.treatment.GO.up = topGO_wrapper(geneScores = degs.raph.treatment,
                          nodeSize = 10,
                          discretisedDE = T,
                          p = 0.05)
-raph.treatment.GO.up$consolidated_result
-#21 GO terms up, inc. histone binding, chromatin binding, 'response to chitin', response to salt stress, 
-#response to sucrose, response to glucose, plant ovule development, regulation of flower development, telomere maintenance
-#terms down:
+write.csv(raph.treatment.GO.up$consolidated_result, 
+          file = "Analysis/RNAseq/Tables/raphanistrum_sativus_GO_controlbias.csv", row.names = FALSE)
+#38 GO terms up
 raph.treatment.GO.down = topGO_wrapper(geneScores = degs.raph.treatment,
                                      geneScoresDE = T,
                                      geneScoresDirection = "Down",
@@ -185,20 +191,20 @@ raph.treatment.GO.down = topGO_wrapper(geneScores = degs.raph.treatment,
                                      nodeSize = 10,
                                      discretisedDE = T,
                                      p = 0.05)
-raph.treatment.GO.down$consolidated_result
-#19 Go terms down, inc. cold acclimation, response to cold, response to chitin, response to water deprivation, response to ozone 
+write.csv(raph.treatment.GO.down$consolidated_result, 
+          file = "Analysis/RNAseq/Tables/raphanistrum_sativus_GO_wheatbias.csv", row.names = FALSE)
+#28 GO terms down
 
 #results: cultivated vs wild
 degs.raph.cultivated = results(dds.gene.deg, 
                                name="domesticated_Cultivated_vs_Wild",     
                                alpha = 0.05,
                                lfcThreshold = log2(1))
-summary(degs.raph.cultivated) #~1500 degs
+summary(degs.raph.cultivated) #~300 degs
 degs.raph.cultivated.ids = rownames(subset(degs.raph.cultivated, padj<=0.05))
-#12 of these degs is shared with parental degs
+#4 of these degs is shared with parental degs
 table(degs.raph.cultivated.ids%in%parental.degs.ids)
-#also check for parental deg GO terms 
-#GOscores.raph.cultivated = as.numeric(row.names(raph.gene.counts.clean.subset)%in%degs.raph.cultivated.ids) %>% 'names<-'(row.names(raph.gene.counts.clean.subset))
+#also check for deg GO terms 
 raph.cultivated.GO.up = topGO_wrapper(geneScores = degs.raph.cultivated,
                                   geneScoresDE = T,
                                   geneScoresDirection = "Up",
@@ -208,9 +214,9 @@ raph.cultivated.GO.up = topGO_wrapper(geneScores = degs.raph.cultivated,
                                   nodeSize = 10,
                                   discretisedDE = T,
                                   p = 0.05)
-raph.cultivated.GO.up$consolidated_result
-#33 GO terms up: mostly metabolic and developmental but also response to cold, chromatin assembly, aging, 
-#leaf  senescence, regulation of chromatin organization
+write.csv(raph.cultivated.GO.up$consolidated_result, 
+          file = "Analysis/RNAseq/Tables/raphanistrum_sativus_GO_cultivatedbias.csv", row.names = FALSE)
+#26 GO terms up
 raph.cultivated.GO.down = topGO_wrapper(geneScores = degs.raph.cultivated,
                                       geneScoresDE = T,
                                       geneScoresDirection = "Down",
@@ -220,33 +226,31 @@ raph.cultivated.GO.down = topGO_wrapper(geneScores = degs.raph.cultivated,
                                       nodeSize = 10,
                                       discretisedDE = T,
                                       p = 0.05)
-raph.cultivated.GO.down$consolidated_result
-#57 down: heavy on the chloroplasts, 'choroplast','chloroplast envelope','photorespriartion','response to chitin', 'response to chitin',
-#'response to woudning', lots and lots of biosynthetic processes
+write.csv(raph.treatment.GO.down$consolidated_result, 
+          file = "Analysis/RNAseq/Tables/raphanistrum_sativus_GO_wildbias.csv", row.names = FALSE)
+#28 down
 
 #results: interaction
 degs.raph.interaction = results(dds.gene.deg, 
-                                name="treatmentWheat.domesticatedCultivated",     
+                                name="treatmentControl.domesticatedCultivated",     
                                 alpha = 0.05,
                                 lfcThreshold = log2(1))
-summary(degs.raph.interaction) #96 degs
+summary(degs.raph.interaction) #173 degs
 degs.raph.interaction.ids = rownames(subset(degs.raph.interaction, padj<=0.05))
-#1 of these degs is shared with parental degs
+#4 of these degs are shared with parental degs
 table(degs.raph.interaction.ids%in%parental.degs.ids)
 #also check for parental deg GO terms 
-GOscores.raph.interaction = as.numeric(row.names(raph.gene.counts.clean.subset)%in%degs.raph.interaction.ids) %>% 'names<-'(row.names(raph.gene.counts.clean.subset))
-raph.interaction.GO = topGO_wrapper(geneScores = GOscores.raph.interaction,
-                                   geneScoresDE = F,
+raph.interaction.GO = topGO_wrapper(geneScores = degs.raph.interaction,
+                                   geneScoresDE = T,
                                    geneScoresDirection = NA,
                                    GOmapping = GOmapping.raph,
                                    algorithm = "weight01",
                                    statistic = "fisher",
                                    nodeSize = 10,
-                                   discretisedDE = F,
+                                   discretisedDE = T,
                                    p = 0.05)
 raph.interaction.GO$consolidated_result
-#26 GO terms: many epigenetic "histone binding" and "histone methylation", "chromatin binding", "regulation of histone modification"
-#several response to sugar (fructose, glucose, sucrose), many developmental
+#57 GO terms
 
 #for the interaction terms, we also plot the output to understand what exactly is going on
 #get the 12 terms with lowest adjusted p value
@@ -283,7 +287,7 @@ ggsave(raph.intplot,
        width =  40, height = 25, units = "cm")
 
 
-#######################
+#### raphanistrum vs wilds ####
 
 #now compare raphanistrum vs other wild
 #subset to remove all but raphanistrum sativus and its wild ancestor
