@@ -125,6 +125,7 @@ parentGO = topGO_wrapper(geneScores = parental.degs,
 parentGO$consolidated_result
 #48 GO terms- a surprisingly high number given the relatively small number of genes 
 
+
 #### raphanistrum vs sativus ####
 #subset to remove all but raphanistrum sativus and its wild ancestor
 metadata.raph.subset = subset(metadata.raph, species %in% c("Raphanus raphanistrum","Raphanus sativus"))
@@ -296,8 +297,6 @@ raphanistrum.sativus.output = data.frame(DEGs=numdegs, GO_terms=numGO,
 
 write.csv(raphanistrum.sativus.output, file = "Analysis/RNAseq/Tables/raphanistrum_sativus_summary.csv")
 
-
-
 #one thing we'd like to know: do genes generally gain or lose plasticity after domestication?
 #get just sativus data
 metadata.raph.sativus = subset(metadata.raph.subset, species == "Raphanus sativus")
@@ -343,8 +342,39 @@ ggsave(gg.foldchanges.subset,
        device = "png", path = "Analysis/RNAseq/Images/",
        width =  30, height = 25, units = "cm")
 
-#another thing we'd like to know: for the set of genes that experienced reduced placticity after domestication, 
-#is their mean expression closer to the stressed or unstressed mean in wild accessions?
+# another thing we'd like to know: have genes gained or lost plasticity in domestication, 
+# and is the direction of that plasticity the same or opposite following domestication?
+
+#pull the relevant data
+foldchanges.subset = mutate(foldchanges.subset, 
+                            direction=ifelse((sign(raphanistrum)==sign(sativus)),"Equal","Opposite"),
+                            magnitude=ifelse((abs(raphanistrum)>abs(sativus)),"Decrease","Increase"))
+table.foldchanges = table(select(foldchanges.subset,c("direction","magnitude")))
+#distribution of opposite and equal changes is unrelated to magnitudes of changes:
+chisq.test(table.foldchanges)
+mosaicplot(table.foldchanges)
+
+#oppposite direction is significantly more common than same direction
+chisq.test(table(select(foldchanges.subset,c("direction"))))
+#to confirm, increase in plasticity is significantly more common than decrease
+chisq.test(table(select(foldchanges.subset,c("magnitude"))))
+
+# just out of interest, it would be interesting to know whether these overall patterns also hold when looking at 
+# the entire set of genes, not just the ones ID'd by DESeq2
+#compile foldchange data for all terms
+foldchanges.subset.all = data.frame(raphanistrum = degs.raphanistrum[,"log2FoldChange"],
+                                    sativus = degs.sativus[,"log2FoldChange"], 
+                                    row.names = row.names(degs.raphanistrum))
+#yes, sativus genes are also more plastic overall
+t.test(x = abs(foldchanges.subset.all$raphanistrum), y = abs(foldchanges.subset.all$sativus), paired = TRUE)
+wilcox.test(x = abs(foldchanges.subset.all$raphanistrum), y = abs(foldchanges.subset.all$sativus), paired = TRUE)
+mean(abs(foldchanges.subset.all$raphanistrum), na.rm = T)
+mean(abs(foldchanges.subset.all$sativus), na.rm = T)
+#intriguingly, when looking across all genes, same direction is more common than opposite direction
+chisq.test(table(select(foldchanges.subset.all,c("direction"))))
+#however, increase in plasticity is definitely more common even across all genes
+chisq.test(table(select(foldchanges.subset.all,c("magnitude"))))
+
 
 #### raphanistrum vs wilds ####
 
@@ -421,6 +451,7 @@ ggsave(raph.intplot.wilds,
        device = "png", path = "Analysis/RNAseq/Images/",
        width =  40, height = 25, units = "cm")
 
+
 #### wilds interaction norm analysis ####
 
 #first compare treatments for raphanus and for wilds separately
@@ -484,4 +515,5 @@ ggsave(gg.foldchanges.wilds,
 #   geom_boxplot(aes(x = rep(c(-3, 3), each = nrow(foldchanges.wilds)), group = Var2), fill = 'steelblue') +
 #   geom_point(aes(x = rep(c(-1, 1), each = nrow(foldchanges.wilds))), size = 5) +
 #   geom_line(aes(x = rep(c(-1, 1), each = nrow(foldchanges.wilds)), group = Var1))
+
 
