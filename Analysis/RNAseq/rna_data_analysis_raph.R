@@ -297,6 +297,7 @@ raphanistrum.sativus.output = data.frame(DEGs=numdegs, GO_terms=numGO,
 
 write.csv(raphanistrum.sativus.output, file = "Analysis/RNAseq/Tables/raphanistrum_sativus_summary.csv")
 
+#### sativus + raphanistrum interaction norm analysis ####
 #one thing we'd like to know: do genes generally gain or lose plasticity after domestication?
 #get just sativus data
 metadata.raph.sativus = subset(metadata.raph.subset, species == "Raphanus sativus")
@@ -370,11 +371,13 @@ t.test(x = abs(foldchanges.subset.all$raphanistrum), y = abs(foldchanges.subset.
 wilcox.test(x = abs(foldchanges.subset.all$raphanistrum), y = abs(foldchanges.subset.all$sativus), paired = TRUE)
 mean(abs(foldchanges.subset.all$raphanistrum), na.rm = T)
 mean(abs(foldchanges.subset.all$sativus), na.rm = T)
+foldchanges.subset.all = mutate(foldchanges.subset.all, 
+                            direction=ifelse((sign(raphanistrum)==sign(sativus)),"Equal","Opposite"),
+                            magnitude=ifelse((abs(raphanistrum)>abs(sativus)),"Decrease","Increase"))
 #intriguingly, when looking across all genes, same direction is more common than opposite direction
 chisq.test(table(select(foldchanges.subset.all,c("direction"))))
 #however, increase in plasticity is definitely more common even across all genes
 chisq.test(table(select(foldchanges.subset.all,c("magnitude"))))
-
 
 #### raphanistrum vs wilds ####
 
@@ -516,4 +519,18 @@ ggsave(gg.foldchanges.wilds,
 #   geom_point(aes(x = rep(c(-1, 1), each = nrow(foldchanges.wilds))), size = 5) +
 #   geom_line(aes(x = rep(c(-1, 1), each = nrow(foldchanges.wilds)), group = Var1))
 
+#also check whether raphanistrum genes generally have same directionality as other wilds
+#pull the relevant data
+foldchanges.wilds = mutate(foldchanges.wilds, 
+                            direction=ifelse((sign(raphanistrum)==sign(others)),"Equal","Opposite"),
+                            magnitude=ifelse((abs(raphanistrum)<abs(others)),"Decrease","Increase"))
+table.foldchanges = table(select(foldchanges.wilds,c("direction","magnitude")))
+#distribution of opposite and equal changes is unrelated to magnitudes of changes:
+chisq.test(table.foldchanges)
+mosaicplot(table.foldchanges)
+
+#oppposite direction is significantly more common than same direction
+chisq.test(table(select(foldchanges.wilds,c("direction"))))
+#to confirm, raphanistrum genes are more likely to exhibit increased plasticity relative to other wilds
+chisq.test(table(select(foldchanges.wilds,c("magnitude"))))
 
