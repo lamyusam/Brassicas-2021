@@ -48,7 +48,7 @@ raph.gene.counts.clean = raph.gene.counts.clean[,as.character(metadata.raph$samp
 #raph.gene.count.clean.wgcna = raph.gene.counts.clean[rowSums(raph.gene.counts.clean > 5) > (ncol(raph.gene.counts.clean)*0.9),]
 raph.gene.count.clean.wgcna = raph.gene.counts.clean[rowSums(raph.gene.counts.clean > 10) > (ncol(raph.gene.counts.clean)*0.95),]
 #for now, subsample for speed
-raph.gene.count.clean.wgcna = slice_sample(raph.gene.count.clean.wgcna, n = 8000)
+#raph.gene.count.clean.wgcna = slice_sample(raph.gene.count.clean.wgcna, n = 8000)
 
 # We also normalize the data prior to subsetting
 raph.gene.count.clean.wgcna = as.matrix(raph.gene.count.clean.wgcna)  %>% 
@@ -111,7 +111,7 @@ for (set in 1:nSets){
 
 
 # Choose the cut height for the data set
-baseHeight = 110
+baseHeight = 160
 # Adjust the cut height for the data set for the number of samples?
 #cutHeights = c(baseHeight, baseHeight*exprSize$nSamples[2]/exprSize$nSamples[1], baseHeight*exprSize$nSamples[3]/exprSize$nSamples[1]);
 cutHeights = c(baseHeight,baseHeight)
@@ -157,16 +157,16 @@ collectGarbage(); #clean up memory
 nGenes = exprSize$nGenes;
 nSamples = exprSize$nSamples;
 
-# Choose a set of soft-thresholding powers
-#higher powers reduce heterogeneity more
-powers = c(seq(4,10,by=1), seq(12,20, by=2));
-# Initialize a list to hold the results of scale-free analysis
-powerTables = vector(mode = "list", length = nSets);
-# Call the network topology analysis function for each set in turn
-for (set in 1:nSets){
-  powerTables[[set]] = list(data = pickSoftThreshold(multiExpr[[set]]$data, powerVector=powers, networkType="signed",
-                                                     verbose = 2)[[2]])
-}
+# # Choose a set of soft-thresholding powers
+# #higher powers reduce heterogeneity more
+# powers = c(seq(4,10,by=1), seq(12,20, by=2));
+# # Initialize a list to hold the results of scale-free analysis
+# powerTables = vector(mode = "list", length = nSets);
+# # Call the network topology analysis function for each set in turn
+# for (set in 1:nSets){
+#   powerTables[[set]] = list(data = pickSoftThreshold(multiExpr[[set]]$data, powerVector=powers, networkType="signed",
+#                                                      verbose = 2)[[2]])
+# }
 
 
 # # Plot the results:
@@ -215,6 +215,9 @@ for (set in 1:nSets){
 
 beepr::beep(3)
 
+save(multiExpr, file = "Analysis/RNAseq/WGCNA_forcluster/Raph_multiExpr.Rdata")
+
+
 #lookslike 12 or 14 will be okay- this doesn't get us to a scale-free fit of 0.9, but it's the point where the fit levels off
 softPower = 14;
 # Initialize an appropriate array to hold the adjacencies
@@ -232,6 +235,7 @@ for (set in 1:nSets){
 # beepr::beep(3)
 
 # Scaling of Topological Overlap Matrices to make them comparable across sets
+
 
 # Initialize an appropriate array to hold the TOMs
 TOM = array(0, dim = c(nSets, nGenes, nGenes));
