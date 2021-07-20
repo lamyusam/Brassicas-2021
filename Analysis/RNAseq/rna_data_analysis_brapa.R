@@ -83,6 +83,24 @@ ggplot(ggpcadata, aes(x = PC1, y = PC2, shape = domesticated, color = parental.e
         axis.text.x = element_text(size = 11),
         axis.text.y = element_text(size = 11),
         axis.title = element_text(face = "bold", size =12))
+#this is unusual- we see a clear separation of samples along the first PC, but the source isn't clear
+#replot but with species labels
+ggplot(ggpcadata, aes(x = PC1, y = PC2, shape = domesticated, color = species, label = sample)) +
+  geom_point(size = 5, position = position_jitter(width = 0.5,height=0.5)) +
+  geom_text(vjust = -1) +
+  xlab(paste0("PC",1,": ",signif(pca.out$percent.var[1]*100, 3),"%")) +
+  ylab(paste0("PC",2,": ",signif(pca.out$percent.var[2]*100, 3),"%")) +
+  theme_bw() +
+  # scale_color_manual(name = "Treatment",
+  #                    values = brewer.pal(7, "Paired")) +
+  scale_shape_manual(name = "Treatment",
+                     values = c(8,15:20)) +
+  theme(panel.grid = element_line(color = "grey95"),
+        legend.title = element_text(face = "bold"),
+        axis.text.x = element_text(size = 11),
+        axis.text.y = element_text(size = 11),
+        axis.title = element_text(face = "bold", size =12))
+#from this we can see that the big clstering is rapa vs others. For simplicity, let's consider dropping the 'weird' samples
 
 
 #next step is to check for genes with parental effects and exclude these
