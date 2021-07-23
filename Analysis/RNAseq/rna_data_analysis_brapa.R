@@ -48,8 +48,8 @@ heatMap = expression.heatmap(countdata = sample_n(brass.gene.counts.clean,100),
                              labels = c("parental.effects",
                                         "domesticated"
                                         #,
-                             #            "treatment",
-                             #            "domesticated"
+                                        #            "treatment",
+                                        #            "domesticated"
                              ),
                              pass_on = F,
                              ID_var = "sample")
@@ -65,7 +65,7 @@ pca.out = list(values = data.frame(data.pca$x),
 #connect to phenotypic data
 ggpcadata = pca.out$values %>%
   rownames_to_column(var = "sample") %>%
-left_join(metadata.brass,
+  left_join(metadata.brass,
             by = "sample")
 #plot
 ggplot(ggpcadata, aes(x = PC1, y = PC2, shape = domesticated, color = parental.effects, label = sample)) +
@@ -100,12 +100,72 @@ ggplot(ggpcadata, aes(x = PC1, y = PC2, shape = domesticated, color = species, l
         axis.text.x = element_text(size = 11),
         axis.text.y = element_text(size = 11),
         axis.title = element_text(face = "bold", size =12))
-#from this we can see that the big clstering is rapa vs others. For simplicity, let's consider dropping the 'weird' samples
+#from this we can see that the big clstering is rapa vs others. For simplicity, let's consider dropping the 'weird' samples,
+#and also their 'partners' where relevant
+checkframe = read.csv("/home/benjamin/Documents/Brassicas_repo/Data/RNAseq/RNASeq_sample_info.csv")
+checksample = substr(subset(checkframe, RNAseq.sample.name == "A31")$Label,1,11)
+brassica.outliers = subset(checkframe, substr(Label,1,11) == checksample)$RNAseq.sample.name %>%
+  c("A112","A108","A86","A129")
+metadata.brass.clean= subset(metadata.brass, !(sample %in% brassica.outliers))
+brass.gene.counts.clean = brass.gene.counts.clean[,as.character(metadata.brass.clean$sample)]
+
+#re-run PCA now that outliers have been excluded
+# log-transform with a pseudocount
+pca.counts = log2(brass.gene.counts.clean+1)
+#create pca object
+data.pca = prcomp(t(pca.counts))
+#extract PC data
+percent.var = (data.pca$sdev^2 / sum(data.pca$sdev^2))
+pca.out = list(values = data.frame(data.pca$x),
+               percent.var = percent.var)
+#connect to phenotypic data
+ggpcadata = pca.out$values %>%
+  rownames_to_column(var = "sample") %>%
+  left_join(metadata.brass.clean,
+            by = "sample")
+#plot with parental effects
+ggplot(ggpcadata, aes(x = PC1, y = PC2, shape = domesticated, color = parental.effects, label = sample)) +
+  geom_point(size = 5, position = position_jitter(width = 0.5,height=0.5)) +
+  #geom_text(vjust = -1) +
+  xlab(paste0("PC",1,": ",signif(pca.out$percent.var[1]*100, 3),"%")) +
+  ylab(paste0("PC",2,": ",signif(pca.out$percent.var[2]*100, 3),"%")) +
+  theme_bw() +
+  # scale_color_manual(name = "Treatment",
+  #                    values = brewer.pal(7, "Paired")) +
+  scale_shape_manual(name = "Treatment",
+                     values = c(8,15:20)) +
+  theme(panel.grid = element_line(color = "grey95"),
+        legend.title = element_text(face = "bold"),
+        axis.text.x = element_text(size = 11),
+        axis.text.y = element_text(size = 11),
+        axis.title = element_text(face = "bold", size =12))
+#replot but with species labels
+ggplot(ggpcadata, aes(x = PC1, y = PC2, shape = domesticated, color = species, label = sample)) +
+  geom_point(size = 5, position = position_jitter(width = 0.5,height=0.5)) +
+  geom_text(vjust = -1) +
+  xlab(paste0("PC",1,": ",signif(pca.out$percent.var[1]*100, 3),"%")) +
+  ylab(paste0("PC",2,": ",signif(pca.out$percent.var[2]*100, 3),"%")) +
+  theme_bw() +
+  # scale_color_manual(name = "Treatment",
+  #                    values = brewer.pal(7, "Paired")) +
+  scale_shape_manual(name = "Treatment",
+                     values = c(8,15:20)) +
+  theme(panel.grid = element_line(color = "grey95"),
+        legend.title = element_text(face = "bold"),
+        axis.text.x = element_text(size = 11),
+        axis.text.y = element_text(size = 11),
+        axis.title = element_text(face = "bold", size =12))
+#okay so now we have a new problem- the brapa samples clearly divide into two very distinct groups along the second PC
+#all the 'outlier' samples are cultivated and most are standarised, but the main group is composed of a mix, so what's the source?
+outgroup = subset(ggpcadata, PC2<(-150))$sample
+subset(checkframe, RNAseq.sample.name %in% outgroup)
 
 
 #next step is to check for genes with parental effects and exclude these
-dds.parental = DESeqDataSetFromMatrix(countData = brass.gene.counts.clean,
-                                      colData = metadata.brass,
+#since parental effects are only available for brapa, we have to make sure we don't include other species
+dds.parental = DESeqDataSetFromMatrix(countData = brass.gene.counts.clean[,as.character(subset(metadata.brass.clean, 
+                                                                                               (species == "Brassica rapa"))$sample)],
+                                      colData = subset(metadata.brass.clean, species == "Brassica rapa"),
                                       design = as.formula(~parental.effects))
 dds.parental.deg = DESeq(dds.parental, fitType = "local", betaPrior = FALSE)
 parental.degs = results(dds.parental.deg)
@@ -152,9 +212,9 @@ resultsNames(dds.gene.deg)
 
 #wheat vs control
 degs.brass.treatment = results(dds.gene.deg, 
-                              name="treatment_Wheat_vs_Control",     
-                              alpha = 0.05,
-                              lfcThreshold = log2(1))
+                               name="treatment_Wheat_vs_Control",     
+                               alpha = 0.05,
+                               lfcThreshold = log2(1))
 summary(degs.brass.treatment) #15 DEGs
 degs.brass.treatment.ids = rownames(subset(degs.brass.treatment, padj<=0.05))
 #1 of these degs is shared with parental degs
@@ -162,34 +222,34 @@ table(degs.brass.treatment.ids%in%parental.degs.ids)
 #also check for parental deg GO terms 
 #GOscores.brass.treatment = as.numeric(row.names(brass.gene.counts.clean)%in%degs.brass.treatment.ids) %>% 'names<-'(row.names(brass.gene.counts.clean))
 brass.treatment.GO.up = topGO_wrapper(geneScores = degs.brass.treatment,
-                                  geneScoresDE = T,
-                                  geneScoresDirection = "Up",
-                                  GOmapping = GOmapping.brass,
-                                  algorithm = "weight01",
-                                  statistic = "fisher",
-                                  nodeSize = 10,
-                                  discretisedDE = T,
-                                  p = 0.05)
-brass.treatment.GO.up$consolidated_result
-#25 GO terms: mostly metabolic but also a couple defensive against fungus e.g. "defense response to fungus" and "response to chitin"
-#"also response to cold" and "response to water deprivation"
-brass.treatment.GO.down = topGO_wrapper(geneScores = degs.brass.treatment,
                                       geneScoresDE = T,
-                                      geneScoresDirection = "Down",
+                                      geneScoresDirection = "Up",
                                       GOmapping = GOmapping.brass,
                                       algorithm = "weight01",
                                       statistic = "fisher",
                                       nodeSize = 10,
                                       discretisedDE = T,
                                       p = 0.05)
+brass.treatment.GO.up$consolidated_result
+#25 GO terms: mostly metabolic but also a couple defensive against fungus e.g. "defense response to fungus" and "response to chitin"
+#"also response to cold" and "response to water deprivation"
+brass.treatment.GO.down = topGO_wrapper(geneScores = degs.brass.treatment,
+                                        geneScoresDE = T,
+                                        geneScoresDirection = "Down",
+                                        GOmapping = GOmapping.brass,
+                                        algorithm = "weight01",
+                                        statistic = "fisher",
+                                        nodeSize = 10,
+                                        discretisedDE = T,
+                                        p = 0.05)
 brass.treatment.GO.down$consolidated_result
 
 
 #cultivated vs wild
 degs.brass.cultivated = results(dds.gene.deg, 
-                               name="domesticated_Cultivated_vs_Wild",     
-                               alpha = 0.05,
-                               lfcThreshold = log2(1))
+                                name="domesticated_Cultivated_vs_Wild",     
+                                alpha = 0.05,
+                                lfcThreshold = log2(1))
 summary(degs.brass.cultivated) #~1500 degs
 degs.brass.cultivated.ids = rownames(subset(degs.brass.cultivated, padj<=0.05))
 #12 of these degs is shared with parental degs
@@ -197,35 +257,35 @@ table(degs.brass.cultivated.ids%in%parental.degs.ids)
 #also check for parental deg GO terms 
 #GOscores.brass.cultivated = as.numeric(row.names(brass.gene.counts.clean)%in%degs.brass.cultivated.ids) %>% 'names<-'(row.names(brass.gene.counts.clean))
 brass.cultivated.GO.up = topGO_wrapper(geneScores = degs.brass.cultivated,
-                                   geneScoresDE = T,
-                                   geneScoresDirection = "Up",
-                                   GOmapping = GOmapping.brass,
-                                   algorithm = "weight01",
-                                   statistic = "fisher",
-                                   nodeSize = 10,
-                                   discretisedDE = T,
-                                   p = 0.05)
-brass.cultivated.GO.up$consolidated_result
-#34 GO terms: lots of developmental, cell growth and death, defensive against fungus, 
-
-brass.cultivated.GO.down = topGO_wrapper(geneScores = degs.brass.cultivated,
                                        geneScoresDE = T,
-                                       geneScoresDirection = "Down",
+                                       geneScoresDirection = "Up",
                                        GOmapping = GOmapping.brass,
                                        algorithm = "weight01",
                                        statistic = "fisher",
                                        nodeSize = 10,
                                        discretisedDE = T,
                                        p = 0.05)
+brass.cultivated.GO.up$consolidated_result
+#34 GO terms: lots of developmental, cell growth and death, defensive against fungus, 
+
+brass.cultivated.GO.down = topGO_wrapper(geneScores = degs.brass.cultivated,
+                                         geneScoresDE = T,
+                                         geneScoresDirection = "Down",
+                                         GOmapping = GOmapping.brass,
+                                         algorithm = "weight01",
+                                         statistic = "fisher",
+                                         nodeSize = 10,
+                                         discretisedDE = T,
+                                         p = 0.05)
 brass.cultivated.GO.down$consolidated_result
 #52 terms, many related to cell cycle and DNA replication, chromatin silencing, gene silcing by mirna
 
 
 #interaction
 degs.brass.interaction = results(dds.gene.deg, 
-                                name="treatmentWheat.domesticatedCultivated",     
-                                alpha = 0.05,
-                                lfcThreshold = log2(1))
+                                 name="treatmentWheat.domesticatedCultivated",     
+                                 alpha = 0.05,
+                                 lfcThreshold = log2(1))
 summary(degs.brass.interaction) #46 degs
 degs.brass.interaction.ids = rownames(subset(degs.brass.interaction, padj<=0.05))
 #1 of these degs is shared with parental degs
@@ -233,14 +293,14 @@ table(degs.brass.interaction.ids%in%parental.degs.ids)
 #also check for parental deg GO terms 
 #GOscores.brass.interaction = as.numeric(row.names(brass.gene.counts.clean)%in%degs.brass.interaction.ids) %>% 'names<-'(row.names(brass.gene.counts.clean))
 brass.interaction.GO = topGO_wrapper(geneScores = degs.brass.interaction,
-                                    geneScoresDE = T,
-                                    geneScoresDirection = NA,
-                                    GOmapping = GOmapping.brass,
-                                    algorithm = "weight01",
-                                    statistic = "fisher",
-                                    nodeSize = 10,
-                                    discretisedDE = T,
-                                    p = 0.05)
+                                     geneScoresDE = T,
+                                     geneScoresDirection = NA,
+                                     GOmapping = GOmapping.brass,
+                                     algorithm = "weight01",
+                                     statistic = "fisher",
+                                     nodeSize = 10,
+                                     discretisedDE = T,
+                                     p = 0.05)
 brass.interaction.GO$consolidated_result
 #26 GO terms: many epigenetic "histone binding" and "histone methylation", "chromatin binding", "regulation of histone modification"
 #several response to sugar (fructose, glucose, sucrose), many developmental
