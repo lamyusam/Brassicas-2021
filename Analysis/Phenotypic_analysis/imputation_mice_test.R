@@ -8,7 +8,9 @@ library("pcaMethods")
 impute = phenodata.gen2.clean.raph %>% 
   select(measure.vars) %>%
   select(-c("Aboveground_dw","Root_dw","Root_to_shoot_ratio","Days_germ")) %>%  # also remove days germ, because the distribution is so massively unimodal
-  select(-grep(names(phenodata.gen2.clean.raph), pattern = "1820",value = T))
+  select(-grep(names(phenodata.gen2.clean.raph), pattern = "1820",value = T)) %>%
+  mutate_all(scale) 
+  
 
 #display missing values: 
 #left side shows number of rows with that combination missing
@@ -23,10 +25,10 @@ set.seed(123)
 impute.test.miss = prodNA(impute.test, noNA = 0.1)
 
 #create mice output the simple way
-init = mice(impute.test.miss, m=5, method = 'pmm')
+init = mice(as.matrix(impute.test.miss), m=5, method = 'pmm')
 meth = init$method
 predM = init$predictorMatrix
-imputed = mice(impute.test.miss, method=meth, predictorMatrix=predM, m=5)
+imputed = mice(as.matrix(impute.test.miss), method=meth, predictorMatrix=predM, m=5)
 imputed = complete(imputed)
 
 for(i in 1:length(names(impute.test))) {
