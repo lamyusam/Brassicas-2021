@@ -5,7 +5,9 @@ library("sinkr")
 library("pcaMethods")
 library("factoextra")
 library("ggpubr")
+library("DHARMa")
 
+setwd("/home/benjamin/Documents/Brassicas_repo")
 
 # narrow down to non-biomass data and remove 1820 data since these are mostly mutually exclusive with non-1820 data
 # also remove days germ, because the distribution is so heavily unimodal
@@ -97,4 +99,58 @@ pca.var.plot.raph.methods = fviz_pca_var(data.pca.methods,
 #                                  #palette = c("#00AFBB", "#E7B800", "#FC4E07"),
 #                                  addEllipses = TRUE) # Concentration ellipses
 
-ggarrange(pca.var.plot.raph, pca.var.plot.raph.mice, pca.var.plot.raph.dineof, pca.var.plot.raph.methods, common.legend = T)
+#arrange and save
+pca.arrange = ggarrange(pca.var.plot.raph, pca.var.plot.raph.mice, pca.var.plot.raph.dineof, pca.var.plot.raph.methods, common.legend = T)
+ggsave(pca.arrange, 
+       filename = "pca_imputation_plots.pdf",
+       device = "pdf", path = "Analysis/Phenotypic_analysis/Images/",
+       width =  40, height = 35, units = "cm")
+
+
+# now we want to see if using the imputed data allow us to identify a PC-level response to stress/wildness
+attachdata = select(phenodata.gen2.clean.raph, c("Label_front","Wild_Dom","Environment","Species","Population"))
+
+#begin with un-imputed data
+compframe = data.frame(data.pca$x[,c("PC1","PC2")]) %>% rownames_to_column(var = "Label_front")
+compframe = left_join(compframe, attachdata, by = "Label_front")
+#for PC1
+model.pc1 = lmer(formula = "PC1~Wild_Dom+Environment+(1|Population)", data = compframe)
+summary(model.pc1)$coefficients
+simulationOutput = simulateResiduals(fittedModel = model.pc1)
+plot(simulationOutput)
+#for PC2
+model.pc2 = lmer(formula = "PC2~Wild_Dom+Environment+(1|Population)", data = compframe)
+summary(model.pc2)$coefficients
+simulationOutput = simulateResiduals(fittedModel = model.pc2)
+plot(simulationOutput)
+
+
+#now with MICE data
+miceframe = data.frame(data.pca.mice$x[,c("PC1","PC2")]) %>% rownames_to_column(var = "Label_front")
+miceframe = left_join(miceframe, attachdata, by = "Label_front")
+#for PC1
+model.mice.pc1 = lmer(formula = "PC1~Wild_Dom+Environment+(1|Population)", data = miceframe)
+summary(model.mice.pc1)$coefficients
+simulationOutput = simulateResiduals(fittedModel = model.mice.pc1)
+plot(simulationOutput)
+#for PC2
+model.mice.pc2 = lmer(formula = "PC2~Wild_Dom+Environment+(1|Population)", data = miceframe)
+summary(model.mice.pc2)$coefficients
+simulationOutput = simulateResiduals(fittedModel = model.mice.pc2)
+plot(simulationOutput)
+
+
+#now with pcamethods data
+methodsframe = data.frame(data.pca.methods$x[,c("PC1","PC2")]) %>% rownames_to_column(var = "Label_front")
+methodsframe = left_join(methodsframe, attachdata, by = "Label_front")
+#for PC1
+model.methds.pc1 = lmer(formula = "PC1~Wild_Dom+Environment+(1|Population)", data = methodsframe)
+summary(model.methds.pc1)$coefficients
+simulationOutput = simulateResiduals(fittedModel = model.methds.pc1)
+plot(simulationOutput)
+#for PC2
+model.methds.pc2 = lmer(formula = "PC2~Wild_Dom+Environment+(1|Population)", data = methodsframe)
+summary(model.methds.pc2)$coefficients
+simulationOutput = simulateResiduals(fittedModel = model.methds.pc2)
+plot(simulationOutput)
+
