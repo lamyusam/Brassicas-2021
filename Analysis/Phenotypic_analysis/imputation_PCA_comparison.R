@@ -16,7 +16,10 @@ phenodata.gen2.raph.pcadata = phenodata.gen2.clean.raph %>%
   column_to_rownames(var = "Label_front") %>%
   select(measure.vars) %>%
   select(-c("Aboveground_dw","Root_dw","Root_to_shoot_ratio","Days_germ")) %>%  
-  select(-grep(names(phenodata.gen2.clean.raph), pattern = "1820",value = T))
+  select(-grep(names(phenodata.gen2.clean.raph), pattern = "1820",value = T)) 
+
+#also remove any rows that are comprised only of NAs
+phenodata.gen2.raph.pcadata = phenodata.gen2.raph.pcadata[rowSums(is.na(phenodata.gen2.raph.pcadata))!=ncol(phenodata.gen2.raph.pcadata),]
 
 # first generate PCA using just complete cases
 set.seed(123)
@@ -46,6 +49,7 @@ imputed.mice = mice(phenodata.gen2.raph.pcadata, method=meth, predictorMatrix=pr
 imputed.mice = complete(imputed.mice)
 #create pca object
 data.pca.mice = prcomp(imputed.mice,scale.=T)
+data.pca.mice$rotation[,"PC2"] = data.pca.mice$rotation[,"PC2"]*(-1) #we flip PC2 here for consistency with the other plots
 #display variable loadings
 pca.var.plot.raph.mice = fviz_pca_var(data.pca.mice,
                                  col.var = "contrib", # Color by contributions to the PC
@@ -64,6 +68,7 @@ set.seed(123)
 imputed.dineof = dineof(Xo = as.matrix(phenodata.gen2.raph.pcadata), delta.rms = 1e-04)
 #create pca object
 data.pca.dineof = prcomp(imputed.dineof$Xa,scale.=T) 
+data.pca.dineof$rotation[,"PC2"] = data.pca.dineof$rotation[,"PC2"]*(-1) #we flip PC2 here for consistency with the other plots
 #display variable loadings
 pca.var.plot.raph.dineof = fviz_pca_var(data.pca.dineof,
                                       col.var = "contrib", # Color by contributions to the PC
@@ -165,3 +170,23 @@ simulationOutput = simulateResiduals(fittedModel = model.methods.pc2)
 plot(simulationOutput)
 write.csv(signif(summary(model.methods.pc2)$coefficients, digits = 4), 
           file = "/home/benjamin/Dropbox/Soton Postdoc/Meeting notes/Tables/model.methods.pc2.csv")
+
+
+
+#also with dineof data
+dineofframe = data.frame(data.pca.dineof$x[,c("PC1","PC2")]) %>% rownames_to_column(var = "Label_front")
+dineofframe = left_join(dineofframe, attachdata, by = "Label_front")
+#for PC1
+model.dineof.pc1 = lmer(formula = "PC1~Wild_Dom+Environment+(1|Population)", data = dineofframe)
+summary(model.dineof.pc1)$coefficients
+simulationOutput = simulateResiduals(fittedModel = model.dineof.pc1)
+plot(simulationOutput)
+write.csv(signif(summary(model.dineof.pc1)$coefficients, digits = 4), 
+          file = "/home/benjamin/Dropbox/Soton Postdoc/Meeting notes/Tables/model.dineof.pc1.csv")
+#for PC2
+model.dineof.pc2 = lmer(formula = "PC2~Wild_Dom+Environment+(1|Population)", data = dineofframe)
+summary(model.dineof.pc2)$coefficients
+simulationOutput = simulateResiduals(fittedModel = model.dineof.pc2)
+plot(simulationOutput)
+write.csv(signif(summary(model.dineof.pc2)$coefficients, digits = 4), 
+          file = "/home/benjamin/Dropbox/Soton Postdoc/Meeting notes/Tables/model.dineof.pc2.csv")
