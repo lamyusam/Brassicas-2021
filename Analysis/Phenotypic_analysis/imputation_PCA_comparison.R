@@ -118,11 +118,15 @@ model.pc1 = lmer(formula = "PC1~Wild_Dom+Environment+(1|Population)", data = com
 summary(model.pc1)$coefficients
 simulationOutput = simulateResiduals(fittedModel = model.pc1)
 plot(simulationOutput)
+write.csv(signif(summary(model.pc1)$coefficients, digits = 4), 
+          file = "/home/benjamin/Dropbox/Soton Postdoc/Meeting notes/Tables/model.pc1.csv")
 #for PC2
 model.pc2 = lmer(formula = "PC2~Wild_Dom+Environment+(1|Population)", data = compframe)
 summary(model.pc2)$coefficients
 simulationOutput = simulateResiduals(fittedModel = model.pc2)
 plot(simulationOutput)
+write.csv(signif(summary(model.pc2)$coefficients, digits = 4), 
+          file = "/home/benjamin/Dropbox/Soton Postdoc/Meeting notes/Tables/model.pc2.csv")
 
 
 #now with MICE data
@@ -133,24 +137,31 @@ model.mice.pc1 = lmer(formula = "PC1~Wild_Dom+Environment+(1|Population)", data 
 summary(model.mice.pc1)$coefficients
 simulationOutput = simulateResiduals(fittedModel = model.mice.pc1)
 plot(simulationOutput)
+write.csv(signif(summary(model.mice.pc1)$coefficients, digits = 4), 
+          file = "/home/benjamin/Dropbox/Soton Postdoc/Meeting notes/Tables/model.mice.pc1.csv")
 #for PC2
 model.mice.pc2 = lmer(formula = "PC2~Wild_Dom+Environment+(1|Population)", data = miceframe)
 summary(model.mice.pc2)$coefficients
 simulationOutput = simulateResiduals(fittedModel = model.mice.pc2)
 plot(simulationOutput)
+write.csv(signif(summary(model.mice.pc2)$coefficients, digits = 4), 
+          file = "/home/benjamin/Dropbox/Soton Postdoc/Meeting notes/Tables/model.mice.pc2.csv")
 
 
 #now with pcamethods data
 methodsframe = data.frame(data.pca.methods$x[,c("PC1","PC2")]) %>% rownames_to_column(var = "Label_front")
 methodsframe = left_join(methodsframe, attachdata, by = "Label_front")
 #for PC1
-model.methds.pc1 = lmer(formula = "PC1~Wild_Dom+Environment+(1|Population)", data = methodsframe)
-summary(model.methds.pc1)$coefficients
-simulationOutput = simulateResiduals(fittedModel = model.methds.pc1)
+model.methods.pc1 = lmer(formula = "PC1~Wild_Dom+Environment+(1|Population)", data = methodsframe)
+summary(model.methods.pc1)$coefficients
+simulationOutput = simulateResiduals(fittedModel = model.methods.pc1)
 plot(simulationOutput)
+write.csv(signif(summary(model.methods.pc1)$coefficients, digits = 4), 
+          file = "/home/benjamin/Dropbox/Soton Postdoc/Meeting notes/Tables/model.methods.pc1.csv")
 #for PC2
-model.methds.pc2 = lmer(formula = "PC2~Wild_Dom+Environment+(1|Population)", data = methodsframe)
-summary(model.methds.pc2)$coefficients
-simulationOutput = simulateResiduals(fittedModel = model.methds.pc2)
+model.methods.pc2 = lmer(formula = "PC2~Wild_Dom+Environment+(1|Population)", data = methodsframe)
+summary(model.methods.pc2)$coefficients
+simulationOutput = simulateResiduals(fittedModel = model.methods.pc2)
 plot(simulationOutput)
-
+write.csv(signif(summary(model.methods.pc2)$coefficients, digits = 4), 
+          file = "/home/benjamin/Dropbox/Soton Postdoc/Meeting notes/Tables/model.methods.pc2.csv")
