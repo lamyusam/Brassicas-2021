@@ -455,4 +455,181 @@ chisq.test(table(select(foldchanges.subset.all,c("magnitude"))))
 
 
 
+#### wild brapa vs other wilds ####
 
+#now compare wild brapa vs other wild
+#subset
+metadata.brass.wilds = subset(metadata.brass.clean, domesticated == "Wild")
+brass.gene.counts.clean.wilds = brass.gene.counts.clean[,as.character(metadata.brass.wilds$sample)]
+#check that metadata and count matrices conform
+table(metadata.brass.wilds$sample %in% colnames(brass.gene.counts.clean.wilds))
+brass.gene.counts.clean.wilds = brass.gene.counts.clean.wilds[,as.character(metadata.brass.wilds$sample)]
+#add column to check whether ancestor of domesticated or not
+metadata.brass.wilds$wild.ancestor = (metadata.brass.wilds$species=="Brassica rapa")
+
+#now run model with our variables of interest
+dds.gene.wilds = DESeqDataSetFromMatrix(countData = brass.gene.counts.clean.wilds,
+                                        colData = metadata.brass.wilds,
+                                        design = as.formula(~treatment+wild.ancestor+treatment*wild.ancestor))
+dds.gene.deg.wilds = DESeq(dds.gene.wilds, fitType = "parametric", betaPrior = FALSE)
+# Check for outliers: none are apparent
+boxplot(log10(assays(dds.gene.deg.wilds)[["cooks"]]), range=0, las=2)
+boxplot(log10(assays(dds.gene.deg.wilds)[["counts"]]), range=0, las=2)
+
+
+#results: interaction
+degs.brass.wilds.interaction = results(dds.gene.deg.wilds, 
+                                      name="treatmentControl.wild.ancestorTRUE",     
+                                      alpha = 0.05,
+                                      lfcThreshold = log2(1))
+summary(degs.brass.wilds.interaction) #73 degs
+degs.brass.wilds.interaction.ids = rownames(subset(degs.brass.wilds.interaction, padj<=0.05))
+#2 of these degs are shared with parental degs
+table(degs.brass.wilds.interaction.ids%in%parental.degs.ids)
+#also check for GO terms
+brass.wilds.interaction.GO = topGO_wrapper(geneScores = degs.brass.wilds.interaction,
+                                          geneScoresDE = T,
+                                          geneScoresDirection = NA,
+                                          GOmapping = GOmapping.brass,
+                                          algorithm = "weight01",
+                                          statistic = "fisher",
+                                          nodeSize = 10,
+                                          discretisedDE = T,
+                                          p = 0.05)
+nrow(brass.wilds.interaction.GO$consolidated_result)
+#33 GO terms
+
+#for the interaction terms, we also plot the output to understand what exactly is going on
+#get the 12 terms with lowest adjusted p value
+degs.brass.wilds.interaction.signif = subset(degs.brass.wilds.interaction, padj<0.05)
+interestgeneswild = row.names(degs.brass.wilds.interaction.signif)[order(degs.brass.wilds.interaction.signif$log2FoldChange,decreasing = T)[1:12]]
+#for each gene, extract the counts for plotting and label by gene
+for(i in 1:length(interestgeneswild)){
+  #if first element, instantiate frame, otherwise rbind to frame
+  if(i==1) {
+    brass.intplotdata = plotCounts(dds.gene.deg.wilds, gene=interestgeneswild[i], intgroup=c("wild.ancestor","treatment"), returnData = T)
+    brass.intplotdata$gene = interestgeneswild[i]
+  } else {
+    addrows = data.frame(plotCounts(dds.gene.deg.wilds, gene=interestgeneswild[i], intgroup=c("wild.ancestor","treatment"), returnData = T), 
+                         gene = interestgeneswild[i])
+    brass.intplotdata = rbind(brass.intplotdata, addrows)
+  }
+}
+
+#plot with ggplot facet wrap
+brass.intplot.wilds= ggplot(brass.intplotdata, aes(x = treatment, y = count)) +
+  stat_summary(aes(group = wild.ancestor), fun = mean, geom = "path") +
+  stat_summary(aes(color = wild.ancestor), fun.data = mean_cl_boot, geom = "errorbar", width = 0.1) +
+  stat_summary(aes(color = wild.ancestor), fun = mean, geom = "point", size = 4) +
+  geom_point(aes(color = wild.ancestor), size = 2) +
+  scale_color_manual(values = brewer.pal(6,"Set3")[c(5,6)]) +
+  facet_wrap(~gene, scales = "free") +
+  labs(color = "Rapa")
+
+#save plot
+ggsave(brass.intplot.wilds, 
+       filename = "brassica_interaction_deg_plots_wilds.png",
+       device = "png", path = "Analysis/RNAseq/Images/",
+       width =  40, height = 25, units = "cm")
+
+
+#### wilds interaction norm analysis ####
+
+#first compare treatments for brassica rapa and for other wilds separately
+
+#get fold changes in brapa
+#extract norm. counts for each combination
+metadata.brass.brapawild = subset(metadata.brass.wilds, species == "Brassica rapa")
+metadata.brass.otherwilds = subset(metadata.brass.wilds, species != "Brassica rapa")
+# raphwheatcounts = counts(dds.gene.deg.wilds,normalized=T)[,as.character(subset(metadata.raph.raphanistrum, treatment == "Wheat")$sample)]
+# raphcontrolcounts = counts(dds.gene.deg.wilds,normalized=T)[,as.character(subset(metadata.raph.raphanistrum, treatment == "Control")$sample)]
+# otherwheatcounts = counts(dds.gene.deg.wilds,normalized=T)[,as.character(subset(metadata.raph.otherwilds, treatment == "Wheat")$sample)]
+# othercontrolcounts = counts(dds.gene.deg.wilds,normalized=T)[,as.character(subset(metadata.raph.otherwilds, treatment == "Control")$sample)]
+# #extract log2 fold changes for non-raphanistrum
+# otherwilds.folds = log2(rowMeans(otherwheatcounts)/rowMeans(othercontrolcounts))
+# raphanistrum.folds = log2(rowMeans(raphwheatcounts)/rowMeans(raphcontrolcounts))
+
+brass.gene.counts.clean.otherwilds = brass.gene.counts.clean[,as.character(metadata.brass.otherwilds$sample)]
+dds.gene.otherwilds = DESeqDataSetFromMatrix(countData = brass.gene.counts.clean.otherwilds,
+                                             colData = metadata.brass.otherwilds,
+                                             design = as.formula(~treatment))
+dds.gene.deg.otherwilds = DESeq(dds.gene.otherwilds, fitType = "parametric", betaPrior = FALSE)
+degs.otherwilds = results(dds.gene.deg.otherwilds,
+                          name="treatment_Control_vs_Wheat",
+                          alpha = 0.05,
+                          lfcThreshold = log2(1))
+
+brass.gene.counts.clean.brapawild = brass.gene.counts.clean[,as.character(metadata.brass.brapawild$sample)]
+dds.gene.brapawild = DESeqDataSetFromMatrix(countData = brass.gene.counts.clean.brapawild,
+                                               colData = metadata.brass.brapawild,
+                                               design = as.formula(~treatment))
+dds.gene.deg.brapawild = DESeq(dds.gene.brapawild, fitType = "parametric", betaPrior = FALSE)
+degs.brapawild = results(dds.gene.deg.brapawild,
+                            name="treatment_Control_vs_Wheat",
+                            alpha = 0.05,
+                            lfcThreshold = log2(1))
+
+foldchanges.wilds = data.frame(brapawild = degs.brapawild[degs.brass.wilds.interaction.ids,"log2FoldChange"],
+                               others = degs.otherwilds[degs.brass.wilds.interaction.ids,"log2FoldChange"], 
+                               row.names = degs.brass.wilds.interaction.ids)
+
+#brapa fold changes are significantly greater than for other wilds
+t.test(x = abs(foldchanges.wilds$brapawild), y = abs(foldchanges.wilds$others), paired = TRUE)
+wilcox.test(x = abs(foldchanges.wilds$brapawild), y = abs(foldchanges.wilds$others), paired = TRUE)
+mean(abs(foldchanges.wilds$brapawild), na.rm = T)
+mean(abs(foldchanges.wilds$others), na.rm = T)
+#plot
+gg.foldchanges.wilds = ggplot(data = reshape2::melt(foldchanges.wilds), aes(y = abs(value), x =variable)) +
+  geom_boxplot(range = 0) + 
+  #geom_point() +
+  labs(x = "group", y = "absolute log2 fold change")
+gg.foldchanges.wilds
+#save plot
+ggsave(gg.foldchanges.wilds, 
+       filename = "brapawild_wilds_foldchanges_plot.png",
+       device = "png", path = "Analysis/RNAseq/Images/",
+       width =  30, height = 25, units = "cm")
+
+#fancier but uglier plot
+# ggplot(reshape2::melt(as.matrix(foldchanges.wilds)), aes(y = abs(value))) +
+#   geom_boxplot(aes(x = rep(c(-3, 3), each = nrow(foldchanges.wilds)), group = Var2), fill = 'steelblue') +
+#   geom_point(aes(x = rep(c(-1, 1), each = nrow(foldchanges.wilds))), size = 5) +
+#   geom_line(aes(x = rep(c(-1, 1), each = nrow(foldchanges.wilds)), group = Var1))
+
+#also check whether raphanistrum genes generally have same directionality as other wilds
+#pull the relevant data
+foldchanges.wilds = mutate(foldchanges.wilds, 
+                           direction=ifelse((sign(brapawild)==sign(others)),"Equal","Opposite"),
+                           magnitude=ifelse((abs(brapawild)<abs(others)),"Decrease","Increase"))
+table.foldchanges = table(select(foldchanges.wilds,c("direction","magnitude")))
+#distribution of opposite and equal changes is unrelated to magnitudes of changes:
+chisq.test(table.foldchanges)
+mosaicplot(table.foldchanges)
+
+#test differences in plasticity across all genes
+t.test(x = abs(foldchanges.wilds$brapawild), y = abs(foldchanges.wilds$others), paired = TRUE)
+wilcox.test(x = abs(foldchanges.wilds$brapawild), y = abs(foldchanges.wilds$others), paired = TRUE)
+
+#oppposite direction is significantly more common than same direction, as in raphanus wilds
+chisq.test(table(select(foldchanges.wilds,c("direction"))))
+#to confirm, brapa wild genes are more likely to exhibit increased plasticity relative to other wilds
+chisq.test(table(select(foldchanges.wilds,c("magnitude"))))
+
+
+# repeat the entire set of genes, not just the ones ID'd by DESeq2
+#compile foldchange data for all terms
+foldchanges.wilds.all = data.frame(brapawild = degs.brapawild[,"log2FoldChange"],
+                                    otherwilds = degs.otherwilds[,"log2FoldChange"], 
+                                    row.names = row.names(degs.brapawild))
+#when looking at all genes (not just ones significant for interaction) brapa genes are also more plastic overall
+t.test(x = abs(foldchanges.wilds.all$brapawild), y = abs(foldchanges.wilds.all$otherwilds), paired = TRUE)
+wilcox.test(x = abs(foldchanges.wilds.all$brapawild), y = abs(foldchanges.wilds.all$otherwilds), paired = TRUE)
+mean(abs(foldchanges.wilds.all$brapawild), na.rm = T)
+mean(abs(foldchanges.wilds.all$otherwilds), na.rm = T)
+foldchanges.wilds.all = mutate(foldchanges.wilds.all, 
+                                direction=ifelse((sign(brapawild)==sign(otherwilds)),"Equal","Opposite"),
+                                magnitude=ifelse((abs(brapawild)>abs(otherwilds)),"Increase","Decrease"))
+#when looking across all genes, opposite directionality between brapa and other wilds is more common than chance
+chisq.test(table(select(foldchanges.wilds.all,c("direction"))))
+#increase in plasticity is definitely more common even across all genes
+chisq.test(table(select(foldchanges.wilds.all,c("magnitude"))))
