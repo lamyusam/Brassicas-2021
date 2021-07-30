@@ -406,8 +406,8 @@ degs.raph.wilds.interaction = results(dds.gene.deg.wilds,
                                 alpha = 0.05,
                                 lfcThreshold = log2(1))
 summary(degs.raph.wilds.interaction) #100 degs
-degs.raph.wilds.interaction.ids = rownames(subset(degs.raph.interaction, padj<=0.05))
-#4 of these degs are shared with parental degs
+degs.raph.wilds.interaction.ids = rownames(subset(degs.raph.wilds.interaction, padj<=0.05))
+#2 of these degs are shared with parental degs
 table(degs.raph.wilds.interaction.ids%in%parental.degs.ids)
 #also check for GO terms
 raph.wilds.interaction.GO = topGO_wrapper(geneScores = degs.raph.wilds.interaction,
