@@ -227,7 +227,7 @@ raph.cultivated.GO.down = topGO_wrapper(geneScores = degs.raph.cultivated,
                                       nodeSize = 10,
                                       discretisedDE = T,
                                       p = 0.05)
-write.csv(raph.treatment.GO.down$consolidated_result, 
+write.csv(raph.cultivated.GO.down$consolidated_result, 
           file = "Analysis/RNAseq/Tables/raphanistrum_sativus_GO_wildbias.csv", row.names = FALSE)
 #28 down
 
@@ -400,6 +400,79 @@ dds.gene.deg.wilds = DESeq(dds.gene.wilds, fitType = "parametric", betaPrior = F
 boxplot(log10(assays(dds.gene.deg.wilds)[["cooks"]]), range=0, las=2)
 boxplot(log10(assays(dds.gene.deg.wilds)[["counts"]]), range=0, las=2)
 
+#results: wheat vs control
+degs.raph.wilds.treatment = results(dds.gene.deg.wilds, 
+                              name="treatment_Control_vs_Wheat",     
+                              alpha = 0.05,
+                              lfcThreshold = log2(1))
+degs.raph.wilds.treatment.Nup = nrow(subset(degs.raph.wilds.treatment, padj<=0.05 & log2FoldChange>0)) #37 up in control
+degs.raph.wilds.treatment.Ndown = nrow(subset(degs.raph.wilds.treatment, padj<=0.05 & log2FoldChange<0)) #46 up in wheat
+degs.raph.wilds.treatment.ids = rownames(subset(degs.raph.wilds.treatment, padj<=0.05))
+#3 of these degs shared with parental degs
+table(degs.raph.wilds.treatment.ids%in%parental.degs.ids)
+#also check for  GO terms 
+raph.wilds.treatment.GO.up = topGO_wrapper(geneScores = degs.raph.wilds.treatment,
+                                     geneScoresDE = T,
+                                     geneScoresDirection = "Up",
+                                     GOmapping = GOmapping.raph,
+                                     algorithm = "weight01",
+                                     statistic = "fisher",
+                                     nodeSize = 10,
+                                     discretisedDE = T,
+                                     p = 0.05)
+write.csv(raph.wilds.treatment.GO.up$consolidated_result, 
+          file = "Analysis/RNAseq/Tables/raphanus_wilds_GO_controlbias.csv", row.names = FALSE)
+#44 GO terms up
+raph.wilds.treatment.GO.down = topGO_wrapper(geneScores = degs.raph.wilds.treatment,
+                                       geneScoresDE = T,
+                                       geneScoresDirection = "Down",
+                                       GOmapping = GOmapping.raph,
+                                       algorithm = "weight01",
+                                       statistic = "fisher",
+                                       nodeSize = 10,
+                                       discretisedDE = T,
+                                       p = 0.05)
+write.csv(raph.wilds.treatment.GO.down$consolidated_result, 
+          file = "Analysis/RNAseq/Tables/raphanus_wilds_GO_wheatbias.csv", row.names = FALSE)
+#35 GO terms down
+
+#results: cultivated vs wild
+degs.raph.wilds.cultivated = results(dds.gene.deg.wilds, 
+                               name="wild.ancestorTRUE",     
+                               alpha = 0.05,
+                               lfcThreshold = log2(1))
+summary(degs.raph.wilds.cultivated) #~2000 degs
+degs.raph.wilds.cultivated.Nup = nrow(subset(degs.raph.wilds.cultivated, padj<=0.05 & log2FoldChange>0)) #734 up in cultivar
+degs.raph.wilds.cultivated.Ndown = nrow(subset(degs.raph.wilds.cultivated, padj<=0.05 & log2FoldChange<0)) #1139 up in wild
+degs.raph.wilds.cultivated.ids = rownames(subset(degs.raph.wilds.cultivated, padj<=0.05))
+#12 of these degs is shared with parental degs
+table(degs.raph.wilds.cultivated.ids%in%parental.degs.ids)
+#also check for deg GO terms 
+raph.wilds.cultivated.GO.up = topGO_wrapper(geneScores = degs.raph.wilds.cultivated,
+                                      geneScoresDE = T,
+                                      geneScoresDirection = "Up",
+                                      GOmapping = GOmapping.raph,
+                                      algorithm = "weight01",
+                                      statistic = "fisher",
+                                      nodeSize = 10,
+                                      discretisedDE = T,
+                                      p = 0.05)
+write.csv(raph.wilds.cultivated.GO.up$consolidated_result, 
+          file = "Analysis/RNAseq/Tables/raphanus_wilds_GO_cultivatedbias.csv", row.names = FALSE)
+#68 GO terms up
+raph.wilds.cultivated.GO.down = topGO_wrapper(geneScores = degs.raph.wilds.cultivated,
+                                        geneScoresDE = T,
+                                        geneScoresDirection = "Down",
+                                        GOmapping = GOmapping.raph,
+                                        algorithm = "weight01",
+                                        statistic = "fisher",
+                                        nodeSize = 10,
+                                        discretisedDE = T,
+                                        p = 0.05)
+write.csv(raph.wilds.cultivated.GO.down$consolidated_result, 
+          file = "Analysis/RNAseq/Tables/raphanus_wilds_GO_wildbias.csv", row.names = FALSE)
+#69 down
+
 #results: interaction
 degs.raph.wilds.interaction = results(dds.gene.deg.wilds, 
                                 name="treatmentControl.wild.ancestorTRUE",     
@@ -407,6 +480,7 @@ degs.raph.wilds.interaction = results(dds.gene.deg.wilds,
                                 lfcThreshold = log2(1))
 summary(degs.raph.wilds.interaction) #100 degs
 degs.raph.wilds.interaction.ids = rownames(subset(degs.raph.wilds.interaction, padj<=0.05))
+degs.raph.wilds.interaction.N = length(degs.raph.wilds.interaction.ids)
 #2 of these degs are shared with parental degs
 table(degs.raph.wilds.interaction.ids%in%parental.degs.ids)
 #also check for GO terms
@@ -455,16 +529,16 @@ ggsave(raph.intplot.wilds,
        width =  40, height = 25, units = "cm")
 
 #data for this need to be instantiated above
-# wildsnumdegs = c(degs.raph.wilds.cultivated.Nup, degs.raph.wilds.cultivated.Ndown,
-#             degs.raph.wilds.treatment.Nup, degs.raph.wilds.treatment.Ndown, degs.raph.wilds.interaction.N)
-# wildsnumGO = c(nrow(raph.wilds.cultivated.GO.up$consolidated_result), nrow(raph.wilds.cultivated.GO.down$consolidated_result),
-#           nrow(raph.wilds.treatment.GO.up$consolidated_result), nrow(raph.wilds.treatment.GO.down$consolidated_result),
-#           nrow(raph.wilds.interaction.GO$consolidated_result))
-# 
-# raph.wilds.output = data.frame(DEGs=wildsnumdegs, GO_terms=wildsnumGO,
-#                                row.names = c("Domesticated_bias","Wild_bias","Unstressed_bias","Stressed_bias","Interaction"))
-# 
-# write.csv(raph.wilds.output, file = "Analysis/RNAseq/Tables/raph_wilds_summary.csv")
+wildsnumdegs = c(degs.raph.wilds.cultivated.Nup, degs.raph.wilds.cultivated.Ndown,
+            degs.raph.wilds.treatment.Nup, degs.raph.wilds.treatment.Ndown, degs.raph.wilds.interaction.N)
+wildsnumGO = c(nrow(raph.wilds.cultivated.GO.up$consolidated_result), nrow(raph.wilds.cultivated.GO.down$consolidated_result),
+          nrow(raph.wilds.treatment.GO.up$consolidated_result), nrow(raph.wilds.treatment.GO.down$consolidated_result),
+          nrow(raph.wilds.interaction.GO$consolidated_result))
+
+raph.wilds.output = data.frame(DEGs=wildsnumdegs, GO_terms=wildsnumGO,
+                               row.names = c("Domesticated_bias","Wild_bias","Unstressed_bias","Stressed_bias","Interaction"))
+
+write.csv(raph.wilds.output, file = "Analysis/RNAseq/Tables/raph_wilds_summary.csv")
 
 
 #### wilds interaction norm analysis ####
