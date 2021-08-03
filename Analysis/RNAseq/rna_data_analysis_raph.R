@@ -355,6 +355,16 @@ table.foldchanges = table(select(foldchanges.subset,c("direction","magnitude")))
 chisq.test(table.foldchanges)
 mosaicplot(table.foldchanges)
 
+#more sophisticated
+foldchanges.subset$wildDirection = ifelse(foldchanges.subset$wild>0.5, "up", 
+                                          ifelse(foldchanges.subset$wild<(-0.5), "down","neutral"))
+foldchanges.subset$cultivatedDirection = ifelse(foldchanges.subset$cultivated>0.5, "up", 
+                                                ifelse(foldchanges.subset$cultivated<(-0.5), "down","neutral"))
+table.foldchanges.comp = table(select(foldchanges.subset,c("wildDirection","cultivatedDirection")))
+#test
+chisq.test(table.foldchanges.comp)
+mosaicplot(table.foldchanges.comp)
+
 #oppposite direction is significantly more common than same direction
 chisq.test(table(select(foldchanges.subset,c("direction"))))
 #to confirm, increase in plasticity is significantly more common than decrease
@@ -607,6 +617,7 @@ ggsave(gg.foldchanges.wilds,
 
 #also check whether raphanistrum genes generally have same directionality as other wilds
 #pull the relevant data
+table(select(foldchanges.wilds, c("raphanistrumDirection","otherWildsDirection")))
 foldchanges.wilds = mutate(foldchanges.wilds, 
                             direction=ifelse((sign(raphanistrum)==sign(others)),"Equal","Opposite"),
                             magnitude=ifelse((abs(raphanistrum)<abs(others)),"Decrease","Increase"))
@@ -614,6 +625,17 @@ table.foldchanges = table(select(foldchanges.wilds,c("direction","magnitude")))
 #distribution of opposite and equal changes is unrelated to magnitudes of changes:
 chisq.test(table.foldchanges)
 mosaicplot(table.foldchanges)
+
+#more sophisticated directions
+foldchanges.wilds$raphanistrumDirection = ifelse(foldchanges.wilds$raphanistrum>0.5, "up", 
+                                                 ifelse(foldchanges.wilds$raphanistrum<(-0.5), "down","neutral"))
+foldchanges.wilds$otherWildsDirection = ifelse(foldchanges.wilds$others>0.5, "up", 
+                                               ifelse(foldchanges.wilds$others<(-0.5), "down","neutral"))
+table.foldchanges.comp = select(foldchanges.wilds, c("raphanistrumDirection","otherWildsDirection"))
+#test
+chisq.test(table.foldchanges.comp)
+mosaicplot(table.foldchanges.comp)
+
 
 #oppposite direction is significantly more common than same direction
 chisq.test(table(select(foldchanges.wilds,c("direction"))))

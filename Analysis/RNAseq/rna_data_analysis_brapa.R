@@ -418,12 +418,25 @@ ggsave(gg.foldchanges.subset,
 
 #pull the relevant data
 foldchanges.subset = mutate(foldchanges.subset, 
+                            direction=ifelse((sign(raphanistrum)==sign(sativus)),"Equal","Opposite"),
+                            magnitude=ifelse((abs(raphanistrum)>abs(sativus)),"Decrease","Increase"))
+foldchanges.subset = mutate(foldchanges.subset, 
                             direction=ifelse((sign(wild)==sign(cultivated)),"Equal","Opposite"),
                             magnitude=ifelse((abs(wild)>abs(cultivated)),"Decrease","Increase"))
 table.foldchanges = table(select(foldchanges.subset,c("direction","magnitude")))
 #distribution of opposite and equal changes is unrelated to magnitudes of changes:
 chisq.test(table.foldchanges)
 mosaicplot(table.foldchanges)
+
+#more distributed
+foldchanges.subset$wildDirection = ifelse(foldchanges.subset$wild>0.5, "up", 
+                                          ifelse(foldchanges.subset$wild<(-0.5), "down","neutral"))
+foldchanges.subset$cultivatedDirection = ifelse(foldchanges.subset$cultivated>0.5, "up", 
+                                                ifelse(foldchanges.subset$cultivated<(-0.5), "down","neutral"))
+table.foldchanges.comp = table(select(foldchanges.subset,c("wildDirection","cultivatedDirection")))
+#check
+chisq.test(table.foldchanges.comp)
+mosaicplot(table.foldchanges.comp)
 
 #oppposite direction is significantly more common than same direction
 chisq.test(table(select(foldchanges.subset,c("direction"))))
@@ -605,6 +618,15 @@ table.foldchanges = table(select(foldchanges.wilds,c("direction","magnitude")))
 #distribution of opposite and equal changes is unrelated to magnitudes of changes:
 chisq.test(table.foldchanges)
 mosaicplot(table.foldchanges)
+
+#also do more sophisticated comparison of directionality
+foldchanges.wilds.all$brapaDirection = ifelse(foldchanges.wilds.all$brapawild>0.5, "up", 
+                                              ifelse(foldchanges.wilds.all$brapawild<(-0.5), "down","neutral"))
+foldchanges.wilds.all$otherWildsDirection = ifelse(foldchanges.wilds.all$otherwilds>0.5, "up", 
+                                                   ifelse(foldchanges.wilds.all$otherwilds<(-0.5), "down","neutral"))
+table.foldchanges.wilds.comp = table(select(foldchanges.wilds.all,c("brapaDirection","otherWildsDirection")))
+chisq.test(table.foldchanges.wilds.comp)
+mosaicplot(table.foldchanges.wilds.comp)
 
 #test differences in plasticity across all genes
 t.test(x = abs(foldchanges.wilds$brapawild), y = abs(foldchanges.wilds$others), paired = TRUE)
