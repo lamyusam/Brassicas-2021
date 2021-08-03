@@ -454,6 +454,18 @@ ggsave(raph.intplot.wilds,
        device = "png", path = "Analysis/RNAseq/Images/",
        width =  40, height = 25, units = "cm")
 
+#data for this need to be instantiated above
+# wildsnumdegs = c(degs.raph.wilds.cultivated.Nup, degs.raph.wilds.cultivated.Ndown,
+#             degs.raph.wilds.treatment.Nup, degs.raph.wilds.treatment.Ndown, degs.raph.wilds.interaction.N)
+# wildsnumGO = c(nrow(raph.wilds.cultivated.GO.up$consolidated_result), nrow(raph.wilds.cultivated.GO.down$consolidated_result),
+#           nrow(raph.wilds.treatment.GO.up$consolidated_result), nrow(raph.wilds.treatment.GO.down$consolidated_result),
+#           nrow(raph.wilds.interaction.GO$consolidated_result))
+# 
+# raph.wilds.output = data.frame(DEGs=wildsnumdegs, GO_terms=wildsnumGO,
+#                                row.names = c("Domesticated_bias","Wild_bias","Unstressed_bias","Stressed_bias","Interaction"))
+# 
+# write.csv(raph.wilds.output, file = "Analysis/RNAseq/Tables/raph_wilds_summary.csv")
+
 
 #### wilds interaction norm analysis ####
 
