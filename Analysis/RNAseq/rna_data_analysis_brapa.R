@@ -489,6 +489,81 @@ dds.gene.deg.wilds = DESeq(dds.gene.wilds, fitType = "parametric", betaPrior = F
 boxplot(log10(assays(dds.gene.deg.wilds)[["cooks"]]), range=0, las=2)
 boxplot(log10(assays(dds.gene.deg.wilds)[["counts"]]), range=0, las=2)
 
+resultsNames(dds.gene.deg.wilds)
+
+#results: wheat vs control
+degs.brass.wilds.treatment = results(dds.gene.deg.wilds, 
+                               name="treatment_Control_vs_Wheat",     
+                               alpha = 0.05,
+                               lfcThreshold = log2(1))
+degs.brass.wilds.treatment.Nup = nrow(subset(degs.brass.wilds.treatment, padj<=0.05 & log2FoldChange>0)) #16 up in control
+degs.brass.wilds.treatment.Ndown = nrow(subset(degs.brass.wilds.treatment, padj<=0.05 & log2FoldChange<0)) #22 up in wheat
+degs.brass.wilds.treatment.ids = rownames(subset(degs.brass.wilds.treatment, padj<=0.05))
+#1 of these degs shared with parental degs
+table(degs.brass.wilds.treatment.ids%in%parental.degs.ids)
+#also check for  GO terms 
+brass.wilds.treatment.GO.up = topGO_wrapper(geneScores = degs.brass.wilds.treatment,
+                                      geneScoresDE = T,
+                                      geneScoresDirection = "Up",
+                                      GOmapping = GOmapping.brass,
+                                      algorithm = "weight01",
+                                      statistic = "fisher",
+                                      nodeSize = 10,
+                                      discretisedDE = T,
+                                      p = 0.05)
+write.csv(brass.wilds.treatment.GO.up$consolidated_result, 
+          file = "Analysis/RNAseq/Tables/brapas_wilds_GO_controlbias.csv", row.names = FALSE)
+#14 GO terms up
+brass.wilds.treatment.GO.down = topGO_wrapper(geneScores = degs.brass.wilds.treatment,
+                                        geneScoresDE = T,
+                                        geneScoresDirection = "Down",
+                                        GOmapping = GOmapping.brass,
+                                        algorithm = "weight01",
+                                        statistic = "fisher",
+                                        nodeSize = 10,
+                                        discretisedDE = T,
+                                        p = 0.05)
+write.csv(brass.wilds.treatment.GO.down$consolidated_result, 
+          file = "Analysis/RNAseq/Tables/brapas_wilds_GO_wheatbias.csv", row.names = FALSE)
+#20 GO terms down
+
+#results: cultivated vs wild
+degs.brass.wilds.cultivated = results(dds.gene.deg.wilds, 
+                                name="wild.ancestorTRUE",     
+                                alpha = 0.05,
+                                lfcThreshold = log2(1))
+summary(degs.brass.wilds.cultivated) #~2000 degs
+degs.brass.wilds.cultivated.Nup = nrow(subset(degs.brass.wilds.cultivated, padj<=0.05 & log2FoldChange>0)) #1393 up in cultivar
+degs.brass.wilds.cultivated.Ndown = nrow(subset(degs.brass.wilds.cultivated, padj<=0.05 & log2FoldChange<0)) #771 up in wild
+degs.brass.wilds.cultivated.ids = rownames(subset(degs.brass.wilds.cultivated, padj<=0.05))
+#41 of these degs are shared with parental degs
+table(degs.brass.wilds.cultivated.ids%in%parental.degs.ids)
+#also check for deg GO terms 
+brass.wilds.cultivated.GO.up = topGO_wrapper(geneScores = degs.brass.wilds.cultivated,
+                                       geneScoresDE = T,
+                                       geneScoresDirection = "Up",
+                                       GOmapping = GOmapping.brass,
+                                       algorithm = "weight01",
+                                       statistic = "fisher",
+                                       nodeSize = 10,
+                                       discretisedDE = T,
+                                       p = 0.05)
+write.csv(brass.wilds.cultivated.GO.up$consolidated_result, 
+          file = "Analysis/RNAseq/Tables/brapas_wilds_GO_cultivatedbias.csv", row.names = FALSE)
+#44 GO terms up inc e.g. responseto bacteria, response to chitin
+brass.wilds.cultivated.GO.down = topGO_wrapper(geneScores = degs.brass.wilds.cultivated,
+                                         geneScoresDE = T,
+                                         geneScoresDirection = "Down",
+                                         GOmapping = GOmapping.brass,
+                                         algorithm = "weight01",
+                                         statistic = "fisher",
+                                         nodeSize = 10,
+                                         discretisedDE = T,
+                                         p = 0.05)
+write.csv(brass.wilds.treatment.GO.down$consolidated_result, 
+          file = "Analysis/RNAseq/Tables/brapas_wilds_GO_wildbias.csv", row.names = FALSE)
+#20 down
+
 
 #results: interaction
 degs.brass.wilds.interaction = results(dds.gene.deg.wilds, 
@@ -497,6 +572,7 @@ degs.brass.wilds.interaction = results(dds.gene.deg.wilds,
                                       lfcThreshold = log2(1))
 summary(degs.brass.wilds.interaction) #73 degs
 degs.brass.wilds.interaction.ids = rownames(subset(degs.brass.wilds.interaction, padj<=0.05))
+degs.brass.wilds.interaction.N = length(degs.brass.wilds.interaction.ids)
 #2 of these degs are shared with parental degs
 table(degs.brass.wilds.interaction.ids%in%parental.degs.ids)
 #also check for GO terms
@@ -545,6 +621,17 @@ ggsave(brass.intplot.wilds,
        device = "png", path = "Analysis/RNAseq/Images/",
        width =  40, height = 25, units = "cm")
 
+#data for this need to be instantiated above
+wildsnumdegs = c(degs.brass.wilds.cultivated.Nup, degs.brass.wilds.cultivated.Ndown,
+                 degs.brass.wilds.treatment.Nup, degs.brass.wilds.treatment.Ndown, degs.brass.wilds.interaction.N)
+wildsnumGO = c(nrow(brass.wilds.cultivated.GO.up$consolidated_result), nrow(brass.wilds.cultivated.GO.down$consolidated_result),
+               nrow(brass.wilds.treatment.GO.up$consolidated_result), nrow(brass.wilds.treatment.GO.down$consolidated_result),
+               nrow(brass.wilds.interaction.GO$consolidated_result))
+
+brass.wilds.output = data.frame(DEGs=wildsnumdegs, GO_terms=wildsnumGO,
+                               row.names = c("Domesticated_bias","Wild_bias","Unstressed_bias","Stressed_bias","Interaction"))
+
+write.csv(brass.wilds.output, file = "Analysis/RNAseq/Tables/brass_wilds_summary.csv")
 
 #### wilds interaction norm analysis ####
 

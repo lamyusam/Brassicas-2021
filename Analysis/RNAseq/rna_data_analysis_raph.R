@@ -84,7 +84,7 @@ ggpcadata = pca.out$values %>%
   left_join(metadata.raph,
             by = "sample")
 #plot
-ggplot(ggpcadata, aes(x = PC1, y = PC2, color = domesticated, shape = treatment, label = sample)) +
+ggplot(ggpcadata, aes(x = PC1, y = PC2, color = species, shape = treatment, label = sample)) +
   geom_point(size = 5, position = position_jitter(width = 0.5,height=0.5)) +
   #geom_text(vjust = -1) +
   xlab(paste0("PC",1,": ",signif(pca.out$percent.var[1]*100, 3),"%")) +
