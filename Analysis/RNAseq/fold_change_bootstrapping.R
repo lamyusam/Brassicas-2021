@@ -2,7 +2,7 @@
 #as this could be supressing the plasticity of the combined samples
 #what we're going to do instead is bootstrap three samples of wild rapa vs three samples of another species, multiple times 
 #and see what the changes look like there
-
+library(rstatix)
 
 #get fold changes in brapa
 #list all non-rapa wild brassica species
@@ -45,7 +45,59 @@ for(sp in 1:length(allwilds)){
 }
 #give colnames to output frame
 colnames(lfcs.frame) = allwilds
+rownames(lfcs.frame) = row.names(degs.focalwild)
 beepr::beep(3)
+
+#melt for purposes of anova
+testframe = rownames_to_column(lfcs.frame) %>% reshape2::melt()
+res.aov = anova_test(data = testframe, dv = value, wid = rowname, within = variable)
+get_anova_table(res.aov)
+#pairwise t tests
+pwc = testframe %>%
+  pairwise_t_test(
+    formula = value ~ variable, 
+    paired = TRUE,
+    ref.group = "Brassica rapa",
+    p.adjust.method = "BH", detailed = T
+  )
+pwc
+#plot
+ggplot(testframe, aes(x = variable, y = value)) +
+  geom_boxplot() +
+  labs(x = "Species", y = "LFC unstressed vs stressed") +
+  theme_bw() +
+  theme(text = element_text(size =12),
+        axis.text = element_text(size =12))
+  
+
+#try again with just subset of interaction-significant genes
+lfcs.frame.interactiongenes = lfcs.frame[degs.brass.wilds.interaction.ids,]
+#melt for purposes of anova
+testframe.interactions = rownames_to_column(lfcs.frame.interactiongenes) %>% reshape2::melt()
+res.aov = anova_test(data = testframe.interactions, dv = value, wid = rowname, within = variable)
+get_anova_table(res.aov)
+#pairwise t-tests
+pwc = testframe.interactions %>%
+  pairwise_t_test(
+    formula = value ~ variable, 
+    paired = TRUE,
+    ref.group = "Brassica rapa",
+    p.adjust.method = "BH",
+    detailed = T
+  )
+pwc
+#plot
+ggplot(testframe.interactions, aes(x = variable, y = value)) +
+  geom_boxplot() +
+  labs(x = "Species", y = "LFC unstressed vs stressed") +
+  theme_bw() +
+  theme(text = element_text(size =12),
+        axis.text = element_text(size =12))
+
+
+
+
+
 
 # #below is to compile data for interaction genes only
 # foldchanges.wilds = data.frame(brapawild = degs.brapawild[degs.brass.wilds.interaction.ids,"log2FoldChange"],
