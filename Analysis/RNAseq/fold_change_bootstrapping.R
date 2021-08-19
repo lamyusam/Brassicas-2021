@@ -12,56 +12,45 @@ allwilds = c("Brassica rapa",otherwilds)
 
 #pick number of bootstraps to run (keep low for now)
 boot = 3
-#narrow down to data for focal wild
-focal.wild = "Brassica macrocarpa"
-for(i in 1:boot){
-  metadata.brass.focalwild = subset(metadata.brass.wilds, species == focal.wild)
-  #pick a random subset of three wheat and three control samples for this species
-  pick = c(sample(which(metadata.brass.focalwild$treatment == "Control"),3),
-           sample(which(metadata.brass.focalwild$treatment == "Wheat"),3))
-  metadata.brass.focalwild.sample = metadata.brass.focalwild[pick,]
-  #narrow down gene data based on chosen subsample
-  brass.gene.counts.clean.focalwild.sample = brass.gene.counts.clean[,as.character(metadata.brass.focalwild.sample$sample)]
-  table(metadata.brass.focalwild.sample$sample == colnames(brass.gene.counts.clean.focalwild.sample)) #confirm conformity
-  #get DESeq2 output for focal wild
-  dds.gene.focalwild = DESeqDataSetFromMatrix(countData = brass.gene.counts.clean.focalwild.sample,
-                                              colData = metadata.brass.focalwild.sample,
-                                              design = as.formula(~treatment))
-  dds.gene.deg.focalwild = DESeq(dds.gene.focalwild, fitType = "parametric", betaPrior = FALSE)
-  degs.focalwild = results(dds.gene.deg.focalwild,
-                           name="treatment_Control_vs_Wheat",
-                           alpha = 0.05)
-  #save results of loop for wild
-  if(i==1){degsframe.focalwild = data.frame(degs.focalwild$log2FoldChange)}else{
-    degsframe.focalwild = cbind(degsframe.focalwild,degs.focalwild$log2FoldChange)}
+for(sp in 1:length(allwilds)){
+  #narrow down to data for focal wild
+  focal.wild = as.character(allwilds[sp])
+  for(i in 1:boot){
+    metadata.brass.focalwild = subset(metadata.brass.wilds, species == focal.wild)
+    #pick a random subset of three wheat and three control samples for this species
+    pick = c(sample(which(metadata.brass.focalwild$treatment == "Control"),3),
+             sample(which(metadata.brass.focalwild$treatment == "Wheat"),3))
+    metadata.brass.focalwild.sample = metadata.brass.focalwild[pick,]
+    #narrow down gene data based on chosen subsample
+    brass.gene.counts.clean.focalwild.sample = brass.gene.counts.clean[,as.character(metadata.brass.focalwild.sample$sample)]
+    table(metadata.brass.focalwild.sample$sample == colnames(brass.gene.counts.clean.focalwild.sample)) #confirm conformity
+    #get DESeq2 output for focal wild
+    dds.gene.focalwild = DESeqDataSetFromMatrix(countData = brass.gene.counts.clean.focalwild.sample,
+                                                colData = metadata.brass.focalwild.sample,
+                                                design = as.formula(~treatment))
+    dds.gene.deg.focalwild = DESeq(dds.gene.focalwild, fitType = "parametric", betaPrior = FALSE)
+    degs.focalwild = results(dds.gene.deg.focalwild,
+                             name="treatment_Control_vs_Wheat",
+                             alpha = 0.05)
+    #save results of loop
+    if(i==1){degsframe.focalwild = data.frame(degs.focalwild$log2FoldChange)}else{
+      degsframe.focalwild = cbind(degsframe.focalwild,degs.focalwild$log2FoldChange)}
+  }
   
-  #repeat process for wild brassica rapa
-  #pick a random subset of three wheat and three control samples for this species
-  pick = c(sample(which(metadata.brass.brapawild$treatment == "Control"),3),
-           sample(which(metadata.brass.brapawild$treatment == "Wheat"),3))
-  metadata.brass.brapawild.sample = metadata.brass.brapawild[pick,]
-  #narrow down gene data based on chosen subsample
-  brass.gene.counts.clean.brapawild.sample = brass.gene.counts.clean[,as.character(metadata.brass.brapawild.sample$sample)]
-  table(metadata.brass.brapawild.sample$sample == colnames(brass.gene.counts.clean.brapawild.sample)) #confirm conformity
-  #get DESeq2 output for focal wild
-  dds.gene.brapawild = DESeqDataSetFromMatrix(countData = brass.gene.counts.clean.brapawild.sample,
-                                              colData = metadata.brass.brapawild.sample,
-                                              design = as.formula(~treatment))
-  dds.gene.deg.brapawild = DESeq(dds.gene.brapawild, fitType = "parametric", betaPrior = FALSE)
-  degs.brapawild = results(dds.gene.deg.brapawild,
-                           name="treatment_Control_vs_Wheat",
-                           alpha = 0.05)
-  #save results of loop for wild
-  if(i==1){degsframe.brapawild = data.frame(degs.brapawild$log2FoldChange)}else{
-    degsframe.brapawild = cbind(degsframe.brapawild,degs.brapawild$log2FoldChange)}
-  
+  #save data for species
+  focal.lfcs = rowMeans(degsframe.focalwild)
+  if(sp == 1){lfcs.frame = data.frame(focal.lfcs)}else{
+    lfcs.frame = cbind(lfcs.frame, focal.lfcs)
+  }
 }
+#give colnames to output frame
+colnames(lfcs.frame) = allwilds
 beepr::beep(3)
 
-#below is to compile data for interaction genes only
-foldchanges.wilds = data.frame(brapawild = degs.brapawild[degs.brass.wilds.interaction.ids,"log2FoldChange"],
-                               focalwild = degs.focalwild[degs.brass.wilds.interaction.ids,"log2FoldChange"],
-                               row.names = degs.brass.wilds.interaction.ids)
+# #below is to compile data for interaction genes only
+# foldchanges.wilds = data.frame(brapawild = degs.brapawild[degs.brass.wilds.interaction.ids,"log2FoldChange"],
+#                                focalwild = degs.focalwild[degs.brass.wilds.interaction.ids,"log2FoldChange"],
+#                                row.names = degs.brass.wilds.interaction.ids)
 #compile fold-change data
 foldchanges.wilds = data.frame(brapawild = rowMeans(degsframe.brapawild),
                                focalwild = rowMeans(degsframe.focalwild), 
