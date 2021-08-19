@@ -25,7 +25,16 @@ raphwilds.dds = load("Analysis/RNAseq/Tables/raphanus_wilds_deseq.R") ; raphwild
 
 #get objects for a comparison of interest, for example wild progenitor vs domesticate
 degs.brass.cultivated = results(brassrapa.dds, name="domesticated_Cultivated_vs_Wild", alpha = 0.05)     
-degs.raph.cultivated = results(raphsubset.dds, name="domesticated_Cultivated_vs_Wild", alpha = 0.05)     
+degs.raph.cultivated = results(raphsubset.dds, name="domesticated_Cultivated_vs_Wild", alpha = 0.05)   
+
+# degs.brass.cultivated = results(brassrapa.dds, name="treatment_Control_vs_Wheat", alpha = 0.05)     
+# degs.raph.cultivated = results(raphsubset.dds, name="treatment_Control_vs_Wheat", alpha = 0.05) 
+
+# degs.brass.cultivated = results(brasswilds.dds, name="wild.ancestorTRUE", alpha = 0.05)     
+# degs.raph.cultivated = results(raphwilds.dds, name="wild.ancestorTRUE", alpha = 0.05) 
+
+# degs.brass.cultivated = results(brasswilds.dds, name="treatment_Control_vs_Wheat", alpha = 0.05)     
+# degs.raph.cultivated = results(raphwilds.dds, name="treatment_Control_vs_Wheat", alpha = 0.05) 
 
 #remove rows that aren't in the matching table
 degs.brass.cultivated = subset(degs.brass.cultivated, row.names(degs.brass.cultivated) %in% brass_raph_RBH$brass)
@@ -47,6 +56,7 @@ DEG2RRHO = function(contrast){
   
   RRHO = data.frame(gene = row.names(contrast),
                     value = -log10(contrast$pvalue)*sign(contrast$log2FoldChange))
+                    #value = contrast$log2FoldChange)
   return(RRHO)
   
 }
@@ -56,21 +66,26 @@ raph_cultivated_RRHO = DEG2RRHO(degs.raph.cultivated)
 
 RRHO_brass_raph_cultivated = RRHO(brass_cultivated_RRHO,
                                   raph_cultivated_RRHO,
+                                  stepsize = 500,
                                   labels = c("brass","raph"),
                                   alternative = "two.sided",
+                                  #alternative = "enrichment",
                                   BY = T,
-                                  plots = T,
+                                  plots = F,
                                   log10.ind = T,
-                                  outputdir = "Analysis/RNAseq/Images")
-
-lattice::levelplot(RRHO_exp1caste_exp2R2RR3C$hypermat)
-lattice::levelplot(RRHO_exp1caste_exp2R2RR3C$hypermat.by)
+                                  #outputdir = "Analysis/RNAseq/Images"
+                                  )
 
 
-p_RRHO_exp1caste_exp2R2RR3C = pvalRRHO(RRHO_exp1caste_exp2R2RR3C, 50)
+#lattice::levelplot(RRHO_brass_raph_cultivated$hypermat)
+# col = colorRampPalette(brewer.pal(8, "RdYlBu"))(25)
+# heatmap(RRHO_brass_raph_cultivated$hypermat, Rowv = NA, Colv = NA, col = col, labRow = NA, labCol = NA)
 
-p_RRHO_exp1caste_exp2R2RR3C$pval
+#reverse order of heatmap columns so that they display correctly with origin at 0,0 in pheatmap
+display = as.matrix(RRHO_brass_raph_cultivated$hypermat)[,order(ncol(RRHO_brass_raph_cultivated$hypermat):1)]
 
-xs<- seq(0, 10, length=100)
-plot(Vectorize(p_RRHO_exp1caste_exp2R2RR3C$FUN.ecdf)(xs)~xs,
-     xlab='-log(pvalue)', ylab='ECDF', type='S')
+pheatmap(display, cluster_rows = F, cluster_cols = F, border_color = NA)
+
+p_RRHO_brass_raph_cultivated = pvalRRHO(RRHO_brass_raph_cultivated, 1)
+p_RRHO_brass_raph_cultivated$pval
+
