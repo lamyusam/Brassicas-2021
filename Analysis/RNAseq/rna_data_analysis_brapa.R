@@ -647,13 +647,6 @@ write.csv(brass.wilds.output, file = "Analysis/RNAseq/Tables/brass_wilds_summary
 #extract norm. counts for each combination
 metadata.brass.brapawild = subset(metadata.brass.wilds, species == "Brassica rapa")
 metadata.brass.otherwilds = subset(metadata.brass.wilds, species != "Brassica rapa")
-# raphwheatcounts = counts(dds.gene.deg.wilds,normalized=T)[,as.character(subset(metadata.raph.raphanistrum, treatment == "Wheat")$sample)]
-# raphcontrolcounts = counts(dds.gene.deg.wilds,normalized=T)[,as.character(subset(metadata.raph.raphanistrum, treatment == "Control")$sample)]
-# otherwheatcounts = counts(dds.gene.deg.wilds,normalized=T)[,as.character(subset(metadata.raph.otherwilds, treatment == "Wheat")$sample)]
-# othercontrolcounts = counts(dds.gene.deg.wilds,normalized=T)[,as.character(subset(metadata.raph.otherwilds, treatment == "Control")$sample)]
-# #extract log2 fold changes for non-raphanistrum
-# otherwilds.folds = log2(rowMeans(otherwheatcounts)/rowMeans(othercontrolcounts))
-# raphanistrum.folds = log2(rowMeans(raphwheatcounts)/rowMeans(raphcontrolcounts))
 
 brass.gene.counts.clean.otherwilds = brass.gene.counts.clean[,as.character(metadata.brass.otherwilds$sample)]
 dds.gene.otherwilds = DESeqDataSetFromMatrix(countData = brass.gene.counts.clean.otherwilds,
