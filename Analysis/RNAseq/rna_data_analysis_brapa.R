@@ -225,6 +225,9 @@ plotDispEsts(parametric.gene.deg)
 # parametric seems to follow the data a little better so let's go with that
 dds.gene.deg = parametric.gene.deg
 
+#save for later
+save(dds.gene.deg, file = "Analysis/RNAseq/Tables/brassica_rapa_deseq.R")
+
 resultsNames(dds.gene.deg)
 
 #results: wheat vs control
@@ -488,6 +491,9 @@ dds.gene.deg.wilds = DESeq(dds.gene.wilds, fitType = "parametric", betaPrior = F
 # Check for outliers: none are apparent
 boxplot(log10(assays(dds.gene.deg.wilds)[["cooks"]]), range=0, las=2)
 boxplot(log10(assays(dds.gene.deg.wilds)[["counts"]]), range=0, las=2)
+
+#save for later
+save(dds.gene.deg.wilds, file = "Analysis/RNAseq/Tables/brassica_wilds_deseq.R")
 
 resultsNames(dds.gene.deg.wilds)
 
