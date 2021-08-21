@@ -4,10 +4,13 @@
 #and see what the changes look like there
 library(rstatix)
 
+metadata.raph.wilds.combined = metadata.raph.wilds
+metadata.raph.wilds.combined$species[which(metadata.raph.wilds.combined$species=="Raphanus raphanistrum mungra")] = "Raphanus raphanistrum munra"
+
 #get fold changes in brapa
 #list all non-rapa wild brassica species
-otherwilds = c("Brassica cretica","Brassica incana","Brassica macrocarpa","Brassica montana","Brassica villosa")
-allwilds = c("Brassica rapa",otherwilds)
+otherwilds = c("Raphanus sativus var. caudatus","Raphanus raphanistrum munra")
+allwilds = c("Raphanus raphanistrum",otherwilds)
 #NB this excludes Rupestris, because that species has only two replicates
 
 #pick number of bootstraps to run (keep low for now)
@@ -16,17 +19,17 @@ for(sp in 1:length(allwilds)){
   #narrow down to data for focal wild
   focal.wild = as.character(allwilds[sp])
   for(i in 1:boot){
-    metadata.brass.focalwild = subset(metadata.brass.wilds, species == focal.wild)
+    metadata.raph.focalwild = subset(metadata.raph.wilds.combined, species == focal.wild)
     #pick a random subset of three wheat and three control samples for this species
-    pick = c(sample(which(metadata.brass.focalwild$treatment == "Control"),3),
-             sample(which(metadata.brass.focalwild$treatment == "Wheat"),3))
-    metadata.brass.focalwild.sample = metadata.brass.focalwild[pick,]
+    pick = c(sample(which(metadata.raph.focalwild$treatment == "Control"),3),
+             sample(which(metadata.raph.focalwild$treatment == "Wheat"),3))
+    metadata.raph.focalwild.sample = metadata.raph.focalwild[pick,]
     #narrow down gene data based on chosen subsample
-    brass.gene.counts.clean.focalwild.sample = brass.gene.counts.clean[,as.character(metadata.brass.focalwild.sample$sample)]
-    table(metadata.brass.focalwild.sample$sample == colnames(brass.gene.counts.clean.focalwild.sample)) #confirm conformity
+    raph.gene.counts.clean.focalwild.sample = raph.gene.counts.clean[,as.character(metadata.raph.focalwild.sample$sample)]
+    table(metadata.raph.focalwild.sample$sample == colnames(raph.gene.counts.clean.focalwild.sample)) #confirm conformity
     #get DESeq2 output for focal wild
-    dds.gene.focalwild = DESeqDataSetFromMatrix(countData = brass.gene.counts.clean.focalwild.sample,
-                                                colData = metadata.brass.focalwild.sample,
+    dds.gene.focalwild = DESeqDataSetFromMatrix(countData = raph.gene.counts.clean.focalwild.sample,
+                                                colData = metadata.raph.focalwild.sample,
                                                 design = as.formula(~treatment))
     dds.gene.deg.focalwild = DESeq(dds.gene.focalwild, fitType = "parametric", betaPrior = FALSE)
     degs.focalwild = results(dds.gene.deg.focalwild,
@@ -57,7 +60,7 @@ pwc = testframe %>%
   pairwise_t_test(
     formula = value ~ variable, 
     paired = TRUE,
-    ref.group = "Brassica rapa",
+    ref.group = "Raphanus raphanistrum",
     p.adjust.method = "BH", detailed = T
   )
 pwc
@@ -68,10 +71,10 @@ ggplot(testframe, aes(x = variable, y = value)) +
   theme_bw() +
   theme(text = element_text(size =12),
         axis.text = element_text(size =12))
-  
+
 
 #try again with just subset of interaction-significant genes
-lfcs.frame.interactiongenes = lfcs.frame[degs.brass.wilds.interaction.ids,]
+lfcs.frame.interactiongenes = lfcs.frame[degs.raph.wilds.interaction.ids,]
 #melt for purposes of anova
 testframe.interactions = rownames_to_column(lfcs.frame.interactiongenes) %>% reshape2::melt()
 res.aov = anova_test(data = testframe.interactions, dv = value, wid = rowname, within = variable)
@@ -81,7 +84,7 @@ pwc = testframe.interactions %>%
   pairwise_t_test(
     formula = value ~ variable, 
     paired = TRUE,
-    ref.group = "Brassica rapa",
+    ref.group = "Raphanus raphanistrum",
     p.adjust.method = "BH",
     detailed = T
   )
@@ -100,9 +103,9 @@ ggplot(testframe.interactions, aes(x = variable, y = value)) +
 
 
 # #below is to compile data for interaction genes only
-# foldchanges.wilds = data.frame(brapawild = degs.brapawild[degs.brass.wilds.interaction.ids,"log2FoldChange"],
-#                                focalwild = degs.focalwild[degs.brass.wilds.interaction.ids,"log2FoldChange"],
-#                                row.names = degs.brass.wilds.interaction.ids)
+# foldchanges.wilds = data.frame(brapawild = degs.brapawild[degs.raph.wilds.interaction.ids,"log2FoldChange"],
+#                                focalwild = degs.focalwild[degs.raph.wilds.interaction.ids,"log2FoldChange"],
+#                                row.names = degs.raph.wilds.interaction.ids)
 #compile fold-change data
 foldchanges.wilds = data.frame(brapawild = rowMeans(degsframe.brapawild),
                                focalwild = rowMeans(degsframe.focalwild), 
