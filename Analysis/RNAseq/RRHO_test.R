@@ -51,6 +51,14 @@ degs.raph.cultivated = degs.raph.cultivated[row.names(degs.brass.cultivated),]
 
 #now we should be able to input to RRHO
 
+#before transforming for RRHO, we might wish to remove the set of genes that have p values close to 1 in both comparisons
+#this may improve the analysis because genes with very low significance are unlikely to rank meaningfully
+#combine two pvalue lists
+both = cbind(degs.brass.cultivated$pvalue, degs.raph.cultivated$pvalue) 
+#remove rows that have p-value above threshold in both comparisons
+keep =  row.names(degs.brass.cultivated)[(rowSums(both > 0.5 | is.na(both))!=2)]
+print(paste0("Removing ",nrow(degs.brass.cultivated)-length(keep)," genes with low significance in both comparisons."))
+
 #RRHO prep function
 DEG2RRHO = function(contrast){
   
@@ -61,12 +69,12 @@ DEG2RRHO = function(contrast){
   
 }
 
-brass_cultivated_RRHO = DEG2RRHO(degs.brass.cultivated)
-raph_cultivated_RRHO = DEG2RRHO(degs.raph.cultivated)
+brass_cultivated_RRHO = DEG2RRHO(degs.brass.cultivated[keep,])
+raph_cultivated_RRHO = DEG2RRHO(degs.raph.cultivated[keep,])
 
 RRHO_brass_raph_cultivated = RRHO(brass_cultivated_RRHO,
                                   raph_cultivated_RRHO,
-                                  stepsize = 500,
+                                  stepsize = 200,
                                   labels = c("brass","raph"),
                                   alternative = "two.sided",
                                   #alternative = "enrichment",
@@ -89,3 +97,8 @@ pheatmap(display, cluster_rows = F, cluster_cols = F, border_color = NA)
 p_RRHO_brass_raph_cultivated = pvalRRHO(RRHO_brass_raph_cultivated, 1)
 p_RRHO_brass_raph_cultivated$pval
 
+out = left_join(brass_cultivated_RRHO, raph_cultivated_RRHO, "gene") %>% 
+  "colnames<-"(c("Gene","Metric1","Metric2")) %>%
+  mutate(Gene2 = Gene, Rank1 = order(Metric1), Rank2= order(Metric2))
+
+write_delim(x=out[,c(1,4,5:6,2:3)],delim="\t", file="/home/benjamin/Downloads/test.tsv")
