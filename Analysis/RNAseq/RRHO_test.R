@@ -56,7 +56,7 @@ degs.raph.cultivated = degs.raph.cultivated[row.names(degs.brass.cultivated),]
 #combine two pvalue lists
 both = cbind(degs.brass.cultivated$pvalue, degs.raph.cultivated$pvalue) 
 #remove rows that have p-value above threshold in both comparisons
-keep =  row.names(degs.brass.cultivated)[(rowSums(both > 0.5 | is.na(both))!=2)]
+keep =  row.names(degs.brass.cultivated)[(rowSums(both > 0.8 | is.na(both))!=2)]
 print(paste0("Removing ",nrow(degs.brass.cultivated)-length(keep)," genes with low significance in both comparisons."))
 
 #RRHO prep function
@@ -74,7 +74,7 @@ raph_cultivated_RRHO = DEG2RRHO(degs.raph.cultivated[keep,])
 
 RRHO_brass_raph_cultivated = RRHO(brass_cultivated_RRHO,
                                   raph_cultivated_RRHO,
-                                  stepsize = 200,
+                                  stepsize = 150,
                                   labels = c("brass","raph"),
                                   alternative = "two.sided",
                                   #alternative = "enrichment",
@@ -94,7 +94,7 @@ display = as.matrix(RRHO_brass_raph_cultivated$hypermat)[,order(ncol(RRHO_brass_
 
 pheatmap(display, cluster_rows = F, cluster_cols = F, border_color = NA)
 
-p_RRHO_brass_raph_cultivated = pvalRRHO(RRHO_brass_raph_cultivated, 1)
+p_RRHO_brass_raph_cultivated = pvalRRHO(RRHO_brass_raph_cultivated, 10)
 p_RRHO_brass_raph_cultivated$pval
 
 out = left_join(brass_cultivated_RRHO, raph_cultivated_RRHO, "gene") %>% 
