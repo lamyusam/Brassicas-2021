@@ -1,5 +1,7 @@
 library(RRHO)
 library(stringr)
+library(tidyverse)
+library(pheatmap)
 
 #set working directory
 setwd("/home/benjamin/Documents/Brassicas_repo")
@@ -91,15 +93,48 @@ RRHO.brass.raph.cultivated = RRHO(preRRHO.cultivated$brass.preRRHO,
                                   #outputdir = "Analysis/RNAseq/Images"
                                   )
 #reverse order of heatmap columns so that they display correctly with origin at 0,0 in pheatmap
-display = as.matrix(RRHO.brass.raph.cultivated$hypermat)[,order(ncol(RRHO_brass_raph_cultivated$hypermat):1)]
+display = as.matrix(RRHO.brass.raph.cultivated$hypermat)[,order(ncol(RRHO.brass.raph.cultivated$hypermat):1)]
 RRHOplot.cultivated = pheatmap(display, cluster_rows = F, cluster_cols = F, border_color = NA)
 #save plot
 ggsave(RRHOplot.cultivated, 
        filename = "cultivated_vs_progenitor_RRHOplot.png",
        device = "png", path = "Analysis/RNAseq/Images/",
        width =  42, height = 40, units = "cm")
-# p_RRHO_brass_raph_cultivated = pvalRRHO(RRHO_brass_raph_cultivated, 100)
-# p_RRHO_brass_raph_cultivated$pval
+# p.RRHO.brass.raph.cultivated = pvalRRHO(RRHO.brass.raph.cultivated, 500)
+#p.RRHO.brass.raph.cultivated$pval
+# save(p.RRHO.brass.raph.cultivated, file = "/home/benjamin/Documents/Brassicas_repo/Analysis/RNAseq/cultivated_vs_progenitor_RRHOpvalue.R")
+# load("/home/benjamin/Documents/Brassicas_repo/Analysis/RNAseq/cultivated_vs_progenitor_RRHOpvalue.R")
+# p.RRHO.brass.raph.cultivated$pval
+
+# the p-value we get here is non-significant, but looking at the plot it seems like we might have an overlap in the downregulated genes
+# let's test this by running a simple hypergeometric overlap test using just the upregulated genes and likewise for just downregulated genes
+hyper_overlap = function(x,y,set){
+  
+  n_A = length(x)
+  n_B = length(y)
+  n_C = length(set)
+  n_A_B = length(intersect(x,y))
+  phyper(n_A_B - 1, n_A, n_C-n_A, n_B, lower.tail = FALSE) 
+  
+}
+
+#get degs and transform for blast chart
+degs.brass.cultivated.up = row.names(subset(degs.brass.cultivated, padj<0.05 & log2FoldChange>0))
+degs.brass.cultivated.up.sharedids = brass_raph_RBH$label[which(brass_raph_RBH$brass %in% degs.brass.cultivated.up)]
+
+degs.brass.cultivated.down = row.names(subset(degs.brass.cultivated, padj<0.05 & log2FoldChange<0))
+degs.brass.cultivated.down.sharedids = brass_raph_RBH$label[which(brass_raph_RBH$brass %in% degs.brass.cultivated.down)]
+
+degs.raph.cultivated.up = row.names(subset(degs.raph.cultivated, padj<0.05 & log2FoldChange>0))
+degs.raph.cultivated.up.sharedids = brass_raph_RBH$label[which(brass_raph_RBH$raph %in% degs.raph.cultivated.up)]
+
+degs.raph.cultivated.down = row.names(subset(degs.raph.cultivated, padj<0.05 & log2FoldChange<0))
+degs.raph.cultivated.down.sharedids = brass_raph_RBH$label[which(brass_raph_RBH$raph %in% degs.raph.cultivated.down)]
+# no overlap in upregulated IDs
+hyper_overlap(degs.brass.cultivated.up.sharedids, degs.raph.cultivated.up.sharedids, brass_raph_RBH$label)
+# no overlap in downregulated IDs
+hyper_overlap(degs.brass.cultivated.down.sharedids, degs.raph.cultivated.down.sharedids, brass_raph_RBH$label)
+
 
 #run RRHO for cultivated vs wild progenitor
 preRRHO.wilds = prep4RRHO(degs.brass.wilds, degs.raph.wilds)
@@ -120,9 +155,9 @@ ggsave(RRHOplot.wilds,
        filename = "progenitor_vs_wilds_RRHOplot.png",
        device = "png", path = "Analysis/RNAseq/Images/",
        width =  42, height = 40, units = "cm")
-p.RRHO.brass.raph.wilds = pvalRRHO(RRHO.brass.raph.wilds, 10)
-p.RRHO.brass.raph.wilds$pval
-
+# p.RRHO.brass.raph.wilds = pvalRRHO(RRHO.brass.raph.wilds, 500)
+# p.RRHO.brass.raph.wilds$pval
+# save(p.RRHO.brass.raph.wilds, file = "/home/benjamin/Documents/Brassicas_repo/Analysis/RNAseq/progenitor_vs_wilds_RRHOpvalue.R")
 
 
 # out = left_join(brass_cultivated_RRHO, raph_cultivated_RRHO, "gene") %>% 
