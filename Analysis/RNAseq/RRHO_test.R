@@ -108,32 +108,53 @@ ggsave(RRHOplot.cultivated,
 
 # the p-value we get here is non-significant, but looking at the plot it seems like we might have an overlap in the downregulated genes
 # let's test this by running a simple hypergeometric overlap test using just the upregulated genes and likewise for just downregulated genes
-hyper_overlap = function(x,y,set){
+gene_overlap = function(list1, list2, background){
   
-  n_A = length(x)
-  n_B = length(y)
-  n_C = length(set)
-  n_A_B = length(intersect(x,y))
-  phyper(n_A_B - 1, n_A, n_C-n_A, n_B, lower.tail = FALSE) 
+  n_A = length(list1)
+  n_B = length(list2)
+  n_C = length(background)
+  n_A_B = length(intersect(list1,list2))
+  hyp = phyper(n_A_B - 1, n_A, n_C-n_A, n_B, lower.tail = FALSE)
+  jac = n_A_B/(n_A+n_B-n_A_B)
+  
+  res = list(hypergeom = hyp,
+             jaccard = jac)
+  
+  return(res)
   
 }
 
 #get degs and transform for blast chart
 degs.brass.cultivated.up = row.names(subset(degs.brass.cultivated, padj<0.05 & log2FoldChange>0))
 degs.brass.cultivated.up.sharedids = brass_raph_RBH$label[which(brass_raph_RBH$brass %in% degs.brass.cultivated.up)]
-
+#get degs down
 degs.brass.cultivated.down = row.names(subset(degs.brass.cultivated, padj<0.05 & log2FoldChange<0))
 degs.brass.cultivated.down.sharedids = brass_raph_RBH$label[which(brass_raph_RBH$brass %in% degs.brass.cultivated.down)]
-
+#get degs up
 degs.raph.cultivated.up = row.names(subset(degs.raph.cultivated, padj<0.05 & log2FoldChange>0))
 degs.raph.cultivated.up.sharedids = brass_raph_RBH$label[which(brass_raph_RBH$raph %in% degs.raph.cultivated.up)]
-
+#get degs down
 degs.raph.cultivated.down = row.names(subset(degs.raph.cultivated, padj<0.05 & log2FoldChange<0))
 degs.raph.cultivated.down.sharedids = brass_raph_RBH$label[which(brass_raph_RBH$raph %in% degs.raph.cultivated.down)]
 # no overlap in upregulated IDs
-hyper_overlap(degs.brass.cultivated.up.sharedids, degs.raph.cultivated.up.sharedids, brass_raph_RBH$label)
+gene_overlap(degs.brass.cultivated.up.sharedids, degs.raph.cultivated.up.sharedids, brass_raph_RBH$label)
 # no overlap in downregulated IDs
-hyper_overlap(degs.brass.cultivated.down.sharedids, degs.raph.cultivated.down.sharedids, brass_raph_RBH$label)
+gene_overlap(degs.brass.cultivated.down.sharedids, degs.raph.cultivated.down.sharedids, brass_raph_RBH$label)
+#so we see no overlap, but there's some weirdness here: there are far fewer Raphanus than Brass DEGs represented in the BLAST table
+#could this indicate that Raph DEGs are particularly derived?
+#let's first confirm that Raph DEGs are underrepresented in the table:
+#get list of Raph genes that are in the table
+degs.raph.cultivated.all = row.names(subset(degs.raph.cultivated,padj<0.05))
+notshared.raph = row.names(degs.raph.cultivated)[which(!(row.names(degs.raph.cultivated) %in% brass_raph_RBH$raph))]
+gene_overlap(notshared.raph, degs.raph.cultivated.all, row.names(degs.raph.cultivated))
+#okay so raphanus DEGs are definitely overrepresented in the list of genes *without* blast best hits
+#is the same for brassica?
+degs.brass.cultivated.all = row.names(subset(degs.brass.cultivated,padj<0.05))
+notshared.brass = row.names(degs.brass.cultivated)[which(!(row.names(degs.brass.cultivated) %in% brass_raph_RBH$brass))]
+gene_overlap(notshared.brass, degs.brass.cultivated.all, row.names(degs.brass.cultivated))
+#the same is not true of brassica. So perhaps we can argue that the Raphanus genes that have been selected are now more derived?
+#an alternative explanation is that the relationship between R raphanistrum and R sativus is more distant than wild vs cultivated B rapa?
+
 
 
 #run RRHO for cultivated vs wild progenitor
@@ -155,9 +176,9 @@ ggsave(RRHOplot.wilds,
        filename = "progenitor_vs_wilds_RRHOplot.png",
        device = "png", path = "Analysis/RNAseq/Images/",
        width =  42, height = 40, units = "cm")
-# p.RRHO.brass.raph.wilds = pvalRRHO(RRHO.brass.raph.wilds, 500)
-# p.RRHO.brass.raph.wilds$pval
-# save(p.RRHO.brass.raph.wilds, file = "/home/benjamin/Documents/Brassicas_repo/Analysis/RNAseq/progenitor_vs_wilds_RRHOpvalue.R")
+p.RRHO.brass.raph.wilds = pvalRRHO(RRHO.brass.raph.wilds, 200)
+p.RRHO.brass.raph.wilds$pval
+save(p.RRHO.brass.raph.wilds, file = "/home/benjamin/Documents/Brassicas_repo/Analysis/RNAseq/progenitor_vs_wilds_RRHOpvalue.R")
 
 
 # out = left_join(brass_cultivated_RRHO, raph_cultivated_RRHO, "gene") %>% 
