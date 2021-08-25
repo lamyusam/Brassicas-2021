@@ -61,6 +61,8 @@ for(i in 1:length(otherwilds)){
   brass.gene.counts.clean.focalandrapa = brass.gene.counts.clean[,as.character(metadata.brass.focalandrapa$sample)]
   #remove spaces so that DESeq doesn't complain
   metadata.brass.focalandrapa$species = str_replace(metadata.brass.focalandrapa$species,pattern = " ",replacement = ".")
+  #relevel so that Brassica rapa is always the last factor
+  metadata.brass.focalandrapa$species = forcats::fct_relevel((metadata.brass.focalandrapa$species),"Brassica.rapa",after = Inf)
   table(colnames(brass.gene.counts.clean.focalandrapa) == metadata.brass.focalandrapa$sample)
   
   #get DESeq2 output for focal wild
@@ -76,9 +78,9 @@ for(i in 1:length(otherwilds)){
   if(i==1){interDEGs = data.frame(c(nUp,nDown))}else{
     interDEGs = cbind(interDEGs, data.frame(c(nUp,nDown)))}
 }
-colnames(interDEGs) = otherwilds
-
-
+colnames(interDEGs) = otherwilds; rownames(interDEGs) = c("Up.rapa","Down.rapa")
+#this isn't very revealing- there are some meager differences, but nothing conclusive, 
+#and nothing that convincingly shows rapa to be more plastic
 
 
 
