@@ -17,10 +17,12 @@ for(sp in 1:length(allwilds)){
   focal.wild = as.character(allwilds[sp])
   for(i in 1:boot){
     metadata.brass.focalwild = subset(metadata.brass.wilds, species == focal.wild)
-    #pick a random subset of three wheat and three control samples for this species
-    pick = c(sample(which(metadata.brass.focalwild$treatment == "Control"),3),
-             sample(which(metadata.brass.focalwild$treatment == "Wheat"),3))
-    metadata.brass.focalwild.sample = metadata.brass.focalwild[pick,]
+    #pick a random subset of three pairs of wheat and control samples for this species
+    pick = sample(which(metadata.brass.focalwild$treatment == "Control"),3)
+    #make sure we get matches pairs of samples
+    picksamples = stringr::str_sub(metadata.brass.focalwild$label[pick],1,-3)
+    metadata.brass.focalwild.sample = subset(metadata.brass.focalwild,substr(label,1,11)%in%picksamples)
+
     #narrow down gene data based on chosen subsample
     brass.gene.counts.clean.focalwild.sample = brass.gene.counts.clean[,as.character(metadata.brass.focalwild.sample$sample)]
     table(metadata.brass.focalwild.sample$sample == colnames(brass.gene.counts.clean.focalwild.sample)) #confirm conformity

@@ -18,9 +18,9 @@ data.meta = read.csv("/home/benjamin/Documents/Brassicas_repo/Data/RNAseq/RNASeq
   mutate(Domesticated = ifelse(Wild..Domesticated=="Wild","Wild","Cultivated")) %>%
   mutate(Environment = ifelse(Environment=="wheat competition","Wheat","Control"),
          Parental.effects.status = ifelse(Parental.effects.status == "'\"standardised\"","Standardised","Unstandardised")) %>%
-  dplyr::select(c("RNAseq.sample.name","Species","Parental.effects.status","Environment","Domesticated")) %>%
+  dplyr::select(c("RNAseq.sample.name","Species","Accession_number","Parental.effects.status","Environment","Domesticated")) %>%
   #dplyr::select(c("RNAseq.sample.name","Species","Parental.effects.status","Environment","Wild..Domesticated")) %>%
-  'colnames<-'(c("sample","species","parental.effects","treatment","domesticated")) %>%
+  'colnames<-'(c("sample","species","accession","parental.effects","treatment","domesticated")) %>%
   mutate_all(as.factor)
 
 data.meta = mutate(data.meta, 
@@ -741,3 +741,5 @@ foldchanges.wilds.all = mutate(foldchanges.wilds.all,
 chisq.test(table(select(foldchanges.wilds.all,c("direction"))))
 #increase in plasticity is definitely more common even across all genes
 chisq.test(table(select(foldchanges.wilds.all,c("magnitude"))))
+
+beepr::beep(3)
