@@ -14,16 +14,18 @@ allwilds = c("Raphanus raphanistrum",otherwilds)
 #NB this excludes Rupestris, because that species has only two replicates
 
 #pick number of bootstraps to run (keep low for now)
-boot = 20
+boot = 1
 for(sp in 1:length(allwilds)){
   #narrow down to data for focal wild
   focal.wild = as.character(allwilds[sp])
   for(i in 1:boot){
-    metadata.raph.focalwild = subset(metadata.raph.wilds.combined, species == focal.wild)
-    #pick a random subset of three wheat and three control samples for this species
-    pick = c(sample(which(metadata.raph.focalwild$treatment == "Control"),3),
-             sample(which(metadata.raph.focalwild$treatment == "Wheat"),3))
-    metadata.raph.focalwild.sample = metadata.raph.focalwild[pick,]
+    metadata.raph.focalwild = subset(metadata.raph.wilds, species == focal.wild)
+    #pick a random subset of three pairs of wheat and control samples for this species
+    pick = sample(which(metadata.raph.focalwild$treatment == "Control"),3)
+    #make sure we get matches pairs of samples
+    picksamples = stringr::str_sub(metadata.raph.focalwild$label[pick],1,-3)
+    metadata.raph.focalwild.sample = subset(metadata.raph.focalwild,substr(label,1,11)%in%picksamples)
+    
     #narrow down gene data based on chosen subsample
     raph.gene.counts.clean.focalwild.sample = raph.gene.counts.clean[,as.character(metadata.raph.focalwild.sample$sample)]
     table(metadata.raph.focalwild.sample$sample == colnames(raph.gene.counts.clean.focalwild.sample)) #confirm conformity
@@ -35,21 +37,25 @@ for(sp in 1:length(allwilds)){
     degs.focalwild = results(dds.gene.deg.focalwild,
                              name="treatment_Control_vs_Wheat",
                              alpha = 0.05)
+    
+    #get number of degs
+    nDEGs = nrow(subset(degs.focalwild,padj<0.05))
+    
     #save results of loop
-    if(i==1){degsframe.focalwild = data.frame(degs.focalwild$log2FoldChange)}else{
-      degsframe.focalwild = cbind(degsframe.focalwild,degs.focalwild$log2FoldChange)}
+    if(i==1){focalwild.nDEGS = c(nDEGs)}else{
+      focalwild.nDEGS = c(focalwild.nDEGS,nDEGs)}
   }
   
   #save data for species
-  focal.lfcs = rowMeans(degsframe.focalwild)
-  if(sp == 1){lfcs.frame = data.frame(focal.lfcs)}else{
-    lfcs.frame = cbind(lfcs.frame, focal.lfcs)
+  if(sp == 1){degs.frame.raph = data.frame(focalwild.nDEGS)}else{
+    degs.frame.raph = cbind(degs.frame.raph, focalwild.nDEGS)
   }
 }
 #give colnames to output frame
-colnames(lfcs.frame) = allwilds
-rownames(lfcs.frame) = row.names(degs.focalwild)
+colnames(degs.frame.raph) = allwilds
 beepr::beep(3)
+#now this is really weird... per this, the group that's most plastic by far is Brassica macrocarpa!?
+write.csv(degs.frame.raph, file = "Analysis/RNAseq/perwilds_stressDEGtable_brass.csv")
 
 #melt for purposes of anova
 testframe = rownames_to_column(lfcs.frame) %>% reshape2::melt()
