@@ -13,7 +13,7 @@ allwilds = c("Brassica rapa",otherwilds)
 #NB this excludes Rupestris, because that species has only two replicates
 
 #pick number of bootstraps to run (keep low for now)
-boot = 5
+boot = 20
 for(sp in 1:length(allwilds)){
   #narrow down to data for focal wild
   focal.wild = as.character(allwilds[sp])

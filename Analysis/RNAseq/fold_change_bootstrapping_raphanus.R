@@ -4,7 +4,8 @@
 #and see what the changes look like there
 library(rstatix)
 
-metadata.raph.wilds.combined = metadata.raph.wilds
+
+metadata.raph.wilds.combined = subset(metadata.raph, species != "Raphanus sativus")
 metadata.raph.wilds.combined$species[which(metadata.raph.wilds.combined$species=="Raphanus raphanistrum mungra")] = "Raphanus raphanistrum munra"
 
 #get fold changes in brapa
@@ -14,12 +15,12 @@ allwilds = c("Raphanus raphanistrum",otherwilds)
 #NB this excludes Rupestris, because that species has only two replicates
 
 #pick number of bootstraps to run (keep low for now)
-boot = 1
+boot = 20
 for(sp in 1:length(allwilds)){
   #narrow down to data for focal wild
   focal.wild = as.character(allwilds[sp])
   for(i in 1:boot){
-    metadata.raph.focalwild = subset(metadata.raph.wilds, species == focal.wild)
+    metadata.raph.focalwild = subset(metadata.raph.wilds.combined, species == focal.wild)
     #pick a random subset of three pairs of wheat and control samples for this species
     pick = sample(which(metadata.raph.focalwild$treatment == "Control"),3)
     #make sure we get matches pairs of samples
@@ -54,8 +55,46 @@ for(sp in 1:length(allwilds)){
 #give colnames to output frame
 colnames(degs.frame.raph) = allwilds
 beepr::beep(3)
-#now this is really weird... per this, the group that's most plastic by far is Brassica macrocarpa!?
-write.csv(degs.frame.raph, file = "Analysis/RNAseq/perwilds_stressDEGtable_brass.csv")
+#inconclusive 
+write.csv(degs.frame.raph, file = "Analysis/RNAseq/perwilds_stressDEGtable_raph.csv")
+
+
+#let's try another way and see if the same result comes out: run DESeq2 interaction models for each species vs B rapa
+for(i in 1:length(otherwilds)){
+  focal = otherwilds[i]
+  metadata.raph.focalandraphanistrum = subset(metadata.raph.wilds.combined, species %in% c(focal,"Raphanus raphanistrum"))
+  raph.gene.counts.clean.focalandraphanistrum = raph.gene.counts.clean[,as.character(metadata.raph.focalandraphanistrum$sample)]
+  #remove spaces so that DESeq doesn't complain
+  metadata.raph.focalandraphanistrum$species = str_replace(metadata.raph.focalandraphanistrum$species,pattern = " ",replacement = ".")
+  #relevel so that raphica raphanistrum is always the last factor
+  metadata.raph.focalandraphanistrum$species = forcats::fct_relevel((metadata.raph.focalandraphanistrum$species),"Raphanus.raphanistrum",after = Inf)
+  table(colnames(raph.gene.counts.clean.focalandraphanistrum) == metadata.raph.focalandraphanistrum$sample)
+  
+  #get DESeq2 output for focal wild
+  dds.gene.focalandraphanistrum = DESeqDataSetFromMatrix(countData = raph.gene.counts.clean.focalandraphanistrum,
+                                                 colData = metadata.raph.focalandraphanistrum,
+                                                 design = as.formula(~treatment+species+treatment*species))
+  dds.gene.deg.focalandraphanistrum = DESeq(dds.gene.focalandraphanistrum, fitType = "parametric", betaPrior = FALSE)
+  degs.focalandraphanistrum = results(dds.gene.deg.focalandraphanistrum,
+                              name="treatmentControl.speciesRaphanus.raphanistrum",
+                              alpha = 0.05)
+  nUp = nrow(subset(degs.focalandraphanistrum,padj<0.05 & log2FoldChange<0))
+  nDown = nrow(subset(degs.focalandraphanistrum,padj<0.05 & log2FoldChange>0))
+  if(i==1){interDEGs.raph = data.frame(c(nUp,nDown))}else{
+    interDEGs.raph = cbind(interDEGs.raph, data.frame(c(nUp,nDown)))}
+}
+colnames(interDEGs.raph) = otherwilds; rownames(interDEGs.raph) = c("Up.raphanistrum","Down.raphanistrum")
+#this isn't very revealing- there are some meager differences, but nothing conclusive, 
+#and nothing that convincingly shows rapa to be more plastic
+beepr::beep(3)
+write.csv(interDEGs.raph, file = "Analysis/RNAseq/perwilds_interDEGtable_raph.csv")
+
+
+
+
+
+
+
 
 #melt for purposes of anova
 testframe = rownames_to_column(lfcs.frame) %>% reshape2::melt()
