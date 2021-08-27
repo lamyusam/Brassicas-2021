@@ -58,6 +58,8 @@ phenodata.gen2 = select(phenodata.gen2, -c("Total_la"))
 phenodata.gen2$Environment =  ifelse(phenodata.gen2$Environment == "wheat competition", "wheat", "control")
 # for now simplify down to wild vs domesticated
 phenodata.gen2$Wild_Dom =  ifelse(phenodata.gen2$Wild_Dom == "Wild", "Wild", "Cultivated")
+# munra and mungra are almost certainly the same species, divided by a typo, so combine these
+phenodata.gen2$Species[which(phenodata.gen2$Species=="Raphanus_raphanistrum_mungra")] = "Raphanus_raphanistrum_munra"
 
 # for some factors, we need to take into account timepoint of measurement
 table(phenodata.gen2$Days_meas_taken)
@@ -103,11 +105,11 @@ measure.vars = c("Days_germ", #days from potting to germination
 phenodata.gen2.clean =  mutate_at(phenodata.gen2, measure.vars, function(x) as.numeric(as.character(x))) %>%
   select(c("Label_front","Species","Population","Wild_Dom","Environment",measure.vars)) 
 
-
-
 #refactor to set reference levels
 phenodata.gen2.clean$Wild_dom <- factor(phenodata.gen2.clean$Wild_Dom,
                                         c("Wild","Cultivated"))
+#save
+write.csv(phenodata.gen2.clean, file="Data/Phenotypic_data/morphology_data_gen2_clean.csv", row.names = F)
 ```
 
 Remove extreme outlier measurements:
