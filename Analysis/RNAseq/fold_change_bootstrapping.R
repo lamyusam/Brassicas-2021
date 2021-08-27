@@ -81,8 +81,13 @@ for(i in 1:length(otherwilds)){
     interDEGs = cbind(interDEGs, data.frame(c(nUp,nDown)))}
 }
 colnames(interDEGs) = otherwilds; rownames(interDEGs) = c("Up.rapa","Down.rapa")
+beepr::beep(3)
 #this isn't very revealing- there are some meager differences, but nothing conclusive, 
 #and nothing that convincingly shows rapa to be more plastic
+write.csv(interDEGs, file = "Analysis/RNAseq/perwilds_interDEGtable_brass.csv")
+
+
+
 
 
 
