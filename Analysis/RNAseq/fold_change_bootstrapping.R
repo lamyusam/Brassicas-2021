@@ -4,6 +4,8 @@
 #and see what the changes look like there
 library(rstatix)
 
+metadata.brass.wilds = subset(metadata.brass.clean, domesticated == "Wild")
+
 #get fold changes in brapa
 #list all non-rapa wild brassica species
 otherwilds = c("Brassica cretica","Brassica incana","Brassica macrocarpa","Brassica montana","Brassica villosa")
@@ -11,7 +13,7 @@ allwilds = c("Brassica rapa",otherwilds)
 #NB this excludes Rupestris, because that species has only two replicates
 
 #pick number of bootstraps to run (keep low for now)
-boot = 2
+boot = 5
 for(sp in 1:length(allwilds)){
   #narrow down to data for focal wild
   focal.wild = as.character(allwilds[sp])
@@ -52,9 +54,9 @@ for(sp in 1:length(allwilds)){
 colnames(degs.frame) = allwilds
 beepr::beep(3)
 #now this is really weird... per this, the group that's most plastic by far is Brassica macrocarpa!?
+write.csv(degs.frame, file = "Analysis/RNAseq/perwilds_stressDEGtable_brass.csv")
 
 #let's try another way and see if the same result comes out: run DESeq2 interaction models for each species vs B rapa
-
 for(i in 1:length(otherwilds)){
   focal = otherwilds[i]
   metadata.brass.focalandrapa = subset(metadata.brass.wilds, species %in% c(focal,"Brassica rapa"))
