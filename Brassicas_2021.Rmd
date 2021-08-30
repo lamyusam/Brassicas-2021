@@ -103,7 +103,7 @@ measure.vars = c("Days_germ", #days from potting to germination
 
 # convert to numeric where applicable
 phenodata.gen2.clean =  mutate_at(phenodata.gen2, measure.vars, function(x) as.numeric(as.character(x))) %>%
-  select(c("Label_front","Species","Population","Wild_Dom","Environment",measure.vars)) 
+  select(c("Label_front","Species","Population","Wild_Dom","Environment","Parental_effects_status",measure.vars)) 
 
 #refactor to set reference levels
 phenodata.gen2.clean$Wild_dom <- factor(phenodata.gen2.clean$Wild_Dom,
