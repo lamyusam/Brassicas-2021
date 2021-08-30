@@ -2,6 +2,7 @@ library(RRHO)
 library(stringr)
 library(tidyverse)
 library(pheatmap)
+library(DESeq2)
 
 #set working directory
 setwd("/home/benjamin/Documents/Brassicas_repo")
@@ -154,6 +155,11 @@ notshared.brass = row.names(degs.brass.cultivated)[which(!(row.names(degs.brass.
 gene_overlap(notshared.brass, degs.brass.cultivated.all, row.names(degs.brass.cultivated))
 #the same is not true of brassica. So perhaps we can argue that the Raphanus genes that have been selected are now more derived?
 #an alternative explanation is that the relationship between R raphanistrum and R sativus is more distant than wild vs cultivated B rapa?
+chiframe = data.frame(shared = !(row.names(raph.gene.counts.clean)%in%notshared.raph), 
+                      DE = row.names(raph.gene.counts.clean)%in%degs.raph.cultivated.all)
+
+plot(chisq.test(chiframe))
+
 
 
 

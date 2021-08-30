@@ -106,8 +106,10 @@ phenodata.gen2.clean =  mutate_at(phenodata.gen2, measure.vars, function(x) as.n
   select(c("Label_front","Species","Population","Wild_Dom","Environment","Parental_effects_status",measure.vars)) 
 
 #refactor to set reference levels
-phenodata.gen2.clean$Wild_dom <- factor(phenodata.gen2.clean$Wild_Dom,
+phenodata.gen2.clean$Wild_Dom = factor(phenodata.gen2.clean$Wild_Dom,
                                         c("Wild","Cultivated"))
+phenodata.gen2.clean$Environment = factor(phenodata.gen2.clean$Environment,
+                                        c("wheat","control"))
 #save
 write.csv(phenodata.gen2.clean, file="Data/Phenotypic_data/morphology_data_gen2_clean.csv", row.names = F)
 ```

@@ -11,6 +11,13 @@ phenodata.gen2.clean = read.delim("Data/Phenotypic_data/morphology_data_gen2_cle
 colnames(phenodata.gen2.clean)
 table(phenodata.gen2.clean$Species)
 
+#refactor to set reference levels
+phenodata.gen2.clean$Wild_Dom = factor(phenodata.gen2.clean$Wild_Dom,
+                                       c("Wild","Cultivated"))
+phenodata.gen2.clean$Environment = factor(phenodata.gen2.clean$Environment,
+                                          c("wheat","control"))
+
+
 # take note of the most relevant measured variables
 measure.vars = c("Days_germ",
                  "Height_1820",
@@ -127,3 +134,269 @@ simulation.gamma <- simulateResiduals(fittedModel = dw.gamma, plot = F)
 residtest.gamma = testResiduals(simulation.gamma)
 plot(simulation.gamma)
 #It also doesn't work with gaussian log or inverse links,nor with gamma, nor poisson (obviously) 
+
+#DON'T FORGET it might also be worth running discrete traits (i.e. num leaves) using a poisson instead
+
+#okay now it's time to run models for each, remembering to include parental effects as a random factor in all analyses! 
+#(will this work given the unequal distribution of parental effects?)
+
+#begin with brassica, comparing wild vs domestic brassica rapa
+phenodata.gen2.clean.brass.subset = subset(phenodata.gen2.clean.brass, Species = "Brassica rapa")
+
+for(i in 1:length(measure.vars.brass)){
+  
+  response_var = measure.vars.brass[i]
+  phenodata.gen2.clean.brass.omit = subset(phenodata.gen2.clean.brass.subset, is.na(get(response_var))==F)
+  model.gauss = lmer(scale(get(response_var))~Environment + Wild_Dom + Environment:Wild_Dom + (1|Population) + (1|Parental_effects_status), 
+                     data=phenodata.gen2.clean.brass.omit, 
+                     control = lmerControl(optimizer="bobyqa", optCtrl = list(maxfun = 10000)))
+  out = summary(model.gauss)
+  pvals = data.frame(out$coefficients[,"Pr(>|t|)"])
+  ests = data.frame(out$coefficients[,"Estimate"])
+  
+  if(i==1){pvals.out = pvals; ests.out = ests}else{
+    pvals.out = cbind(pvals.out,pvals); ests.out = cbind(ests.out,ests)}
+
+}
+#set dimnames
+dimnames(pvals.out)=list(c("Intercept","Cultivated_environment","Domesticated_history","Interaction"),measure.vars.brass)
+dimnames(ests.out)=list(c("Intercept","Cultivated_environment","Domesticated_history","Interaction"),measure.vars.brass)
+#adjust p-vlaues
+pvals.out = data.frame(t(apply(pvals.out,1,function(x) p.adjust(x, "BH"))))
+
+#get labels for plot
+brassica.subset.coef.labels = paste0(as.matrix(signif(pvals.out,2)),"\n(",as.matrix(signif(ests.out,2)),")")
+
+#coerce df for ggplot and apply FDR correction
+brassica.subset.coefs.fdr = reshape2::melt(rownames_to_column(pvals.out)) #%>% mutate(value = p.adjust(value, method = "BH"))
+
+#plot
+brassica.subset.traits.fdr.plot = ggplot(data = brassica.subset.coefs.fdr, aes(x = variable, 
+                                                                               y = factor(rowname,levels = c("Interaction",
+                                                                                                             "Domesticated_history",
+                                                                                                             "Cultivated_environment",
+                                                                                                             "Intercept")), fill = value)) +
+  geom_tile(aes(fill = value),color = "gray", size=.75, width=1, height = 1) +
+  geom_text(aes(label=c(brassica.subset.coef.labels), 
+                lineheight = 0.75, size = 2), show.legend = FALSE) +
+  scale_fill_gradientn(colours = colorRampPalette(rev(c("#FFFFFF",brewer.pal(n = 9, name = "Reds")[1:5])),bias=6)(20),
+                       breaks = c(0.0,0.05,1),
+                       expand = c(0,0),
+                       limits = c(0,1),
+                       guide = guide_colourbar(barheight = 25,
+                                               #title = "p-value\n(adjusted)",
+                                               title = "p-value\n(adjusted)",
+                                               title.vjust = 2,
+                                               frame.colour = "black", 
+                                               frame.linewidth = 1.5)) +
+  theme_minimal() + 
+  theme(#aspect.ratio = 1,
+    panel.grid = element_line(size = 0.2, colour = "gray80"),
+    axis.text.x = element_text(angle = 45, vjust = 1, size = 12, hjust = 1),
+    axis.text.y = element_text(size = 12),
+    axis.title = element_blank()#,
+    #legend.text = element_text(size=12),
+    #legend.title = element_text(size=15, face = "bold")
+  ) + coord_fixed()
+
+brassica.subset.traits.fdr.plot
+
+
+
+
+
+#now repeat for rapa vs other wilds
+#begin with brassica, comparing wild vs domestic brassica rapa
+phenodata.gen2.clean.brass.wilds = subset(phenodata.gen2.clean.brass, Wild_Dom == "Wild")
+phenodata.gen2.clean.brass.wilds$Progenitor = ifelse(phenodata.gen2.clean.brass.wilds$Species=="Brassica_rapa",TRUE,FALSE)
+
+for(i in 1:length(measure.vars.brass)){
+  
+  response_var = measure.vars.brass[i]
+  phenodata.gen2.clean.brass.omit = subset(phenodata.gen2.clean.brass.wilds, is.na(get(response_var))==F)
+  model.gauss = lmer(scale(get(response_var))~Environment + Progenitor + Environment:Progenitor + (1|Population) + (1|Parental_effects_status), 
+                     data=phenodata.gen2.clean.brass.omit, 
+                     control = lmerControl(optimizer="bobyqa", optCtrl = list(maxfun = 10000)))
+  out = summary(model.gauss)
+  pvals = data.frame(out$coefficients[,"Pr(>|t|)"])
+  ests = data.frame(out$coefficients[,"Estimate"])
+  
+  if(i==1){pvals.out = pvals; ests.out = ests}else{
+    pvals.out = cbind(pvals.out,pvals); ests.out = cbind(ests.out,ests)}
+  
+}
+#set dimnames
+dimnames(pvals.out)=list(c("Intercept","Cultivated_environment","Wild_progenitor","Interaction"),measure.vars.brass)
+dimnames(ests.out)=list(c("Intercept","Cultivated_environment","Wild_progenitor","Interaction"),measure.vars.brass)
+#adjust p-vlaues
+pvals.out = data.frame(t(apply(pvals.out,1,function(x) p.adjust(x, "BH"))))
+
+#get labels for plot
+brassica.wilds.coef.labels = paste0(as.matrix(signif(pvals.out,2)),"\n(",as.matrix(signif(ests.out,2)),")")
+
+#coerce df for ggplot and apply FDR correction
+brassica.wilds.coefs.fdr = reshape2::melt(rownames_to_column(pvals.out)) #%>% mutate(value = p.adjust(value, method = "BH"))
+
+#plot
+brassica.wilds.traits.fdr.plot = ggplot(data = brassica.wilds.coefs.fdr, 
+                                        aes(x = variable, 
+                                            y = factor(rowname,levels = c("Interaction",
+                                                                          "Wild_progenitor",
+                                                                          "Cultivated_environment",
+                                                                          "Intercept")), fill = value)) +
+  geom_tile(aes(fill = value),color = "gray", size=.75, width=1, height = 1) +
+  geom_text(aes(label=c(brassica.wilds.coef.labels), 
+                lineheight = 0.75, size = 2), show.legend = FALSE) +
+  scale_fill_gradientn(colours = colorRampPalette(rev(c("#FFFFFF",brewer.pal(n = 9, name = "Reds")[1:5])),bias=6)(20),
+                       breaks = c(0.0,0.05,1),
+                       expand = c(0,0),
+                       limits = c(0,1),
+                       guide = guide_colourbar(barheight = 25,
+                                               #title = "p-value\n(adjusted)",
+                                               title = "p-value\n(adjusted)",
+                                               title.vjust = 2,
+                                               frame.colour = "black", 
+                                               frame.linewidth = 1.5)) +
+  theme_minimal() + 
+  theme(#aspect.ratio = 1,
+    panel.grid = element_line(size = 0.2, colour = "gray80"),
+    axis.text.x = element_text(angle = 45, vjust = 1, size = 12, hjust = 1),
+    axis.text.y = element_text(size = 12),
+    axis.title = element_blank()#,
+    #legend.text = element_text(size=12),
+    #legend.title = element_text(size=15, face = "bold")
+  ) +
+  coord_fixed()
+
+brassica.wilds.traits.fdr.plot
+
+
+
+
+#repeat for raphanus sativus vs raphanus raphanistrum
+phenodata.gen2.clean.raph.subset = subset(phenodata.gen2.clean.raph, Species %in% c("Raphanus_sativus","Raphanus_raphanistrum"))
+
+for(i in 1:length(measure.vars.raph)){
+  
+  response_var = measure.vars.raph[i]
+  phenodata.gen2.clean.raph.omit = subset(phenodata.gen2.clean.raph.subset, is.na(get(response_var))==F)
+  model.gauss = lmer(scale(get(response_var))~Environment + Wild_Dom + Environment:Wild_Dom + (1|Population) + (1|Parental_effects_status), 
+                     data=phenodata.gen2.clean.raph.omit, 
+                     control = lmerControl(optimizer="bobyqa", optCtrl = list(maxfun = 10000)))
+  out = summary(model.gauss)
+  pvals = data.frame(out$coefficients[,"Pr(>|t|)"])
+  ests = data.frame(out$coefficients[,"Estimate"])
+  
+  if(i==1){pvals.out = pvals; ests.out = ests}else{
+    pvals.out = cbind(pvals.out,pvals); ests.out = cbind(ests.out,ests)}
+  
+}
+#set dimnames
+dimnames(pvals.out)=list(c("Intercept","Cultivated_environment","Domesticated_history","Interaction"),measure.vars.raph)
+dimnames(ests.out)=list(c("Intercept","Cultivated_environment","Domesticated_history","Interaction"),measure.vars.raph)
+#adjust p-vlaues
+pvals.out = data.frame(t(apply(pvals.out,1,function(x) p.adjust(x, "BH"))))
+
+#get labels for plot
+raphanus.subset.coef.labels = paste0(as.matrix(signif(pvals.out,2)),"\n(",as.matrix(signif(ests.out,2)),")")
+
+#coerce df for ggplot and apply FDR correction
+raphanus.subset.coefs.fdr = reshape2::melt(rownames_to_column(pvals.out)) #%>% mutate(value = p.adjust(value, method = "BH"))
+
+#plot
+raphanus.subset.traits.fdr.plot = ggplot(data = raphanus.subset.coefs.fdr, aes(x = variable, 
+                                                                               y = factor(rowname,levels = c("Interaction",
+                                                                                                             "Domesticated_history",
+                                                                                                             "Cultivated_environment",
+                                                                                                             "Intercept")),  fill = value)) +
+  geom_tile(aes(fill = value),color = "gray", size=.75, width=1, height = 1) +
+  geom_text(aes(label=c(raphanus.subset.coef.labels), 
+                lineheight = 0.75, size = 2), show.legend = FALSE) +
+  scale_fill_gradientn(colours = colorRampPalette(rev(c("#FFFFFF",brewer.pal(n = 9, name = "Reds")[1:5])),bias=6)(20),
+                       breaks = c(0.0,0.05,1),
+                       expand = c(0,0),
+                       limits = c(0,1),
+                       guide = guide_colourbar(barheight = 25,
+                                               #title = "p-value\n(adjusted)",
+                                               title = "p-value\n(adjusted)",
+                                               title.vjust = 2,
+                                               frame.colour = "black", 
+                                               frame.linewidth = 1.5)) +
+  theme_minimal() + 
+  theme(#aspect.ratio = 1,
+    panel.grid = element_line(size = 0.2, colour = "gray80"),
+    axis.text.x = element_text(angle = 45, vjust = 1, size = 12, hjust = 1),
+    axis.text.y = element_text(size = 12),
+    axis.title = element_blank()#,
+    #legend.text = element_text(size=12),
+    #legend.title = element_text(size=15, face = "bold")
+  ) +
+  coord_fixed()
+
+raphanus.subset.traits.fdr.plot
+
+
+
+#now repeat for raphanistrum vs other wilds
+phenodata.gen2.clean.raph.wilds = subset(phenodata.gen2.clean.raph, Species!="Raphanus_sativus")
+phenodata.gen2.clean.raph.wilds$Progenitor = ifelse(phenodata.gen2.clean.raph.wilds$Species=="Raphanus_raphanistrum",TRUE,FALSE)
+
+for(i in 1:length(measure.vars.raph)){
+  
+  response_var = measure.vars.raph[i]
+  phenodata.gen2.clean.raph.omit = subset(phenodata.gen2.clean.raph.wilds, is.na(get(response_var))==F)
+  model.gauss = lmer(scale(get(response_var))~Environment + Progenitor + Environment:Progenitor + (1|Population) + (1|Parental_effects_status), 
+                     data=phenodata.gen2.clean.raph.omit, 
+                     control = lmerControl(optimizer="bobyqa", optCtrl = list(maxfun = 10000)))
+  out = summary(model.gauss)
+  pvals = data.frame(out$coefficients[,"Pr(>|t|)"])
+  ests = data.frame(out$coefficients[,"Estimate"])
+  
+  if(i==1){pvals.out = pvals; ests.out = ests}else{
+    pvals.out = cbind(pvals.out,pvals); ests.out = cbind(ests.out,ests)}
+  
+}
+#set dimnames
+dimnames(pvals.out)=list(c("Intercept","Cultivated_environment","Wild_progenitor","Interaction"),measure.vars.raph)
+dimnames(ests.out)=list(c("Intercept","Cultivated_environment","Wild_progenitor","Interaction"),measure.vars.raph)
+#adjust p-vlaues
+pvals.out = data.frame(t(apply(pvals.out,1,function(x) p.adjust(x, "BH"))))
+
+#get labels for plot
+raphanus.wilds.coef.labels = paste0(as.matrix(signif(pvals.out,2)),"\n(",as.matrix(signif(ests.out,2)),")")
+
+#coerce df for ggplot and apply FDR correction
+raphanus.wilds.coefs.fdr = reshape2::melt(rownames_to_column(pvals.out)) #%>% mutate(value = p.adjust(value, method = "BH"))
+
+#plot
+raphanus.wilds.traits.fdr.plot = ggplot(data = raphanus.wilds.coefs.fdr, 
+                                        aes(x = variable, 
+                                            y = factor(rowname,levels = c("Interaction",
+                                                                          "Wild_progenitor",
+                                                                          "Cultivated_environment",
+                                                                          "Intercept")), fill = value)) +
+  geom_tile(aes(fill = value),color = "gray", size=.75, width=1, height = 1) +
+  geom_text(aes(label=c(raphanus.wilds.coef.labels), 
+                lineheight = 0.75, size = 2), show.legend = FALSE) +
+  scale_fill_gradientn(colours = colorRampPalette(rev(c("#FFFFFF",brewer.pal(n = 9, name = "Reds")[1:5])),bias=6)(20),
+                       breaks = c(0.0,0.05,1),
+                       expand = c(0,0),
+                       limits = c(0,1),
+                       guide = guide_colourbar(barheight = 25,
+                                               #title = "p-value\n(adjusted)",
+                                               title = "p-value\n(adjusted)",
+                                               title.vjust = 2,
+                                               frame.colour = "black", 
+                                               frame.linewidth = 1.5)) +
+  theme_minimal() + 
+  theme(#aspect.ratio = 1,
+    panel.grid = element_line(size = 0.2, colour = "gray80"),
+    axis.text.x = element_text(angle = 45, vjust = 1, size = 12, hjust = 1),
+    axis.text.y = element_text(size = 12),
+    axis.title = element_blank()#,
+    #legend.text = element_text(size=12),
+    #legend.title = element_text(size=15, face = "bold")
+  ) +
+  coord_fixed()
+
+raphanus.wilds.traits.fdr.plot
