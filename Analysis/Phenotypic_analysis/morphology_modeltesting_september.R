@@ -175,11 +175,18 @@ outframe.gauss.raph
 # plot(simulation.gamma)
 #It also doesn't work with gaussian log or inverse links,nor with gamma, nor poisson (obviously) 
 
-#DON'T FORGET it might also be worth running discrete traits (i.e. num leaves) using a poisson instead
+#Number of leaves is a discrete trait, and might be better modeled using a poisson distribution- let's check this
+response_var = "Num_leaves_1820"
+phenodata.gen2.clean.raph.omit = subset(phenodata.gen2.clean.raph, is.na(get(response_var))==F)
+model.pois = glmer(get(response_var)~Environment + Wild_Dom + Environment:Wild_Dom + (1|Population), 
+                   data=phenodata.gen2.clean.raph.omit, 
+                   control = glmerControl(optimizer="bobyqa", optCtrl = list(maxfun = 10000)),family=poisson(link = "log"))
+simulation.pois <- simulateResiduals(fittedModel = model.pois, plot = F)
+residtest.pois = testResiduals(simulation.pois)
+#honestly this doesn't look good, nor does a negative binomial
+#perhaps it would be better to drop number of leaves, but we'll keep this set of trait for now
 
 #okay now it's time to run models for each, remembering to include parental effects as a random factor in all analyses! 
-#(will this work given the unequal distribution of parental effects?)
-
 #begin with brassica, comparing wild vs domestic brassica rapa
 phenodata.gen2.clean.brass.subset = subset(phenodata.gen2.clean.brass, Species = "Brassica rapa")
 
