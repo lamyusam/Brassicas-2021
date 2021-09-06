@@ -184,7 +184,7 @@ model.pois = glmer(get(response_var)~Environment + Wild_Dom + Environment:Wild_D
 simulation.pois <- simulateResiduals(fittedModel = model.pois, plot = F)
 residtest.pois = testResiduals(simulation.pois)
 #honestly this doesn't look good, nor does a negative binomial
-#perhaps it would be better to drop number of leaves, but we'll keep this set of trait for now
+#perhaps it would be better to drop number of leaves, but we'll simply keep this set of traits Gaussian for now
 
 #okay now it's time to run models for each, remembering to include parental effects as a random factor in all analyses! 
 #begin with brassica, comparing wild vs domestic brassica rapa
@@ -247,7 +247,9 @@ brassica.subset.traits.fdr.plot = ggplot(data = brassica.subset.coefs.fdr, aes(x
   ) + coord_fixed()
 
 brassica.subset.traits.fdr.plot
-
+ggsave(brassica.subset.traits.fdr.plot, filename = "phenotypic_lmer_pvals_brassica_subset.pdf",
+       device = "pdf", path = "Analysis/Phenotypic_analysis/Images",
+       width =  40, height = 20, units = "cm")
 
 
 
@@ -316,8 +318,9 @@ brassica.wilds.traits.fdr.plot = ggplot(data = brassica.wilds.coefs.fdr,
   coord_fixed()
 
 brassica.wilds.traits.fdr.plot
-
-
+ggsave(brassica.wilds.traits.fdr.plot, filename = "phenotypic_lmer_pvals_brassica_wilds.pdf",
+       device = "pdf", path = "Analysis/Phenotypic_analysis/Images",
+       width =  40, height = 20, units = "cm")
 
 
 #repeat for raphanus sativus vs raphanus raphanistrum
@@ -381,7 +384,9 @@ raphanus.subset.traits.fdr.plot = ggplot(data = raphanus.subset.coefs.fdr, aes(x
   coord_fixed()
 
 raphanus.subset.traits.fdr.plot
-
+ggsave(raphanus.subset.traits.fdr.plot, filename = "phenotypic_lmer_pvals_raphanus_subset.pdf",
+       device = "pdf", path = "Analysis/Phenotypic_analysis/Images",
+       width =  40, height = 20, units = "cm")
 
 
 #now repeat for raphanistrum vs other wilds
@@ -447,3 +452,6 @@ raphanus.wilds.traits.fdr.plot = ggplot(data = raphanus.wilds.coefs.fdr,
   coord_fixed()
 
 raphanus.wilds.traits.fdr.plot
+ggsave(raphanus.wilds.traits.fdr.plot, filename = "phenotypic_lmer_pvals_raphanus_wilds.pdf",
+       device = "pdf", path = "Analysis/Phenotypic_analysis/Images",
+       width =  40, height = 20, units = "cm")
