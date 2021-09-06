@@ -5,6 +5,7 @@ library(lmerTest)
 library(performance)
 library(see)
 library(DHARMa)
+library(reshape2)
 
 setwd("/home/benjamin/Documents/Brassicas_repo")
 phenodata.gen2.clean = read.delim("Data/Phenotypic_data/morphology_data_gen2_clean.csv", sep = ",", header = T, row.names = NULL)
@@ -49,9 +50,47 @@ raphmelt = melt(phenodata.gen2.clean.raph, id.vars = "Population", measure.vars 
 gg.raph.hist = ggplot(raphmelt, aes(x=value))+
   geom_histogram() +
   facet_wrap(~variable, scales = "free")
-#drop traits that are clearly unimodal:
-measure.vars.brass = measure.vars[!(measure.vars %in% c("Days_germ","Root_dw","Root_to_shoot_ratio"))]
-measure.vars.raph = measure.vars[!(measure.vars %in% c("Days_germ","Root_to_shoot_ratio"))]
+
+#what's going on with root dry weight in these plots? It looks unimodal, but the scale seems off, perhaps indicating outliers
+quantile(phenodata.gen2.clean.brass$Root_dw, c(seq(0,0.75,0.25),0.95,1), na.rm=T)
+quantile(phenodata.gen2.clean.raph$Root_dw, c(seq(0,0.75,0.25),0.95,1), na.rm=T)
+#sure enough, there are definitely outliers here, which we can reasonably attribute to experimental error given the sensitivity of
+#the weighing to e.g. residual moisture in the roots. Therefore let's remove these
+#quick function to remove values 3+ SDs above the mean
+crude_outliercheck = function(x){
+  sd = sd(x, na.rm=T)
+  mean = mean(x, na.rm=T)
+  upper = (mean + sd*3)
+  print("Removing values: ");print(paste(x[which(x>upper)]))
+  x[which(x>upper)] = NA
+  return(x)
+}
+#apply function to rmeove these obvious outliers
+phenodata.gen2.clean.brass$Root_dw = crude_outliercheck(phenodata.gen2.clean.brass$Root_dw)
+phenodata.gen2.clean.raph$Root_dw = crude_outliercheck(phenodata.gen2.clean.raph$Root_dw)
+#also set root-shoot ratio to NA for these outliers
+phenodata.gen2.clean.brass$Root_to_shoot_ratio[which(is.na(phenodata.gen2.clean.brass$Root_dw))] = NA
+phenodata.gen2.clean.raph$Root_to_shoot_ratio[which(is.na(phenodata.gen2.clean.raph$Root_dw))] = NA
+
+#Re-check distributions for each variable
+brassmelt = melt(phenodata.gen2.clean.brass, id.vars = "Population", measure.vars = measure.vars)
+gg.brass.hist = ggplot(brassmelt, aes(x=value))+
+  geom_histogram() +
+  facet_wrap(~variable, scales = "free")
+#Repeat for raph
+raphmelt = melt(phenodata.gen2.clean.raph, id.vars = "Population", measure.vars = measure.vars)
+gg.raph.hist = ggplot(raphmelt, aes(x=value))+
+  geom_histogram() +
+  facet_wrap(~variable, scales = "free")
+#root dry weight looks better now, but root-shoot ratio is still very skewed- not surprising for a ratio like this
+#but if we log the ratio, it looks much better:
+hist(log(phenodata.gen2.clean.brass$Root_to_shoot_ratio)); hist(log(phenodata.gen2.clean.raph$Root_to_shoot_ratio))
+#okay, let's create a logged ratio
+phenodata.gen2.clean.brass$Log_root_shoot_ratio = log(phenodata.gen2.clean.brass$Root_to_shoot_ratio)
+phenodata.gen2.clean.raph$Log_root_shoot_ratio = log(phenodata.gen2.clean.raph$Root_to_shoot_ratio)
+#update the measure.vars object (also drop traits that remain clearly unimodal)
+measure.vars.brass = c(measure.vars[!(measure.vars %in% c("Days_germ","Root_to_shoot_ratio"))],"Log_root_shoot_ratio")
+measure.vars.raph = c(measure.vars[!(measure.vars %in% c("Days_germ","Root_to_shoot_ratio"))],"Log_root_shoot_ratio")
 
 #Now we need to try and fit distributions for each... 
 #Tom advises not overcomplicating things. For each trait, we'll try a normal distribution and a gamma
@@ -77,28 +116,28 @@ for(i in 1:length(measure.vars.brass)){
 colnames(outframe.gauss)=measure.vars.brass ; row.names(outframe.gauss) = c("Uniformity","Dispersion","Outliers")
 #based on this, the traits mostly look pretty good - even where the p-values are low, the diagnostic plots don't look bad
 #let's try again with logged values to be see if that makes anything radically different  
-for(i in 1:length(measure.vars.brass)){
-  
-  response_var = measure.vars.brass[i]
-  
-  phenodata.gen2.clean.brass.omit = subset(phenodata.gen2.clean.brass, is.na(get(response_var))==F)
-  model.log = glmer(get(response_var)~Environment + Wild_Dom + Environment:Wild_Dom + (1|Population), 
-                     data=phenodata.gen2.clean.brass.omit, 
-                     control = glmerControl(optimizer="bobyqa", optCtrl = list(maxfun = 10000)),
-                     family = gaussian(link="log"))
-  simulation.log <- simulateResiduals(fittedModel = model.log, plot = F)
-  #foo = testDispersion(simulation.log)
-  residtest.log = testResiduals(simulation.log)
-  #return(plot(simulation.log))
-  out = data.frame(c(residtest.log$uniformity$p.value,
-                     residtest.log$dispersion$p.value,
-                     residtest.log$outliers$p.value))
-  
-  if(i==1){outframe.log = out}else{outframe.log = cbind(outframe.log,out)}
-  
-}
-colnames(outframe.log)=measure.vars.brass ; row.names(outframe.log) = c("Uniformity","Dispersion","Outliers")
-outframe.log
+# for(i in 1:length(measure.vars.brass)){
+#   
+#   response_var = measure.vars.brass[i]
+#   
+#   phenodata.gen2.clean.brass.omit = subset(phenodata.gen2.clean.brass, is.na(get(response_var))==F)
+#   model.log = glmer(get(response_var)~Environment + Wild_Dom + Environment:Wild_Dom + (1|Population), 
+#                      data=phenodata.gen2.clean.brass.omit, 
+#                      control = glmerControl(optimizer="bobyqa", optCtrl = list(maxfun = 10000)),
+#                      family = gaussian(link="log"))
+#   simulation.log <- simulateResiduals(fittedModel = model.log, plot = F)
+#   #foo = testDispersion(simulation.log)
+#   residtest.log = testResiduals(simulation.log)
+#   #return(plot(simulation.log))
+#   out = data.frame(c(residtest.log$uniformity$p.value,
+#                      residtest.log$dispersion$p.value,
+#                      residtest.log$outliers$p.value))
+#   
+#   if(i==1){outframe.log = out}else{outframe.log = cbind(outframe.log,out)}
+#   
+# }
+# colnames(outframe.log)=measure.vars.brass ; row.names(outframe.log) = c("Uniformity","Dispersion","Outliers")
+# outframe.log
 #we'd like to try gamma, but doing so frequently throws errors that DHARMa can't handle. Trying an inverse link also throws a lot of errors.
 #so for now let's run with simple linear models for brassica, since these seem to work reasonably well. 
 
@@ -124,15 +163,16 @@ for(i in 1:length(measure.vars.raph)){
 }
 colnames(outframe.gauss.raph)=measure.vars.raph ; row.names(outframe.gauss.raph) = c("Uniformity","Dispersion","Outliers")
 outframe.gauss.raph
-#these look mostly fine, except for root dry weight which is quite dodgy on the QQplot. 
-phenodata.gen2.clean.raph.omit = subset(phenodata.gen2.clean.raph, is.na(Root_dw)==F)
-hist(scale(phenodata.gen2.clean.raph.omit$Root_dw))
-dw.gamma =  glmer(Root_dw~Environment + Wild_Dom + Environment:Wild_Dom + (1|Population), 
-                   data=phenodata.gen2.clean.raph.omit, 
-                   control = glmerControl(optimizer="bobyqa", optCtrl = list(maxfun = 10000)), family = Gamma())
-simulation.gamma <- simulateResiduals(fittedModel = dw.gamma, plot = F)
-residtest.gamma = testResiduals(simulation.gamma)
-plot(simulation.gamma)
+#these look good enough
+#FORMERLY except for root dry weight which is quite dodgy on the QQplot. 
+# phenodata.gen2.clean.raph.omit = subset(phenodata.gen2.clean.raph, is.na(Root_dw)==F)
+# hist(scale(phenodata.gen2.clean.raph.omit$Root_dw))
+# dw.gamma =  glmer(Root_dw~Environment + Wild_Dom + Environment:Wild_Dom + (1|Population), 
+#                    data=phenodata.gen2.clean.raph.omit, 
+#                    control = glmerControl(optimizer="bobyqa", optCtrl = list(maxfun = 10000)), family = Gamma())
+# simulation.gamma <- simulateResiduals(fittedModel = dw.gamma, plot = F)
+# residtest.gamma = testResiduals(simulation.gamma)
+# plot(simulation.gamma)
 #It also doesn't work with gaussian log or inverse links,nor with gamma, nor poisson (obviously) 
 
 #DON'T FORGET it might also be worth running discrete traits (i.e. num leaves) using a poisson instead
