@@ -188,7 +188,7 @@ residtest.pois = testResiduals(simulation.pois)
 
 #okay now it's time to run models for each, remembering to include parental effects as a random factor in all analyses! 
 #begin with brassica, comparing wild vs domestic brassica rapa
-phenodata.gen2.clean.brass.subset = subset(phenodata.gen2.clean.brass, Species = "Brassica rapa")
+phenodata.gen2.clean.brass.subset = subset(phenodata.gen2.clean.brass, Species == "Brassica_rapa")
 
 for(i in 1:length(measure.vars.brass)){
   
