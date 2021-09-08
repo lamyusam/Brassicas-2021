@@ -40,7 +40,7 @@ pred[ ,row.names(pred)[which(row.names(pred)%in%measure.vars.brass==F)]] = 0
 # meth = ini.brass$method
 # meth[which(meth=="pmm")]="norm"
 #refit
-imp.brass = mice(phenodata.gen2.clean.brass, pred=pred, method = meth, print=F, seed=123)
+imp.brass = mice(phenodata.gen2.clean.brass, pred=pred, print=F, seed=123)
 #check imputed values still look fine
 stripplot(imp.brass, as.formula(paste0(paste(measure.vars.brass,collapse = "+"),"~.imp")),  pch=20, cex=2)
 
