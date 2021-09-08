@@ -8,11 +8,10 @@ library(rstatix)
 metadata.raph.wilds.combined = subset(metadata.raph, species != "Raphanus sativus")
 metadata.raph.wilds.combined$species[which(metadata.raph.wilds.combined$species=="Raphanus raphanistrum mungra")] = "Raphanus raphanistrum munra"
 
-#get fold changes in brapa
-#list all non-rapa wild brassica species
+#get fold changes in raphanus
+#list all non-rapa wild raphanus species
 otherwilds = c("Raphanus sativus var. caudatus","Raphanus raphanistrum munra")
 allwilds = c("Raphanus raphanistrum",otherwilds)
-#NB this excludes Rupestris, because that species has only two replicates
 
 #pick number of bootstraps to run (keep low for now)
 boot = 20
