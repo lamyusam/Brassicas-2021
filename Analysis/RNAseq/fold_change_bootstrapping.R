@@ -12,8 +12,11 @@ otherwilds = c("Brassica cretica","Brassica incana","Brassica macrocarpa","Brass
 allwilds = c("Brassica rapa",otherwilds)
 #NB this excludes Rupestris, because that species has only two replicates
 
+#setLFC threshold
+lfc = 1
 #pick number of bootstraps to run (keep low for now)
-boot = 20
+boot = 10
+start=Sys.time()
 for(sp in 1:length(allwilds)){
   #narrow down to data for focal wild
   focal.wild = as.character(allwilds[sp])
@@ -35,7 +38,7 @@ for(sp in 1:length(allwilds)){
     dds.gene.deg.focalwild = DESeq(dds.gene.focalwild, fitType = "parametric", betaPrior = FALSE)
     degs.focalwild = results(dds.gene.deg.focalwild,
                              name="treatment_Control_vs_Wheat",
-                             alpha = 0.05)
+                             alpha = 0.05, lfcThreshold = lfc)
     
     #get number of degs
     nDEGs = nrow(subset(degs.focalwild,padj<0.05))
@@ -52,9 +55,13 @@ for(sp in 1:length(allwilds)){
 }
 #give colnames to output frame
 colnames(degs.frame) = allwilds
+stop=Sys.time()
+stop-start
 beepr::beep(3)
 #now this is really weird... per this, the group that's most plastic by far is Brassica macrocarpa!?
-write.csv(degs.frame, file = "Analysis/RNAseq/perwilds_stressDEGtable_brass.csv")
+#write.csv(degs.frame, file = "Analysis/RNAseq/perwilds_stressDEGtable_brass.csv")
+write.csv(degs.frame, file = "Analysis/RNAseq/perwilds_stressDEGtable_brass_lfc1.csv")
+
 
 #let's try another way and see if the same result comes out: run DESeq2 interaction models for each species vs B rapa
 for(i in 1:length(otherwilds)){

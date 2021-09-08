@@ -13,8 +13,12 @@ metadata.raph.wilds.combined$species[which(metadata.raph.wilds.combined$species=
 otherwilds = c("Raphanus sativus var. caudatus","Raphanus raphanistrum munra")
 allwilds = c("Raphanus raphanistrum",otherwilds)
 
+#set a log fold-change threshold, if desired
+lfc = 2
+
 #pick number of bootstraps to run (keep low for now)
-boot = 20
+start=Sys.time()
+boot = 1
 for(sp in 1:length(allwilds)){
   #narrow down to data for focal wild
   focal.wild = as.character(allwilds[sp])
@@ -36,7 +40,7 @@ for(sp in 1:length(allwilds)){
     dds.gene.deg.focalwild = DESeq(dds.gene.focalwild, fitType = "parametric", betaPrior = FALSE)
     degs.focalwild = results(dds.gene.deg.focalwild,
                              name="treatment_Control_vs_Wheat",
-                             alpha = 0.05)
+                             alpha = 0.05, lfcThreshold = lfc)
     
     #get number of degs
     nDEGs = nrow(subset(degs.focalwild,padj<0.05))
@@ -51,11 +55,14 @@ for(sp in 1:length(allwilds)){
     degs.frame.raph = cbind(degs.frame.raph, focalwild.nDEGS)
   }
 }
+stop=Sys.time()
+stop-start
 #give colnames to output frame
 colnames(degs.frame.raph) = allwilds
 beepr::beep(3)
 #inconclusive 
-write.csv(degs.frame.raph, file = "Analysis/RNAseq/perwilds_stressDEGtable_raph.csv")
+#write.csv(degs.frame.raph, file = "Analysis/RNAseq/perwilds_stressDEGtable_raph.csv")
+write.csv(degs.frame.raph, file = "Analysis/RNAseq/perwilds_stressDEGtable_raph_lfc2.csv")
 
 
 #let's try another way and see if the same result comes out: run DESeq2 interaction models for each species vs B rapa
