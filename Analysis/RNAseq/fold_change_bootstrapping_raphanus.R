@@ -14,11 +14,11 @@ otherwilds = c("Raphanus sativus var. caudatus","Raphanus raphanistrum munra")
 allwilds = c("Raphanus raphanistrum",otherwilds)
 
 #set a log fold-change threshold, if desired
-lfc = 2
+lfc = 1
 
 #pick number of bootstraps to run (keep low for now)
 start=Sys.time()
-boot = 1
+boot = 5
 for(sp in 1:length(allwilds)){
   #narrow down to data for focal wild
   focal.wild = as.character(allwilds[sp])
@@ -62,7 +62,7 @@ colnames(degs.frame.raph) = allwilds
 beepr::beep(3)
 #inconclusive 
 #write.csv(degs.frame.raph, file = "Analysis/RNAseq/perwilds_stressDEGtable_raph.csv")
-write.csv(degs.frame.raph, file = "Analysis/RNAseq/perwilds_stressDEGtable_raph_lfc2.csv")
+write.csv(degs.frame.raph, file = "Analysis/RNAseq/perwilds_stressDEGtable_raph_lfc1.csv")
 
 
 #let's try another way and see if the same result comes out: run DESeq2 interaction models for each species vs B rapa
