@@ -2,6 +2,7 @@ library(RRHO)
 library(stringr)
 library(tidyverse)
 library(pheatmap)
+library(gplots)
 library(DESeq2)
 
 #set working directory
@@ -187,8 +188,86 @@ p.RRHO.brass.raph.wilds$pval
 save(p.RRHO.brass.raph.wilds, file = "/home/benjamin/Documents/Brassicas_repo/Analysis/RNAseq/progenitor_vs_wilds_RRHOpvalue.R")
 
 
-# out = left_join(brass_cultivated_RRHO, raph_cultivated_RRHO, "gene") %>% 
-#   "colnames<-"(c("Gene","Metric1","Metric2")) %>%
-#   mutate(Gene2 = Gene, Rank1 = order(Metric1), Rank2= order(Metric2))
-# 
-# write_delim(x=out[,c(1,4,5:6,2:3)],delim="\t", file="/home/benjamin/Downloads/test.tsv")
+
+
+
+#################
+#a separate question: are the differences between wilds and progenitors the same as the differences between peogenitors and cultivars?
+#define function for within-taxon RRHO prep
+prep4RRHO_intraspecies = function(degs1, degs2){
+  
+  #before transforming for RRHO, we might wish to remove the set of genes that have p values close to 1 in both comparisons
+  #this may improve the analysis because genes with very low significance are unlikely to rank meaningfully
+  #combine two pvalue lists
+  both = cbind(degs1$pvalue, degs2$pvalue) 
+  #remove rows that have p-value above threshold in both comparisons
+  keep =  row.names(degs1)[(rowSums(both > 0.8 | is.na(both))!=2)]
+  print(paste0("Removing ",nrow(degs1)-length(keep)," genes with low significance in both comparisons."))
+  
+  #log transformation of p-values
+  DEG2RRHO = function(contrast){
+    
+    RRHO = data.frame(gene = row.names(contrast),
+                      value = -log10(contrast$pvalue)*sign(contrast$log2FoldChange))
+    #value = contrast$log2FoldChange)
+    return(RRHO)
+    
+  }
+  
+  degs1.RRHO = DEG2RRHO(degs1[keep,])
+  degs2.RRHO = DEG2RRHO(degs2[keep,])
+  
+  return(list(set1.preRRHO = degs1.RRHO,
+              set2.preRRHO = degs2.RRHO))
+}
+
+#run RRHO for brassica 
+preRRHO.brasscomp = prep4RRHO_intraspecies(degs.brass.wilds.stress, degs.brass.cultivated.stress)
+RRHO.brasscomp = RRHO(preRRHO.brasscomp$set1.preRRHO,
+                      preRRHO.brasscomp$set2.preRRHO,
+                      stepsize = 150,
+                      labels = c("Brassica progenitor vs other wilds","Brassica domesticate vs progenitor"),
+                      alternative = "two.sided",
+                      #alternative = "enrichment",
+                      BY = T,
+                      plots = F,
+                      log10.ind = T)
+#reverse order of heatmap columns so that they display correctly with origin at 0,0 in pheatmap
+display = as.matrix(RRHO.brasscomp$hypermat)[,order(ncol(RRHO.brasscomp$hypermat):1)]
+RRHOplot.brasscomp = pheatmap(display, cluster_rows = F, cluster_cols = F, border_color = NA,
+                              main = "Brassica domesticate vs progenitor & progenitor vs wilds")
+#save plot
+ggsave(RRHOplot.brasscomp, 
+       filename = "brassica_comparison_RRHOplot.png",
+       device = "png", path = "Analysis/RNAseq/Images/",
+       width =  42, height = 40, units = "cm")
+p.RRHO.brasscomp = pvalRRHO(RRHO.brasscomp, 20)
+p.RRHO.brasscomp$pval
+save(p.RRHO.brasscomp, file = "/home/benjamin/Documents/Brassicas_repo/Analysis/RNAseq/brassica_comparison_RRHOpvalue.R")
+
+
+######
+#run RRHO for brassica 
+preRRHO.raphcomp = prep4RRHO_intraspecies(degs.raph.wilds.stress, degs.raph.cultivated.stress)
+RRHO.raphcomp = RRHO(preRRHO.raphcomp$set1.preRRHO,
+                      preRRHO.raphcomp$set2.preRRHO,
+                      stepsize = 150,
+                      labels = c("Raphanus progenitor vs other wilds","Raphanus domesticate vs progenitor"),
+                      alternative = "two.sided",
+                      #alternative = "enrichment",
+                      BY = T,
+                      plots = F,
+                      log10.ind = T)
+#reverse order of heatmap columns so that they display correctly with origin at 0,0 in pheatmap
+display = as.matrix(RRHO.raphcomp$hypermat)#[,order(ncol(RRHO.raphcomp$hypermat):1)]
+RRHOplot.raphcomp = pheatmap(display, cluster_rows = F, cluster_cols = F, border_color = NA,
+                             main = "Raphanus domesticate vs progenitor & progenitor vs wilds")
+
+#save plot
+ggsave(RRHOplot.raphcomp, 
+       filename = "Raphanus_comparison_RRHOplot.png",
+       device = "png", path = "Analysis/RNAseq/Images/",
+       width =  42, height = 40, units = "cm")
+p.RRHO.raphcomp = pvalRRHO(RRHO.raphcomp, 20)
+p.RRHO.raphcomp$pval
+save(p.RRHO.raphcomp, file = "/home/benjamin/Documents/Brassicas_repo/Analysis/RNAseq/raphanus_comparison_RRHOpvalue.R")
