@@ -18,7 +18,7 @@ lfc = 1
 
 #pick number of bootstraps to run (keep low for now)
 start=Sys.time()
-boot = 5
+boot = 10
 for(sp in 1:length(allwilds)){
   #narrow down to data for focal wild
   focal.wild = as.character(allwilds[sp])
