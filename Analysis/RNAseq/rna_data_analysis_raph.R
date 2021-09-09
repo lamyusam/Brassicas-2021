@@ -652,3 +652,65 @@ chisq.test(table(select(foldchanges.wilds,c("direction"))))
 #to confirm, raphanistrum genes are more likely to exhibit increased plasticity relative to other wilds
 chisq.test(table(select(foldchanges.wilds,c("magnitude"))))
 
+
+#### progenitor-domesticate comparison to progenitor-wilds ####
+gene_overlap = function(list1, list2, background){
+  n_A = length(list1)
+  n_B = length(list2)
+  n_C = length(background)
+  n_A_B = length(intersect(list1,list2))
+  hyp = phyper(n_A_B - 1, n_A, n_C-n_A, n_B, lower.tail = FALSE)
+  jac = n_A_B/(n_A+n_B-n_A_B)
+  print(paste0(n_A_B," matching from lists of lengths ",n_A," and ",n_B,"; p=",round(hyp,4)))
+  res = list(hypergeom = round(hyp,4),
+             jaccard = jac,
+             intersect = n_A_B)
+  return(res)
+}
+
+#yes, very significant overlap between genes that are DE in the two comparisons 
+gene_overlap(degs.raph.wilds.cultivated.ids,degs.raph.cultivated.ids, row.names(degs.raph.cultivated))
+#is the overlap consistent with directions?
+degs.raph.cultivated.ids.up = row.names(subset(degs.raph.cultivated, padj<0.05 & log2FoldChange>0)) 
+degs.raph.cultivated.ids.down = row.names(subset(degs.raph.cultivated, padj<0.05 & log2FoldChange<0))
+degs.raph.wilds.cultivated.ids.up = row.names(subset(degs.raph.wilds.cultivated, padj<0.05 & log2FoldChange>0))
+degs.raph.wilds.cultivated.ids.down = row.names(subset(degs.raph.wilds.cultivated, padj<0.05 & log2FoldChange<0))
+#no overlap in up direction
+degs.raph.cultivated.ids.up.overlap = gene_overlap(degs.raph.wilds.cultivated.ids.up,degs.raph.cultivated.ids.up, row.names(degs.raph.cultivated))
+#no overlap in down direction
+degs.raph.cultivated.ids.down.overlap = gene_overlap(degs.raph.wilds.cultivated.ids.down,degs.raph.cultivated.ids.down, row.names(degs.raph.cultivated))
+#strong overlaps in both reverse directions
+degs.raph.cultivated.ids.downup.overlap = gene_overlap(degs.raph.wilds.cultivated.ids.down,degs.raph.cultivated.ids.up, row.names(degs.raph.cultivated))
+degs.raph.cultivated.ids.updown.overlap = gene_overlap(degs.raph.wilds.cultivated.ids.up,degs.raph.cultivated.ids.down, row.names(degs.raph.cultivated))
+
+overlapdat = data.frame(rbind(degs.raph.cultivated.ids.up.overlap,
+                   degs.raph.cultivated.ids.downup.overlap,
+                   degs.raph.cultivated.ids.updown.overlap,
+                   degs.raph.cultivated.ids.down.overlap))
+
+overlapdat2 = paste0(overlapdat$hypergeom,"/n(",overlapdat$intersect,")")
+
+overlapdatamat = matrix(data = overlapdat2,nrow=2,ncol=2, 
+                        dimnames = list(c("Up in progenitor vs wilds","Down in progenitor vs wilds"),
+                                        c("Up in progenitor vs domesticate","Down in progenitor vs domesticate")))
+write.csv(overlapdatamat, "Analysis/RNAseq/Tables/raphanus_DEG_overlap_matrix.csv")
+
+#what about GO terms? 
+allGO.raph = unique(unlist(GOmapping.raph))
+raph.wilds.cultivated.GO.all = c(raph.wilds.cultivated.GO.up$consolidated_result$GO.ID,raph.wilds.cultivated.GO.down$consolidated_result$GO.ID)
+raph.cultivated.GO.all = c(raph.cultivated.GO.up$consolidated_result$GO.ID,raph.cultivated.GO.down$consolidated_result$GO.ID)
+#overlap across all is strong significant
+gene_overlap(raph.wilds.cultivated.GO.all, raph.cultivated.GO.all, allGO.raph)
+#which terms are shared?
+raph.shared.GO = intersect(raph.wilds.cultivated.GO.all, raph.cultivated.GO.all)
+
+#what if subdivided by direction?
+#up doesn't overlap
+gene_overlap(raph.wilds.cultivated.GO.up$consolidated_result$GO.ID, raph.cultivated.GO.up$consolidated_result$GO.ID, allGO.raph)
+#down overlaps
+gene_overlap(raph.wilds.cultivated.GO.down$consolidated_result$GO.ID, raph.cultivated.GO.down$consolidated_result$GO.ID, allGO.raph)
+#up-wild down-cultivated is strongly signif
+gene_overlap(raph.wilds.cultivated.GO.up$consolidated_result$GO.ID, raph.cultivated.GO.down$consolidated_result$GO.ID, allGO.raph)
+#up-cultivated down-wild is no overlap
+gene_overlap(raph.wilds.cultivated.GO.down$consolidated_result$GO.ID, raph.cultivated.GO.up$consolidated_result$GO.ID, allGO.raph)
+

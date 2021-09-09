@@ -769,14 +769,28 @@ gene_overlap = function(list1, list2, background){
 #yes, significant overlap between genes that are DE in the two comparisons 
 gene_overlap(degs.brass.wilds.cultivated.ids,degs.brass.cultivated.ids, row.names(degs.brass.cultivated))
 #is the overlap consistent with directions?
-degs.brass.cultivated.ids.up = row.names(subset(degs.brass.cultivated, padj<0.05 & log2FoldChange<0)) #note reversed fold changes (because wild.ancestorFALSE is baseline)
-degs.brass.cultivated.ids.down = row.names(subset(degs.brass.cultivated, padj<0.05 & log2FoldChange>0))
+degs.brass.cultivated.ids.up = row.names(subset(degs.brass.cultivated, padj<0.05 & log2FoldChange>0))
+degs.brass.cultivated.ids.down = row.names(subset(degs.brass.cultivated, padj<0.05 & log2FoldChange<0))
 degs.brass.wilds.cultivated.ids.up = row.names(subset(degs.brass.wilds.cultivated, padj<0.05 & log2FoldChange>0))
 degs.brass.wilds.cultivated.ids.down = row.names(subset(degs.brass.wilds.cultivated, padj<0.05 & log2FoldChange<0))
-#Yes, strong overlap in up direction
-gene_overlap(degs.brass.wilds.cultivated.ids.up,degs.brass.cultivated.ids.up, row.names(degs.brass.cultivated))
-#Yes, strong overlap in down direction
-gene_overlap(degs.brass.wilds.cultivated.ids.down,degs.brass.cultivated.ids.down, row.names(degs.brass.cultivated))
+#no overlap in up direction
+degs.brass.cultivated.ids.up.overlap = gene_overlap(degs.brass.wilds.cultivated.ids.up,degs.brass.cultivated.ids.up, row.names(degs.brass.cultivated))
+#no overlap in down direction
+degs.brass.cultivated.ids.down.overlap = gene_overlap(degs.brass.wilds.cultivated.ids.down,degs.brass.cultivated.ids.down, row.names(degs.brass.cultivated))
+#strong overlaps in both reverse directions
+degs.brass.cultivated.ids.downup.overlap = gene_overlap(degs.brass.wilds.cultivated.ids.down,degs.brass.cultivated.ids.up, row.names(degs.brass.cultivated))
+degs.brass.cultivated.ids.updown.overlap = gene_overlap(degs.brass.wilds.cultivated.ids.up,degs.brass.cultivated.ids.down, row.names(degs.brass.cultivated))
+
+overlapdat = data.frame(rbind(degs.brass.cultivated.ids.up.overlap,
+                              degs.brass.cultivated.ids.downup.overlap,
+                              degs.brass.cultivated.ids.updown.overlap,
+                              degs.brass.cultivated.ids.down.overlap))
+overlapdat2 = paste0(overlapdat$hypergeom,"/n(",overlapdat$intersect,")")
+overlapdatamat = matrix(data = overlapdat2,nrow=2,ncol=2, 
+                        dimnames = list(c("Up in progenitor vs wilds","Down in progenitor vs wilds"),
+                                        c("Up in progenitor vs domesticate","Down in progenitor vs domesticate")))
+write.csv(overlapdatamat, "Analysis/RNAseq/Tables/brassica_DEG_overlap_matrix.csv")
+
 
 #what about GO terms? 
 allGO.brass = unique(unlist(GOmapping.brass))
