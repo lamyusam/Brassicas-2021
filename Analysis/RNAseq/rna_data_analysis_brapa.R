@@ -4,6 +4,8 @@ library("DESeq2")
 library("tidyverse")
 library("WGCNA")
 
+start=Sys.time()
+
 setwd("/home/benjamin/Documents/Brassicas_repo")
 
 #import functions
@@ -482,6 +484,8 @@ table(metadata.brass.wilds$sample %in% colnames(brass.gene.counts.clean.wilds))
 brass.gene.counts.clean.wilds = brass.gene.counts.clean.wilds[,as.character(metadata.brass.wilds$sample)]
 #add column to check whether ancestor of domesticated or not
 metadata.brass.wilds$wild.ancestor = (metadata.brass.wilds$species=="Brassica rapa")
+#make sure that wild is the baseline
+metadata.brass.wilds$wild.ancestor = forcats::fct_relevel(as.factor(metadata.brass.wilds$wild.ancestor),"FALSE")
 
 #now run model with our variables of interest
 dds.gene.wilds = DESeqDataSetFromMatrix(countData = brass.gene.counts.clean.wilds,
@@ -535,7 +539,7 @@ write.csv(brass.wilds.treatment.GO.down$consolidated_result,
 
 #results: cultivated vs wild
 degs.brass.wilds.cultivated = results(dds.gene.deg.wilds, 
-                                name="wild.ancestorTRUE",     
+                                name="wild.ancestor_TRUE_vs_FALSE",     
                                 alpha = 0.05,
                                 lfcThreshold = log2(1))
 summary(degs.brass.wilds.cultivated) #~2000 degs
@@ -638,6 +642,9 @@ brass.wilds.output = data.frame(DEGs=wildsnumdegs, GO_terms=wildsnumGO,
                                row.names = c("Domesticated_bias","Wild_bias","Unstressed_bias","Stressed_bias","Interaction"))
 
 write.csv(brass.wilds.output, file = "Analysis/RNAseq/Tables/brass_wilds_summary.csv")
+
+stop=Sys.time()
+stop-start
 
 #### wilds interaction norm analysis ####
 
@@ -743,3 +750,49 @@ chisq.test(table(select(foldchanges.wilds.all,c("direction"))))
 chisq.test(table(select(foldchanges.wilds.all,c("magnitude"))))
 
 beepr::beep(3)
+
+
+
+#### progenitor-domesticate comparison to progenitor-wilds ####
+gene_overlap = function(list1, list2, background){
+  n_A = length(list1)
+  n_B = length(list2)
+  n_C = length(background)
+  n_A_B = length(intersect(list1,list2))
+  hyp = phyper(n_A_B - 1, n_A, n_C-n_A, n_B, lower.tail = FALSE)
+  jac = n_A_B/(n_A+n_B-n_A_B)
+  res = list(hypergeom = hyp,
+             jaccard = jac)
+  return(res)
+}
+
+#yes, significant overlap between genes that are DE in the two comparisons 
+gene_overlap(degs.brass.wilds.cultivated.ids,degs.brass.cultivated.ids, row.names(degs.brass.cultivated))
+#is the overlap consistent with directions?
+degs.brass.cultivated.ids.up = row.names(subset(degs.brass.cultivated, padj<0.05 & log2FoldChange<0)) #note reversed fold changes (because wild.ancestorFALSE is baseline)
+degs.brass.cultivated.ids.down = row.names(subset(degs.brass.cultivated, padj<0.05 & log2FoldChange>0))
+degs.brass.wilds.cultivated.ids.up = row.names(subset(degs.brass.wilds.cultivated, padj<0.05 & log2FoldChange>0))
+degs.brass.wilds.cultivated.ids.down = row.names(subset(degs.brass.wilds.cultivated, padj<0.05 & log2FoldChange<0))
+#Yes, strong overlap in up direction
+gene_overlap(degs.brass.wilds.cultivated.ids.up,degs.brass.cultivated.ids.up, row.names(degs.brass.cultivated))
+#Yes, strong overlap in down direction
+gene_overlap(degs.brass.wilds.cultivated.ids.down,degs.brass.cultivated.ids.down, row.names(degs.brass.cultivated))
+
+#what about GO terms? 
+allGO.brass = unique(unlist(GOmapping.brass))
+brass.wilds.cultivated.GO.all = c(brass.wilds.cultivated.GO.up$consolidated_result$GO.ID,brass.wilds.cultivated.GO.down$consolidated_result$GO.ID)
+brass.cultivated.GO.all = c(brass.cultivated.GO.up$consolidated_result$GO.ID,brass.cultivated.GO.down$consolidated_result$GO.ID)
+#overlap across all is strong significant
+gene_overlap(brass.wilds.cultivated.GO.all, brass.cultivated.GO.all, allGO.brass)
+#which terms are shared?
+brass.shared.GO = intersect(brass.wilds.cultivated.GO.all, brass.cultivated.GO.all)
+
+#what if subdivided by direction?
+#up doesn't overlap
+gene_overlap(brass.wilds.cultivated.GO.up$consolidated_result$GO.ID, brass.cultivated.GO.up$consolidated_result$GO.ID, allGO.brass)
+#down overlaps strongly
+gene_overlap(brass.wilds.cultivated.GO.down$consolidated_result$GO.ID, brass.cultivated.GO.down$consolidated_result$GO.ID, allGO.brass)
+#up-wild down-cultivated is weakly signif
+gene_overlap(brass.wilds.cultivated.GO.up$consolidated_result$GO.ID, brass.cultivated.GO.down$consolidated_result$GO.ID, allGO.brass)
+#up-cultivated down-wild is strongly signif
+gene_overlap(brass.wilds.cultivated.GO.down$consolidated_result$GO.ID, brass.cultivated.GO.up$consolidated_result$GO.ID, allGO.brass)

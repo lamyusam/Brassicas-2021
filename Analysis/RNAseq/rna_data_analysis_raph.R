@@ -16,6 +16,8 @@ for (lib in basic_libraries) {
   }
 }
 
+start=Sys.time()
+
 #set working directory
 setwd("/home/benjamin/Documents/Brassicas_repo")
 
@@ -401,6 +403,8 @@ table(metadata.raph.wilds$sample %in% colnames(raph.gene.counts.clean.wilds))
 raph.gene.counts.clean.wilds = raph.gene.counts.clean.wilds[,as.character(metadata.raph.wilds$sample)]
 #add column to check whether ancestor of domesticated or not
 metadata.raph.wilds$wild.ancestor = (metadata.raph.wilds$species=="Raphanus raphanistrum")
+#ensure levels are consistent, with wild as baseline
+metadata.raph.wilds$wild.ancestor = forcats::fct_relevel(as.factor(metadata.raph.wilds$wild.ancestor),"FALSE")
 
 #now run model with our variables of interest
 dds.gene.wilds = DESeqDataSetFromMatrix(countData = raph.gene.counts.clean.wilds,
@@ -452,7 +456,7 @@ write.csv(raph.wilds.treatment.GO.down$consolidated_result,
 
 #results: cultivated vs wild
 degs.raph.wilds.cultivated = results(dds.gene.deg.wilds, 
-                               name="wild.ancestorTRUE",     
+                               name="wild.ancestor_TRUE_vs_FALSE",     
                                alpha = 0.05,
                                lfcThreshold = log2(1))
 summary(degs.raph.wilds.cultivated) #~2000 degs
@@ -554,6 +558,8 @@ raph.wilds.output = data.frame(DEGs=wildsnumdegs, GO_terms=wildsnumGO,
 
 write.csv(raph.wilds.output, file = "Analysis/RNAseq/Tables/raph_wilds_summary.csv")
 
+stop=Sys.time()
+stop-start
 
 #### wilds interaction norm analysis ####
 
