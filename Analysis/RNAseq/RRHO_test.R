@@ -222,7 +222,7 @@ prep4RRHO_intraspecies = function(degs1, degs2){
 }
 
 #run RRHO for brassica 
-preRRHO.brasscomp = prep4RRHO_intraspecies(degs.brass.wilds.stress, degs.brass.cultivated.stress)
+preRRHO.brasscomp = prep4RRHO_intraspecies(degs.brass.cultivated, degs.brass.wilds.cultivated)
 RRHO.brasscomp = RRHO(preRRHO.brasscomp$set1.preRRHO,
                       preRRHO.brasscomp$set2.preRRHO,
                       stepsize = 150,
@@ -233,7 +233,7 @@ RRHO.brasscomp = RRHO(preRRHO.brasscomp$set1.preRRHO,
                       plots = F,
                       log10.ind = T)
 #reverse order of heatmap columns so that they display correctly with origin at 0,0 in pheatmap
-display = as.matrix(RRHO.brasscomp$hypermat)[,order(ncol(RRHO.brasscomp$hypermat):1)]
+display = as.matrix(RRHO.brasscomp$hypermat)#[,order(ncol(RRHO.brasscomp$hypermat):1)]
 RRHOplot.brasscomp = pheatmap(display, cluster_rows = F, cluster_cols = F, border_color = NA,
                               main = "Brassica domesticate vs progenitor & progenitor vs wilds")
 #save plot
@@ -248,7 +248,7 @@ save(p.RRHO.brasscomp, file = "/home/benjamin/Documents/Brassicas_repo/Analysis/
 
 ######
 #run RRHO for brassica 
-preRRHO.raphcomp = prep4RRHO_intraspecies(degs.raph.wilds.stress, degs.raph.cultivated.stress)
+preRRHO.raphcomp = prep4RRHO_intraspecies(degs.raph.cultivated, degs.raph.wilds.cultivated)
 RRHO.raphcomp = RRHO(preRRHO.raphcomp$set1.preRRHO,
                       preRRHO.raphcomp$set2.preRRHO,
                       stepsize = 150,
@@ -259,7 +259,7 @@ RRHO.raphcomp = RRHO(preRRHO.raphcomp$set1.preRRHO,
                       plots = F,
                       log10.ind = T)
 #reverse order of heatmap columns so that they display correctly with origin at 0,0 in pheatmap
-display = as.matrix(RRHO.raphcomp$hypermat)#[,order(ncol(RRHO.raphcomp$hypermat):1)]
+display2 = as.matrix(RRHO.raphcomp$hypermat)#[,order(ncol(RRHO.raphcomp$hypermat):1)]
 RRHOplot.raphcomp = pheatmap(display, cluster_rows = F, cluster_cols = F, border_color = NA,
                              main = "Raphanus domesticate vs progenitor & progenitor vs wilds")
 
