@@ -86,7 +86,7 @@ ggpcadata = pca.out$values %>%
   left_join(metadata.raph,
             by = "sample")
 #plot
-ggplot(ggpcadata, aes(x = PC1, y = PC2, color = species, shape = treatment, label = sample)) +
+raph.clean.pca = ggplot(ggpcadata, aes(x = PC1, y = PC2, color = species, shape = parental.effects, label = sample)) +
   geom_point(size = 5, position = position_jitter(width = 0.5,height=0.5)) +
   #geom_text(vjust = -1) +
   xlab(paste0("PC",1,": ",signif(pca.out$percent.var[1]*100, 3),"%")) +
@@ -94,13 +94,24 @@ ggplot(ggpcadata, aes(x = PC1, y = PC2, color = species, shape = treatment, labe
   theme_bw() +
   # scale_color_manual(name = "Treatment",
   #                    values = brewer.pal(7, "Paired")) +
-  scale_shape_manual(name = "Treatment",
+  scale_shape_manual(name = "Parental effects status",
                      values = c(8,15:20)) +
   theme(panel.grid = element_line(color = "grey95"),
         legend.title = element_text(face = "bold"),
         axis.text.x = element_text(size = 11),
         axis.text.y = element_text(size = 11),
         axis.title = element_text(face = "bold", size =12))
+raph.clean.pca
+#save plot
+ggsave(raph.clean.pca, 
+       filename = "raph_clean_pca.png",
+       device = "png", path = "Analysis/RNAseq/Images/",
+       width =  25, height = 15, units = "cm")
+
+checkframe = read.csv("/home/benjamin/Documents/Brassicas_repo/Data/RNAseq/RNASeq_sample_info.csv") 
+subset(checkframe , Label %in% subset(ggpcadata,PC2<(-100))$label)
+subset(checkframe , Label %in% subset(ggpcadata,PC2>(-100) & species=="Raphanus sativus var. caudatus")$label)
+subset(checkframe , Label %in% subset(ggpcadata,PC1<(0)&PC1>(-50))$label)
 
 #### parental effects ####
 #next step is to check for genes with parental effects

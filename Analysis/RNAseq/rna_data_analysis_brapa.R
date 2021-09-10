@@ -29,7 +29,6 @@ data.meta = mutate(data.meta,
                    treatment = fct_relevel(treatment, c("Wheat","Control")),
                    domesticated = fct_relevel(domesticated, c("Wild","Cultivated")))
 
-
 #subset by genus
 metadata.brass = subset(data.meta, substr(species,1,3)=="Bra")
 metadata.raph = subset(data.meta, substr(species,1,3)=="Rap")
@@ -116,6 +115,10 @@ brassica.outliers = subset(checkframe, substr(Label,1,11) == checksample)$RNAseq
   c("A112","A108","A86","A129")
 metadata.brass.clean= subset(metadata.brass, !(sample %in% brassica.outliers))
 brass.gene.counts.clean = brass.gene.counts.clean[,as.character(metadata.brass.clean$sample)]
+#based on the phylogeny, we also need to drop brassica rapa spp. rapa
+bad.rapas = subset(checkframe,substr(Variety.population,1,9)=="ssp. rapa")$RNAseq.sample.name
+metadata.brass.clean= subset(metadata.brass.clean, !(sample %in% bad.rapas))
+brass.gene.counts.clean = brass.gene.counts.clean[,as.character(metadata.brass.clean$sample)]
 
 #re-run PCA now that outliers have been excluded
 # log-transform with a pseudocount
@@ -131,6 +134,10 @@ ggpcadata = pca.out$values %>%
   rownames_to_column(var = "sample") %>%
   left_join(metadata.brass.clean,
             by = "sample")
+#relabel species for plotting
+ggpcadata$species = as.character(ggpcadata$species)
+ggpcadata$species[which(ggpcadata$species=="Brassica rapa" & ggpcadata$domesticated=="Cultivated")] = "Brassica rapa (domesticated)"
+ggpcadata$species[which(ggpcadata$species=="Brassica rapa" & ggpcadata$domesticated=="Wild")] = "Brassica rapa (wild)"
 #plot with parental effects
 ggplot(ggpcadata, aes(x = PC1, y = PC2, shape = domesticated, color = parental.effects, label = sample)) +
   geom_point(size = 5, position = position_jitter(width = 0.5,height=0.5)) +
@@ -148,7 +155,7 @@ ggplot(ggpcadata, aes(x = PC1, y = PC2, shape = domesticated, color = parental.e
         axis.text.y = element_text(size = 11),
         axis.title = element_text(face = "bold", size =12))
 #replot but with species labels
-ggplot(ggpcadata, aes(x = PC1, y = PC2, shape = domesticated, color = species, label = sample)) +
+brass.clean.pca = ggplot(ggpcadata, aes(x = PC1, y = PC2, shape = parental.effects, color = species, label = sample)) +
   geom_point(size = 5, position = position_jitter(width = 0.5,height=0.5)) +
   geom_text(vjust = -1) +
   xlab(paste0("PC",1,": ",signif(pca.out$percent.var[1]*100, 3),"%")) +
@@ -156,16 +163,24 @@ ggplot(ggpcadata, aes(x = PC1, y = PC2, shape = domesticated, color = species, l
   theme_bw() +
   # scale_color_manual(name = "Treatment",
   #                    values = brewer.pal(7, "Paired")) +
-  scale_shape_manual(name = "Treatment",
+  scale_shape_manual(name = "Parental effects status",
                      values = c(8,15:20)) +
   theme(panel.grid = element_line(color = "grey95"),
         legend.title = element_text(face = "bold"),
         axis.text.x = element_text(size = 11),
         axis.text.y = element_text(size = 11),
         axis.title = element_text(face = "bold", size =12))
+brass.clean.pca
+#save plot
+ggsave(brass.clean.pca, 
+       filename = "brass_clean_pca.png",
+       device = "png", path = "Analysis/RNAseq/Images/",
+       width =  25, height = 15, units = "cm")
+
+
 #okay so now we have a new problem- the brapa samples clearly divide into two very distinct groups along the second PC
 #all the 'outlier' samples are cultivated and most are standarised, but the main group is composed of a mix, so what's the source?
-outgroup = subset(ggpcadata, PC2<(-150))$sample
+outgroup = subset(ggpcadata, PC1<(-100) & PC2>(100))$sample
 subset(checkframe, RNAseq.sample.name %in% outgroup)
 #okay, the 'outliers' comprise all and only the tricoloris samples. Mark says this is fine!
 
