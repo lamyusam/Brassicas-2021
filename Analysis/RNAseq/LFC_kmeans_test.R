@@ -2,13 +2,6 @@ library(factoextra)
 library(tidyverse)
 library(cluster)
 
-#extra accessions that need to be dropped:
-phylogeny.drop = c("BCR-WP2",
-                   "BCR-WP3",
-                   "BIC-WP6",
-                   "BMO-WP1",
-                   "BMO-WP2")
-
 foo = data.frame(means = abs(na.omit(degs.brass.cultivated.stress$log2FoldChange)))
 foo = data.frame(means = abs(na.omit(degs.raph.cultivated.stress$log2FoldChange)))
 foo = data.frame(means = abs(na.omit(degs.brassdom.treatment$log2FoldChange)))
