@@ -4,8 +4,6 @@ library("DESeq2")
 library("tidyverse")
 library("WGCNA")
 
-start=Sys.time()
-
 setwd("/home/benjamin/Documents/Brassicas_repo")
 
 #import functions
@@ -50,16 +48,16 @@ table(metadata.brass$sample %in% colnames(brass.gene.counts.clean))
 brass.gene.counts.clean = brass.gene.counts.clean[,as.character(metadata.brass$sample)]
 
 #some basic QC: heatmaps and pca
-heatMap = expression.heatmap(countdata = sample_n(brass.gene.counts.clean,100),
-                             data.phenotype = metadata.brass,
-                             labels = c("parental.effects",
-                                        "domesticated"
-                                        #,
-                                        #            "treatment",
-                                        #            "domesticated"
-                             ),
-                             pass_on = F,
-                             ID_var = "sample")
+# heatMap = expression.heatmap(countdata = sample_n(brass.gene.counts.clean,100),
+#                              data.phenotype = metadata.brass,
+#                              labels = c("parental.effects",
+#                                         "domesticated"
+#                                         #,
+#                                         #            "treatment",
+#                                         #            "domesticated"
+#                              ),
+#                              pass_on = F,
+#                              ID_var = "sample")
 
 # log-transform with a pseudocount
 pca.counts = log2(brass.gene.counts.clean+1)
@@ -118,6 +116,15 @@ brass.gene.counts.clean = brass.gene.counts.clean[,as.character(metadata.brass.c
 #based on the phylogeny, we also need to drop brassica rapa spp. rapa
 bad.rapas = subset(checkframe,substr(Variety.population,1,9)=="ssp. rapa")$RNAseq.sample.name
 metadata.brass.clean= subset(metadata.brass.clean, !(sample %in% bad.rapas))
+brass.gene.counts.clean = brass.gene.counts.clean[,as.character(metadata.brass.clean$sample)]
+#several other samples place strangely in the phylogeny, so drop these as well
+phylogeny.drop = c("BCR-WP2",
+                   "BCR-WP3",
+                   "BIC-WP6",
+                   "BMO-WP1",
+                   "BMO-WP2")
+misplaced.brassicas = subset(checkframe, substr(Label,5,11)%in%phylogeny.drop)$RNAseq.sample.name
+metadata.brass.clean= subset(metadata.brass.clean, !(sample %in% misplaced.brassicas))
 brass.gene.counts.clean = brass.gene.counts.clean[,as.character(metadata.brass.clean$sample)]
 
 #re-run PCA now that outliers have been excluded
@@ -182,12 +189,15 @@ ggsave(brass.clean.pca,
 #all the 'outlier' samples are cultivated and most are standarised, but the main group is composed of a mix, so what's the source?
 outgroup = subset(ggpcadata, PC1<(-100) & PC2>(100))$sample
 subset(checkframe, RNAseq.sample.name %in% outgroup)
-#okay, the 'outliers' comprise all and only the tricoloris samples. Mark says this is fine!
+#okay, the 'outliers' comprise all and only the tricoloris samples. Mark says this is fine! 
+#But record for later, in case we want to try running with and without
+tricoloris.outgroup = subset(checkframe, RNAseq.sample.name %in% outgroup)$RNAseq.sample.name
+
 
 #### parental effects ####
 #next step is to check for genes with parental effects and exclude these
 #since parental effects are only available for brapa, we have to make sure we don't include other species
-dds.parental = DESeqDataSetFromMatrix(countData = brass.gene.counts.clean[,as.character(subset(metadata.brass.clean, 
+dds.parental = DESeqDataSetFromMatrix(countData = brass.gene.counts.clean[,as.character(subset(metadata.brass.clean,
                                                                                                (species == "Brassica rapa"))$sample)],
                                       colData = subset(metadata.brass.clean, species == "Brassica rapa"),
                                       design = as.formula(~parental.effects))
@@ -197,7 +207,7 @@ parental.degs = results(dds.parental.deg)
 print(paste0("Number of genes with parental effects at p<0.1: ",length(which(parental.degs$padj<0.1)),"/",nrow(parental.degs)))
 parental.degs.ids = rownames(subset(parental.degs, padj<=0.1))
 #brass.gene.counts.clean = brass.gene.counts.clean[rownames(subset(parental.degs, padj>=0.1)),]
-#also check for parental deg GO terms 
+#also check for parental deg GO terms
 GOscores.parental = as.numeric(row.names(brass.gene.counts.clean)%in%parental.degs.ids) %>% 'names<-'(row.names(brass.gene.counts.clean))
 parentGO = topGO_wrapper(geneScores = GOscores.parental,
                          geneScoresDE = F,
@@ -209,7 +219,7 @@ parentGO = topGO_wrapper(geneScores = GOscores.parental,
                          discretisedDE = F,
                          p = 0.05)
 parentGO$consolidated_result
-#38 GO terms, many biosynthetic
+#18 GO terms
 
 #### wild brapa vs cultivated brapa ####
 #subset to remove all but raphanistrum sativus and its wild ancestor
@@ -252,8 +262,8 @@ degs.brass.treatment = results(dds.gene.deg,
                               name="treatment_Control_vs_Wheat",     
                               alpha = 0.05,
                               lfcThreshold = log2(1))
-degs.brass.treatment.Nup = nrow(subset(degs.brass.treatment, padj<=0.05 & log2FoldChange>0)) #16 up in control
-degs.brass.treatment.Ndown = nrow(subset(degs.brass.treatment, padj<=0.05 & log2FoldChange<0)) #22 up in wheat
+degs.brass.treatment.Nup = nrow(subset(degs.brass.treatment, padj<=0.05 & log2FoldChange>0)) #9 up in control
+degs.brass.treatment.Ndown = nrow(subset(degs.brass.treatment, padj<=0.05 & log2FoldChange<0)) #16 up in wheat
 degs.brass.treatment.ids = rownames(subset(degs.brass.treatment, padj<=0.05))
 #1 of these degs shared with parental degs
 table(degs.brass.treatment.ids%in%parental.degs.ids)
@@ -269,7 +279,7 @@ brass.treatment.GO.up = topGO_wrapper(geneScores = degs.brass.treatment,
                                      p = 0.05)
 write.csv(brass.treatment.GO.up$consolidated_result, 
           file = "Analysis/RNAseq/Tables/brapas_GO_controlbias.csv", row.names = FALSE)
-#14 GO terms up
+#15 GO terms up
 brass.treatment.GO.down = topGO_wrapper(geneScores = degs.brass.treatment,
                                        geneScoresDE = T,
                                        geneScoresDirection = "Down",
@@ -281,7 +291,7 @@ brass.treatment.GO.down = topGO_wrapper(geneScores = degs.brass.treatment,
                                        p = 0.05)
 write.csv(brass.treatment.GO.down$consolidated_result, 
           file = "Analysis/RNAseq/Tables/brapas_GO_wheatbias.csv", row.names = FALSE)
-#20 GO terms down
+#13 GO terms down
 
 #results: cultivated vs wild
 degs.brass.cultivated = results(dds.gene.deg, 
@@ -289,10 +299,10 @@ degs.brass.cultivated = results(dds.gene.deg,
                                alpha = 0.05,
                                lfcThreshold = log2(1))
 summary(degs.brass.cultivated) #~2000 degs
-degs.brass.cultivated.Nup = nrow(subset(degs.brass.cultivated, padj<=0.05 & log2FoldChange>0)) #1393 up in cultivar
-degs.brass.cultivated.Ndown = nrow(subset(degs.brass.cultivated, padj<=0.05 & log2FoldChange<0)) #771 up in wild
+degs.brass.cultivated.Nup = nrow(subset(degs.brass.cultivated, padj<=0.05 & log2FoldChange>0)) #2073 up in cultivar
+degs.brass.cultivated.Ndown = nrow(subset(degs.brass.cultivated, padj<=0.05 & log2FoldChange<0)) #1818 up in wild
 degs.brass.cultivated.ids = rownames(subset(degs.brass.cultivated, padj<=0.05))
-#41 of these degs are shared with parental degs
+#80 of these degs are shared with parental degs
 table(degs.brass.cultivated.ids%in%parental.degs.ids)
 #also check for deg GO terms 
 brass.cultivated.GO.up = topGO_wrapper(geneScores = degs.brass.cultivated,
@@ -306,7 +316,7 @@ brass.cultivated.GO.up = topGO_wrapper(geneScores = degs.brass.cultivated,
                                       p = 0.05)
 write.csv(brass.cultivated.GO.up$consolidated_result, 
           file = "Analysis/RNAseq/Tables/brapas_GO_cultivatedbias.csv", row.names = FALSE)
-#44 GO terms up inc e.g. responseto bacteria, response to chitin
+#15 GO terms up
 brass.cultivated.GO.down = topGO_wrapper(geneScores = degs.brass.cultivated,
                                         geneScoresDE = T,
                                         geneScoresDirection = "Down",
@@ -318,14 +328,14 @@ brass.cultivated.GO.down = topGO_wrapper(geneScores = degs.brass.cultivated,
                                         p = 0.05)
 write.csv(brass.treatment.GO.down$consolidated_result, 
           file = "Analysis/RNAseq/Tables/brapas_GO_wildbias.csv", row.names = FALSE)
-#20 down
+#13 GO terms down
 
 #results: interaction
 degs.brass.interaction = results(dds.gene.deg, 
                                 name="treatmentControl.domesticatedCultivated",     
                                 alpha = 0.05,
                                 lfcThreshold = log2(1))
-summary(degs.brass.interaction) #25 degs
+summary(degs.brass.interaction) #43 degs
 degs.brass.interaction.ids = rownames(subset(degs.brass.interaction, padj<=0.05))
 degs.brass.interaction.N = length(degs.brass.interaction.ids)
 #none of these degs are shared with parental degs
@@ -341,7 +351,7 @@ brass.interaction.GO = topGO_wrapper(geneScores = degs.brass.interaction,
                                     discretisedDE = T,
                                     p = 0.05)
 brass.interaction.GO$consolidated_result
-#16 GO terms
+#25 GO terms
 
 #for the interaction terms, we also plot the output to understand what exactly is going on
 #get the 12 terms with lowest adjusted p value
@@ -417,7 +427,8 @@ degs.wild = results(dds.gene.deg.wild,
 foldchanges.subset = data.frame(wild = degs.wild[degs.brass.interaction.ids,"log2FoldChange"],
                                 cultivated = degs.cultivated[degs.brass.interaction.ids,"log2FoldChange"], 
                                 row.names = degs.brass.interaction.ids)
-#cultivated and wild brassica rapa samples do not differ in their plasticity
+#cultivated and wild brassica rapa samples do not differ in their plasticity 
+#(although there's some suggestion that cultivated might be higher)
 t.test(x = abs(foldchanges.subset$wild), y = abs(foldchanges.subset$cultivated), paired = TRUE)
 wilcox.test(x = abs(foldchanges.subset$wild), y = abs(foldchanges.subset$cultivated), paired = TRUE)
 mean(abs(foldchanges.subset$wild), na.rm = T)
@@ -437,9 +448,6 @@ ggsave(gg.foldchanges.subset,
 # and is the direction of that plasticity the same or opposite following domestication?
 
 #pull the relevant data
-foldchanges.subset = mutate(foldchanges.subset, 
-                            direction=ifelse((sign(raphanistrum)==sign(sativus)),"Equal","Opposite"),
-                            magnitude=ifelse((abs(raphanistrum)>abs(sativus)),"Decrease","Increase"))
 foldchanges.subset = mutate(foldchanges.subset, 
                             direction=ifelse((sign(wild)==sign(cultivated)),"Equal","Opposite"),
                             magnitude=ifelse((abs(wild)>abs(cultivated)),"Decrease","Increase"))
@@ -472,6 +480,7 @@ foldchanges.subset.all = data.frame(wild = degs.wild[,"log2FoldChange"],
 #when looking at all genes (not just ones significant for interaction) cultivated genes are also more plastic overall
 t.test(x = abs(foldchanges.subset.all$wild), y = abs(foldchanges.subset.all$cultivated), paired = TRUE)
 wilcox.test(x = abs(foldchanges.subset.all$wild), y = abs(foldchanges.subset.all$cultivated), paired = TRUE)
+#but the effect size is extremely small
 mean(abs(foldchanges.subset.all$wild), na.rm = T)
 mean(abs(foldchanges.subset.all$cultivated), na.rm = T)
 foldchanges.subset.all = mutate(foldchanges.subset.all, 
@@ -481,8 +490,6 @@ foldchanges.subset.all = mutate(foldchanges.subset.all,
 chisq.test(table(select(foldchanges.subset.all,c("direction"))))
 #however, increase in plasticity is definitely more common even across all genes
 chisq.test(table(select(foldchanges.subset.all,c("magnitude"))))
-
-
 
 
 
@@ -521,10 +528,10 @@ degs.brass.wilds.treatment = results(dds.gene.deg.wilds,
                                name="treatment_Control_vs_Wheat",     
                                alpha = 0.05,
                                lfcThreshold = log2(1))
-degs.brass.wilds.treatment.Nup = nrow(subset(degs.brass.wilds.treatment, padj<=0.05 & log2FoldChange>0)) #16 up in control
-degs.brass.wilds.treatment.Ndown = nrow(subset(degs.brass.wilds.treatment, padj<=0.05 & log2FoldChange<0)) #22 up in wheat
+degs.brass.wilds.treatment.Nup = nrow(subset(degs.brass.wilds.treatment, padj<=0.05 & log2FoldChange>0)) #9 up in control
+degs.brass.wilds.treatment.Ndown = nrow(subset(degs.brass.wilds.treatment, padj<=0.05 & log2FoldChange<0)) #11 up in wheat
 degs.brass.wilds.treatment.ids = rownames(subset(degs.brass.wilds.treatment, padj<=0.05))
-#1 of these degs shared with parental degs
+#none of these degs shared with parental degs
 table(degs.brass.wilds.treatment.ids%in%parental.degs.ids)
 #also check for  GO terms 
 brass.wilds.treatment.GO.up = topGO_wrapper(geneScores = degs.brass.wilds.treatment,
@@ -538,7 +545,7 @@ brass.wilds.treatment.GO.up = topGO_wrapper(geneScores = degs.brass.wilds.treatm
                                       p = 0.05)
 write.csv(brass.wilds.treatment.GO.up$consolidated_result, 
           file = "Analysis/RNAseq/Tables/brapas_wilds_GO_controlbias.csv", row.names = FALSE)
-#14 GO terms up
+#40 GO terms up
 brass.wilds.treatment.GO.down = topGO_wrapper(geneScores = degs.brass.wilds.treatment,
                                         geneScoresDE = T,
                                         geneScoresDirection = "Down",
@@ -550,7 +557,7 @@ brass.wilds.treatment.GO.down = topGO_wrapper(geneScores = degs.brass.wilds.trea
                                         p = 0.05)
 write.csv(brass.wilds.treatment.GO.down$consolidated_result, 
           file = "Analysis/RNAseq/Tables/brapas_wilds_GO_wheatbias.csv", row.names = FALSE)
-#20 GO terms down
+#10 GO terms down
 
 #results: cultivated vs wild
 degs.brass.wilds.cultivated = results(dds.gene.deg.wilds, 
@@ -558,10 +565,10 @@ degs.brass.wilds.cultivated = results(dds.gene.deg.wilds,
                                 alpha = 0.05,
                                 lfcThreshold = log2(1))
 summary(degs.brass.wilds.cultivated) #~2000 degs
-degs.brass.wilds.cultivated.Nup = nrow(subset(degs.brass.wilds.cultivated, padj<=0.05 & log2FoldChange>0)) #1393 up in cultivar
-degs.brass.wilds.cultivated.Ndown = nrow(subset(degs.brass.wilds.cultivated, padj<=0.05 & log2FoldChange<0)) #771 up in wild
+degs.brass.wilds.cultivated.Nup = nrow(subset(degs.brass.wilds.cultivated, padj<=0.05 & log2FoldChange>0)) #8710 up in cultivar
+degs.brass.wilds.cultivated.Ndown = nrow(subset(degs.brass.wilds.cultivated, padj<=0.05 & log2FoldChange<0)) #9520 up in wild
 degs.brass.wilds.cultivated.ids = rownames(subset(degs.brass.wilds.cultivated, padj<=0.05))
-#41 of these degs are shared with parental degs
+#104 of these degs are shared with parental degs
 table(degs.brass.wilds.cultivated.ids%in%parental.degs.ids)
 #also check for deg GO terms 
 brass.wilds.cultivated.GO.up = topGO_wrapper(geneScores = degs.brass.wilds.cultivated,
@@ -575,7 +582,7 @@ brass.wilds.cultivated.GO.up = topGO_wrapper(geneScores = degs.brass.wilds.culti
                                        p = 0.05)
 write.csv(brass.wilds.cultivated.GO.up$consolidated_result, 
           file = "Analysis/RNAseq/Tables/brapas_wilds_GO_cultivatedbias.csv", row.names = FALSE)
-#44 GO terms up inc e.g. responseto bacteria, response to chitin
+#53 GO terms up inc e.g. responseto bacteria, response to chitin
 brass.wilds.cultivated.GO.down = topGO_wrapper(geneScores = degs.brass.wilds.cultivated,
                                          geneScoresDE = T,
                                          geneScoresDirection = "Down",
@@ -587,7 +594,7 @@ brass.wilds.cultivated.GO.down = topGO_wrapper(geneScores = degs.brass.wilds.cul
                                          p = 0.05)
 write.csv(brass.wilds.treatment.GO.down$consolidated_result, 
           file = "Analysis/RNAseq/Tables/brapas_wilds_GO_wildbias.csv", row.names = FALSE)
-#20 down
+#10 down
 
 
 #results: interaction
@@ -595,10 +602,10 @@ degs.brass.wilds.interaction = results(dds.gene.deg.wilds,
                                       name="treatmentControl.wild.ancestorTRUE",     
                                       alpha = 0.05,
                                       lfcThreshold = log2(1))
-summary(degs.brass.wilds.interaction) #73 degs
+summary(degs.brass.wilds.interaction) #63 degs
 degs.brass.wilds.interaction.ids = rownames(subset(degs.brass.wilds.interaction, padj<=0.05))
 degs.brass.wilds.interaction.N = length(degs.brass.wilds.interaction.ids)
-#2 of these degs are shared with parental degs
+#1 of these degs are shared with parental degs
 table(degs.brass.wilds.interaction.ids%in%parental.degs.ids)
 #also check for GO terms
 brass.wilds.interaction.GO = topGO_wrapper(geneScores = degs.brass.wilds.interaction,
@@ -611,7 +618,7 @@ brass.wilds.interaction.GO = topGO_wrapper(geneScores = degs.brass.wilds.interac
                                           discretisedDE = T,
                                           p = 0.05)
 nrow(brass.wilds.interaction.GO$consolidated_result)
-#33 GO terms
+#30 GO terms
 
 #for the interaction terms, we also plot the output to understand what exactly is going on
 #get the 12 terms with lowest adjusted p value
@@ -646,7 +653,7 @@ ggsave(brass.intplot.wilds,
        device = "png", path = "Analysis/RNAseq/Images/",
        width =  40, height = 25, units = "cm")
 
-#data for this need to be instantiated above
+#save output summary
 wildsnumdegs = c(degs.brass.wilds.cultivated.Nup, degs.brass.wilds.cultivated.Ndown,
                  degs.brass.wilds.treatment.Nup, degs.brass.wilds.treatment.Ndown, degs.brass.wilds.interaction.N)
 wildsnumGO = c(nrow(brass.wilds.cultivated.GO.up$consolidated_result), nrow(brass.wilds.cultivated.GO.down$consolidated_result),
@@ -657,9 +664,6 @@ brass.wilds.output = data.frame(DEGs=wildsnumdegs, GO_terms=wildsnumGO,
                                row.names = c("Domesticated_bias","Wild_bias","Unstressed_bias","Stressed_bias","Interaction"))
 
 write.csv(brass.wilds.output, file = "Analysis/RNAseq/Tables/brass_wilds_summary.csv")
-
-stop=Sys.time()
-stop-start
 
 #### wilds interaction norm analysis ####
 
@@ -776,8 +780,10 @@ gene_overlap = function(list1, list2, background){
   n_A_B = length(intersect(list1,list2))
   hyp = phyper(n_A_B - 1, n_A, n_C-n_A, n_B, lower.tail = FALSE)
   jac = n_A_B/(n_A+n_B-n_A_B)
-  res = list(hypergeom = hyp,
-             jaccard = jac)
+  print(paste0(n_A_B," matching from lists of lengths ",n_A," and ",n_B,"; p=",round(hyp,4)))
+  res = list(hypergeom = round(hyp,4),
+             jaccard = jac,
+             intersect = n_A_B)
   return(res)
 }
 
@@ -821,7 +827,7 @@ brass.shared.GO = intersect(brass.wilds.cultivated.GO.all, brass.cultivated.GO.a
 gene_overlap(brass.wilds.cultivated.GO.up$consolidated_result$GO.ID, brass.cultivated.GO.up$consolidated_result$GO.ID, allGO.brass)
 #down overlaps strongly
 gene_overlap(brass.wilds.cultivated.GO.down$consolidated_result$GO.ID, brass.cultivated.GO.down$consolidated_result$GO.ID, allGO.brass)
-#up-wild down-cultivated is weakly signif
+#up-wild down-cultivated doesn't overlap
 gene_overlap(brass.wilds.cultivated.GO.up$consolidated_result$GO.ID, brass.cultivated.GO.down$consolidated_result$GO.ID, allGO.brass)
-#up-cultivated down-wild is strongly signif
+#up-cultivated down-wild doesn't overlap
 gene_overlap(brass.wilds.cultivated.GO.down$consolidated_result$GO.ID, brass.cultivated.GO.up$consolidated_result$GO.ID, allGO.brass)
