@@ -1,0 +1,179 @@
+---
+title: "Brassicas_2021_RNAseq"
+author: "Benjamin A Taylor"
+date: "15/09/2021"
+output:   
+  html_document:
+    code_folding: hide
+    self_contained: FALSE
+    fig_width: 10
+    fig_height: 10 
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = F, message = F, warning = F, cache = T, 
+                      cache.path =  "/home/benjamin/Documents/Brassicas_repo/Brassicas_cache/Cache")
+knitr::opts_knit$set(root.dir = "/home/benjamin/Documents/Brassicas_repo")
+```
+```{r load-rnaseq-libraries-and-functions, eval = TRUE, echo = FALSE, include = FALSE}
+# get libraries
+basic_libraries = c("DESeq2",
+                    "tidyverse",
+                    "WGCNA",
+                    "RColorBrewer",
+                    "forcats")
+for(lib in basic_libraries){
+  if(require(package = lib, character.only = TRUE)){
+    print("Successful")
+  }else{print("Installing")
+    install.packages(lib, Ncpus = 6)
+    library(lib, character.only = TRUE)}
+}
+#prevent other packages overriding dplyr's select
+select = dplyr::select
+#import custom functions
+source("Functions/expression_heatmap.R")
+source("Functions/topGO_wrapper.R")
+```
+
+```{r import-rnaseq-data, eval = TRUE, echo = FALSE, include = FALSE}
+#import GO mapping
+load("Data/GO/raph_GOmapping.Rdata")
+#pull relevant metadata
+data.meta = read.csv("/home/benjamin/Documents/Brassicas_repo/Data/RNAseq/RNASeq_sample_info.csv") %>%
+  #rename variable levels for consistency
+  mutate(Domesticated = ifelse(Wild..Domesticated=="Wild","Wild","Cultivated")) %>%
+  mutate(Environment = ifelse(Environment=="wheat competition","Wheat","Control"),
+         Parental.effects.status = ifelse(Parental.effects.status == "'\"standardised\"","Standardised","Unstandardised")) %>%
+  #drop unused variables
+  dplyr::select(c("RNAseq.sample.name","Species","Label","Parental.effects.status","Environment","Domesticated")) %>%
+  #rename variables for consistency
+  'colnames<-'(c("sample","species","label","parental.effects","treatment","domesticated")) %>%
+  #convert all variables to factor
+  mutate_all(as.factor) %>%
+  #relevel variables of interest so that the 'natural' state (wild+wheat) is always the base level
+  mutate(treatment = fct_relevel(treatment, c("Wheat","Control")),
+         domesticated = fct_relevel(domesticated, c("Wild","Cultivated")))
+#subset by genus
+metadata.brass = subset(data.meta, substr(species,1,3)=="Bra")
+metadata.raph = subset(data.meta, substr(species,1,3)=="Rap")
+#import rnaseq data
+brass.gene.counts = read.csv("/home/benjamin/Documents/Brassicas_repo/Data/RNAseq/brapa.gene.counts.csv", row.names = 1)
+raph.gene.counts = read.csv("/home/benjamin/Documents/Brassicas_repo/Data/RNAseq/raph.gene.counts.csv", row.names = 1)
+```
+
+We begin by performing QC on the RNAseq data, removing genes with low expression and samples that have evidence of being mislabeled. First for Brassica:
+
+```{r qc-brassica, eval = TRUE, echo = FALSE, include = TRUE}
+#filter by expression
+brass.gene.counts.clean = brass.gene.counts[(which(rowMeans(brass.gene.counts)>=1)),]
+print(paste0(nrow(brass.gene.counts)-nrow(brass.gene.counts.clean),"/",nrow(brass.gene.counts)," Brassica genes filtered due to very low expression."))
+#an additional filter- remove genes that have too many 0 counts
+print(paste0("Removing an additional ",nrow(brass.gene.counts.clean[rowSums(brass.gene.counts.clean >= 5) < 3,])," Brassica genes with many low counts."))
+brass.gene.counts.clean = brass.gene.counts.clean[rowSums(brass.gene.counts.clean >= 5) >= 3,]
+#check that metadata and count matrices conform
+#table(metadata.brass$sample %in% colnames(brass.gene.counts.clean))
+brass.gene.counts.clean = brass.gene.counts.clean[,as.character(metadata.brass$sample)]
+# log-transform with a pseudocount for PCA
+pca.counts = log2(brass.gene.counts.clean+1)
+#create pca object
+data.pca = prcomp(t(pca.counts))
+#extract PC data
+percent.var = (data.pca$sdev^2 / sum(data.pca$sdev^2))
+pca.out = list(values = data.frame(data.pca$x),
+               percent.var = percent.var)
+#connect to phenotypic data
+ggpcadata = pca.out$values %>%
+  rownames_to_column(var = "sample") %>%
+  left_join(metadata.brass,
+            by = "sample")
+#plot but with species labels
+brass.pca = ggplot(ggpcadata, aes(x = PC1, y = PC2, shape = domesticated, color = species, label = sample)) +
+  geom_point(size = 5, position = position_jitter(width = 0.5,height=0.5)) +
+  geom_text(vjust = -1) +
+  xlab(paste0("PC",1,": ",signif(pca.out$percent.var[1]*100, 3),"%")) +
+  ylab(paste0("PC",2,": ",signif(pca.out$percent.var[2]*100, 3),"%")) +
+  theme_bw() +
+  # scale_color_manual(name = "Treatment",
+  #                    values = brewer.pal(7, "Paired")) +
+  scale_shape_manual(name = "Treatment",
+                     values = c(8,15:20)) +
+  theme(panel.grid = element_line(color = "grey95"),
+        legend.title = element_text(face = "bold"),
+        axis.text.x = element_text(size = 11),
+        axis.text.y = element_text(size = 11),
+        axis.title = element_text(face = "bold", size =12))
+#from this we can see that the big clstering is rapa vs others. For simplicity, let's consider dropping the 'weird' samples,
+#and also their 'partners' where relevant
+checkframe = read.csv("Data/RNAseq/RNASeq_sample_info.csv")
+checksample = substr(subset(checkframe, RNAseq.sample.name == "A31")$Label,1,11)
+brassica.outliers = subset(checkframe, substr(Label,1,11) == checksample)$RNAseq.sample.name %>%
+  c("A112","A108","A86","A129")
+metadata.brass.clean= subset(metadata.brass, !(sample %in% brassica.outliers))
+brass.gene.counts.clean = brass.gene.counts.clean[,as.character(metadata.brass.clean$sample)]
+#based on the phylogeny, we also need to drop brassica rapa spp. rapa
+bad.rapas = subset(checkframe,substr(Variety.population,1,9)=="ssp. rapa")$RNAseq.sample.name
+metadata.brass.clean= subset(metadata.brass.clean, !(sample %in% bad.rapas))
+brass.gene.counts.clean = brass.gene.counts.clean[,as.character(metadata.brass.clean$sample)]
+#several other samples place strangely in the phylogeny, so drop these as well
+phylogeny.drop = c("BCR-WP2",
+                   "BCR-WP3",
+                   "BIC-WP6",
+                   "BMO-WP1",
+                   "BMO-WP2")
+misplaced.brassicas = subset(checkframe, substr(Label,5,11)%in%phylogeny.drop)$RNAseq.sample.name
+metadata.brass.clean= subset(metadata.brass.clean, !(sample %in% misplaced.brassicas))
+brass.gene.counts.clean = brass.gene.counts.clean[,as.character(metadata.brass.clean$sample)]
+
+#re-run PCA now that outliers have been excluded
+# log-transform with a pseudocount
+pca.counts = log2(brass.gene.counts.clean+1)
+#create pca object
+data.pca = prcomp(t(pca.counts))
+#extract PC data
+percent.var = (data.pca$sdev^2 / sum(data.pca$sdev^2))
+pca.out = list(values = data.frame(data.pca$x),
+               percent.var = percent.var)
+#connect to phenotypic data
+ggpcadata = pca.out$values %>%
+  rownames_to_column(var = "sample") %>%
+  left_join(metadata.brass.clean,
+            by = "sample")
+#relabel species for plotting
+ggpcadata$species = as.character(ggpcadata$species)
+ggpcadata$species[which(ggpcadata$species=="Brassica rapa" & ggpcadata$domesticated=="Cultivated")] = "Brassica rapa (domesticated)"
+ggpcadata$species[which(ggpcadata$species=="Brassica rapa" & ggpcadata$domesticated=="Wild")] = "Brassica rapa (wild)"
+#plot with species labels
+brass.clean.pca = ggplot(ggpcadata, aes(x = PC1, y = PC2, shape = parental.effects, color = species, label = sample)) +
+  geom_point(size = 5, position = position_jitter(width = 0.5,height = 0.5)) +
+  geom_text(vjust = -1) +
+  xlab(paste0("PC",1,": ",signif(pca.out$percent.var[1]*100, 3),"%")) +
+  ylab(paste0("PC",2,": ",signif(pca.out$percent.var[2]*100, 3),"%")) +
+  theme_bw() +
+  # scale_color_manual(name = "Treatment",
+  #                    values = brewer.pal(7, "Paired")) +
+  scale_shape_manual(name = "Parental effects status",
+                     values = c(8,15:20)) +
+  theme(panel.grid = element_line(color = "grey95"),
+        legend.title = element_text(face = "bold"),
+        axis.text.x = element_text(size = 11),
+        axis.text.y = element_text(size = 11),
+        axis.title = element_text(face = "bold", size = 12))
+#save plot
+ggsave(brass.clean.pca, 
+       filename = "brass_clean_pca.png",
+       device = "png", path = "Analysis/RNAseq/Images/",
+       width =  25, height = 15, units = "cm")
+```
+Looking at the PCA, we can see a strange cluster of outlying Brassicas. These are all B. rapa tricoloris; we won't exclude them, but we'll take a note of their labels in case we want to try re-running analyses without them later. 
+```{r}
+#the brapa samples clearly divide into two very distinct groups along the second PC
+outgroup = subset(ggpcadata, PC1<(-100) & PC2>(100))$sample
+outcheck= subset(checkframe, RNAseq.sample.name %in% outgroup)
+#okay, the 'outliers' comprise all and only the tricoloris samples. Mark says this is fine! 
+#But record for later, in case we want to try running with and without
+tricoloris.outgroup = subset(checkframe, RNAseq.sample.name %in% outgroup)$RNAseq.sample.name
+#plot PCA for markdown
+knitr::include_graphics("Analysis/RNAseq/Images/brass_clean_pca.png")
+```
