@@ -25,7 +25,7 @@ brass_raph_RBH$label = paste0("G",1:nrow(brass_raph_RBH))
 brassrapa.dds = load("Analysis/RNAseq/Tables/brassica_rapa_deseq.R") ; brassrapa.dds = get(brassrapa.dds)
 brasswilds.dds = load("Analysis/RNAseq/Tables/brassica_wilds_deseq.R") ; brasswilds.dds = get(brasswilds.dds)
 raphsubset.dds = load("Analysis/RNAseq/Tables/raphanus_sativus_raphanistrum_deseq.R") ; raphsubset.dds = get(raphsubset.dds)
-raphwilds.dds = load("Analysis/RNAseq/Tables/raphanus_wilds_deseq.R") ; raphwilds.dds = get(raphwilds.dds)
+#raphwilds.dds = load("Analysis/RNAseq/Tables/raphanus_wilds_deseq.R") ; raphwilds.dds = get(raphwilds.dds)
 
 #get objects for a comparison of interest, for example wild progenitor vs domesticate
 degs.brass.cultivated = results(brassrapa.dds, name="domesticated_Cultivated_vs_Wild", alpha = 0.05)     
@@ -34,11 +34,9 @@ degs.raph.cultivated = results(raphsubset.dds, name="domesticated_Cultivated_vs_
 degs.brass.cultivated.stress = results(brassrapa.dds, name="treatment_Control_vs_Wheat", alpha = 0.05)
 degs.raph.cultivated.stress = results(raphsubset.dds, name="treatment_Control_vs_Wheat", alpha = 0.05)
 #for wild progenitor and other wilds
-degs.brass.wilds = results(brasswilds.dds, name="wild.ancestorTRUE", alpha = 0.05)     
-degs.raph.wilds = results(raphwilds.dds, name="wild.ancestorTRUE", alpha = 0.05) 
+degs.brass.wilds = results(brasswilds.dds, name="wild.ancestor_TRUE_vs_FALSE", alpha = 0.05)     
 #for stress in wild progenitor and other wilds
 degs.brass.wilds.stress = results(brasswilds.dds, name="treatment_Control_vs_Wheat", alpha = 0.05)     
-degs.raph.wilds.stress = results(raphwilds.dds, name="treatment_Control_vs_Wheat", alpha = 0.05) 
 
 prep4RRHO = function(brassdegs, raphdegs){
 
