@@ -185,8 +185,12 @@ pre code {
 
 <p>We begin by performing QC on the RNAseq data, removing genes with low expression and samples that have evidence of being mislabeled. First for Brassica:</p>
 <pre><code>## [1] &quot;13595/48645 Brassica genes filtered due to very low expression.&quot;</code></pre>
-<pre><code>## [1] &quot;Removing an additional 104 genes with many low counts.&quot;</code></pre>
+<pre><code>## [1] &quot;Removing an additional 104 Brassica genes with many low counts.&quot;</code></pre>
 <p>Looking at the PCA, we can see a strange cluster of outlying Brassicas. These are all B. rapa tricoloris; we won’t exclude them, but we’ll take a note of their labels in case we want to try re-running analyses without them later. <img src="Analysis/RNAseq/Images/brass_clean_pca.png" width="1476" /></p>
+<p>Now repeat QC and pre-filtering for Raphanus samples:</p>
+<pre><code>## [1] &quot;14461/53691 Raphanus genes filtered due to very low expression.&quot;</code></pre>
+<pre><code>## [1] &quot;Removing an additional 605 genes with many low counts.&quot;</code></pre>
+<p>We see unusual clustering in the PCA for Raphanus, as with Brassica. The ‘outlying’ samples on PC2 are represent all Asian sativus var. caudatus, while the U.S. caudatus samples cluster with the other wilds. As with the unusual B. tricoloris samples, we’ll retain these for now but make a note in case we wish to exclude them at a later time. <img src="Analysis/RNAseq/Images/raph_clean_pca.png" width="1476" /></p>
 
 
 

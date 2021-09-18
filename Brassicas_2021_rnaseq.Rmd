@@ -167,13 +167,73 @@ ggsave(brass.clean.pca,
        width =  25, height = 15, units = "cm")
 ```
 Looking at the PCA, we can see a strange cluster of outlying Brassicas. These are all B. rapa tricoloris; we won't exclude them, but we'll take a note of their labels in case we want to try re-running analyses without them later. 
-```{r}
+```{r qc-tricoloris}
 #the brapa samples clearly divide into two very distinct groups along the second PC
 outgroup = subset(ggpcadata, PC1<(-100) & PC2>(100))$sample
 outcheck= subset(checkframe, RNAseq.sample.name %in% outgroup)
 #okay, the 'outliers' comprise all and only the tricoloris samples. Mark says this is fine! 
 #But record for later, in case we want to try running with and without
-tricoloris.outgroup = subset(checkframe, RNAseq.sample.name %in% outgroup)$RNAseq.sample.name
+tricoloris.outsamples = subset(checkframe, RNAseq.sample.name %in% outgroup)$RNAseq.sample.name
 #plot PCA for markdown
 knitr::include_graphics("Analysis/RNAseq/Images/brass_clean_pca.png")
 ```
+
+Now repeat QC and pre-filtering for Raphanus samples:
+
+```{r qc-raphanus}
+#filter by expression, removing genes with <1 count/sample
+raph.gene.counts.clean = raph.gene.counts[(which(rowMeans(raph.gene.counts)>=1)),]
+paste0(nrow(raph.gene.counts)-nrow(raph.gene.counts.clean),"/",nrow(raph.gene.counts)," Raphanus genes filtered due to very low expression.")
+#an additional filter- remove genes that only have expression in a couple of samples
+paste0("Removing an additional ",nrow(raph.gene.counts.clean[rowSums(raph.gene.counts.clean >= 5) < 3,])," genes with many low counts.")
+raph.gene.counts.clean = raph.gene.counts.clean[rowSums(raph.gene.counts.clean >= 5) >= 3,]
+#check that metadata and count matrices conform
+#table(metadata.raph$sample %in% colnames(raph.gene.counts.clean))
+raph.gene.counts.clean = raph.gene.counts.clean[,as.character(metadata.raph$sample)]
+
+# log-transform with a pseudocount for PCA
+pca.counts = log2(raph.gene.counts.clean+1)
+#create pca object
+data.pca = prcomp(t(pca.counts))
+#extract PC data
+percent.var = (data.pca$sdev^2 / sum(data.pca$sdev^2))
+pca.out = list(values = data.frame(data.pca$x),
+               percent.var = percent.var)
+#connect to phenotypic data
+ggpcadata = pca.out$values %>%
+  rownames_to_column(var = "sample") %>%
+  left_join(metadata.raph,
+            by = "sample")
+#plot
+raph.clean.pca = ggplot(ggpcadata, aes(x = PC1, y = PC2, color = species, shape = parental.effects, label = sample)) +
+  geom_point(size = 5, position = position_jitter(width = 0.5,height=0.5)) +
+  #geom_text(vjust = -1) +
+  xlab(paste0("PC",1,": ",signif(pca.out$percent.var[1]*100, 3),"%")) +
+  ylab(paste0("PC",2,": ",signif(pca.out$percent.var[2]*100, 3),"%")) +
+  theme_bw() +
+  # scale_color_manual(name = "Treatment",
+  #                    values = brewer.pal(7, "Paired")) +
+  scale_shape_manual(name = "Parental effects status",
+                     values = c(8,15:20)) +
+  theme(panel.grid = element_line(color = "grey95"),
+        legend.title = element_text(face = "bold"),
+        axis.text.x = element_text(size = 11),
+        axis.text.y = element_text(size = 11),
+        axis.title = element_text(face = "bold", size =12))
+#save plot
+ggsave(raph.clean.pca, 
+       filename = "raph_clean_pca.png",
+       device = "png", path = "Analysis/RNAseq/Images/",
+       width =  25, height = 15, units = "cm")
+```
+We see unusual clustering in the PCA for Raphanus, as with Brassica. The 'outlying' samples on PC2 are represent all Asian sativus var. caudatus, while the U.S. caudatus samples cluster with the other wilds. As with the unusual B. tricoloris samples, we'll retain these for now but make a note in case we wish to exclude them at a later time. 
+```{r}
+#check samples that look unusual
+checkframe = read.csv("/home/benjamin/Documents/Brassicas_repo/Data/RNAseq/RNASeq_sample_info.csv") 
+#subset(checkframe , Label %in% subset(ggpcadata,PC2<(-100))$label)
+#subset(checkframe , Label %in% subset(ggpcadata,PC2>(-100) & species=="Raphanus sativus var. caudatus")$label)
+outgroup = subset(ggpcadata,PC2<(-100))$label
+caudatus.outsamples = subset(checkframe, Label %in% outgroup)$RNAseq.sample.name
+knitr::include_graphics("Analysis/RNAseq/Images/raph_clean_pca.png")
+```
+
