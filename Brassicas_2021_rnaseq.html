@@ -183,6 +183,8 @@ pre code {
 </div>
 
 
+<div id="data-import-pre-filtering-and-qc" class="section level2">
+<h2>Data import, pre-filtering and QC</h2>
 <p>We begin by performing QC on the RNAseq data, removing genes with low expression and samples that have evidence of being mislabeled. First for Brassica:</p>
 <pre><code>## [1] &quot;13595/48645 Brassica genes filtered due to very low expression.&quot;</code></pre>
 <pre><code>## [1] &quot;Removing an additional 104 Brassica genes with many low counts.&quot;</code></pre>
@@ -191,6 +193,18 @@ pre code {
 <pre><code>## [1] &quot;14461/53691 Raphanus genes filtered due to very low expression.&quot;</code></pre>
 <pre><code>## [1] &quot;Removing an additional 605 genes with many low counts.&quot;</code></pre>
 <p>We see unusual clustering in the PCA for Raphanus, as with Brassica. The ‘outlying’ samples on PC2 are represent all Asian sativus var. caudatus, while the U.S. caudatus samples cluster with the other wilds. As with the unusual B. tricoloris samples, we’ll retain these for now but make a note in case we wish to exclude them at a later time. <img src="Analysis/RNAseq/Images/raph_clean_pca.png" width="1476" /></p>
+</div>
+<div id="parental-effect-handling" class="section level2">
+<h2>Parental effect handling</h2>
+<p>Before we proceed with the analysis, we need to decide how to handle the fact that a subset of samples have been standardised for parental effects, while the remaining samples have not received such a standardisation. Checking how many genes exhibit a difference between standardised and un-standardised conditions under liberal conditions (p&lt;0.1, lfc threshold=0) will give us some indication of how important this standardisation is.</p>
+<p>Note that for Raphanus, all species/subspecies have both standardised and unstandardised samples, so we can just compare all against all, whereas for Brassica standardisation is present only for some B rapa (both wild and domesticated) so we need to subset before running the DESeq2 comparison.</p>
+<pre><code>## [1] &quot;Number of Brassica rapa genes with parental effects at p&lt;0.1: 173/34946&quot;</code></pre>
+<pre><code>## [1] &quot;Number of GO terms enriched among Brassica rapa parental DEGs: 26&quot;</code></pre>
+<pre><code>## [1] &quot;Number of Raphanus genes with parental effects at p&lt;0.1: 85/38625&quot;</code></pre>
+<pre><code>## [1] &quot;Number of GO terms enriched among Raphanus parental DEGs: 26&quot;</code></pre>
+<p>Just out of interest, we’d also like to know whether the fucntions associated with parental effects in each case are the same.</p>
+<pre><code>## [1] &quot;Number of shared GO terms enriched among parental effect DEGs in Brassica and Raphanus: 0 (hypergeometric p=1).&quot;</code></pre>
+</div>
 
 
 

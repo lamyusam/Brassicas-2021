@@ -35,7 +35,10 @@ select = dplyr::select
 #import custom functions
 source("Functions/expression_heatmap.R")
 source("Functions/topGO_wrapper.R")
+source("Functions/gene_overlap_test.R")
 ```
+
+## Data import, pre-filtering and QC
 
 ```{r import-rnaseq-data, eval = TRUE, echo = FALSE, include = FALSE}
 #import GO mapping
@@ -61,6 +64,9 @@ metadata.raph = subset(data.meta, substr(species,1,3)=="Rap")
 #import rnaseq data
 brass.gene.counts = read.csv("/home/benjamin/Documents/Brassicas_repo/Data/RNAseq/brapa.gene.counts.csv", row.names = 1)
 raph.gene.counts = read.csv("/home/benjamin/Documents/Brassicas_repo/Data/RNAseq/raph.gene.counts.csv", row.names = 1)
+#import GO mapping
+load("Data/GO/brass_GOmapping.Rdata")
+load("Data/GO/raph_GOmapping.Rdata")
 ```
 
 We begin by performing QC on the RNAseq data, removing genes with low expression and samples that have evidence of being mislabeled. First for Brassica:
@@ -236,4 +242,68 @@ outgroup = subset(ggpcadata,PC2<(-100))$label
 caudatus.outsamples = subset(checkframe, Label %in% outgroup)$RNAseq.sample.name
 knitr::include_graphics("Analysis/RNAseq/Images/raph_clean_pca.png")
 ```
+
+## Parental effect handling
+
+Before we proceed with the analysis, we need to decide how to handle the fact that a subset of samples have been standardised for parental effects, while the remaining samples have not received such a standardisation. Checking how many genes exhibit a difference between standardised and un-standardised conditions under liberal conditions (p<0.1, lfc threshold=0) will give us some indication of how important this standardisation is. 
+
+Note that for Raphanus, all species/subspecies have both standardised and unstandardised samples, so we can just compare all against all, whereas for Brassica standardisation is present only for some B rapa (both wild and domesticated) so we need to subset before running the DESeq2 comparison. 
+
+
+```{r parental-effects-brassica}
+#since parental effects are only available for brapa, we have to make sure we don't include other species
+dds.parental = DESeqDataSetFromMatrix(countData = brass.gene.counts.clean[,as.character(subset(metadata.brass.clean,
+                                                                                               (species == "Brassica rapa"))$sample)],
+                                      colData = subset(metadata.brass.clean, species == "Brassica rapa"),
+                                      design = as.formula(~parental.effects))
+dds.parental.deg = DESeq(dds.parental, fitType = "parametric", betaPrior = FALSE) # we know from experience this is usually better than a local fit
+brass.parental.degs = results(dds.parental.deg)
+brass.parental.degs.ids = rownames(subset(brass.parental.degs, padj<=0.1))
+#also check for parental deg GO terms
+GOscores.parental.brass = as.numeric(row.names(brass.gene.counts.clean)%in%brass.parental.degs.ids) %>% 'names<-'(row.names(brass.gene.counts.clean))
+parentGO.brass = topGO_wrapper(geneScores = GOscores.parental.brass,
+                               geneScoresDE = F,
+                               geneScoresDirection = NA,
+                               GOmapping = GOmapping.brass,
+                               algorithm = "weight01",
+                               statistic = "fisher",
+                               nodeSize = 10,
+                               discretisedDE = F,
+                               p = 0.05)
+print(paste0("Number of Brassica rapa genes with parental effects at p<0.1: ",length(brass.parental.degs.ids),"/",nrow(brass.parental.degs)))
+print(paste0("Number of GO terms enriched among Brassica rapa parental DEGs: ",nrow(parentGO.brass$consolidated_result)))
+write.csv(parentGO.brass$consolidated_result, file = "Analysis/RNAseq/Tables/brassica_GO_parental.csv", row.names = F)
+```
+
+```{r parental-effects-raphanus}
+dds.parental = DESeqDataSetFromMatrix(countData = raph.gene.counts.clean,
+                                      colData = metadata.raph,
+                                      design = as.formula(~parental.effects))
+dds.parental.deg = DESeq(dds.parental, fitType = "parametric", betaPrior = FALSE) # we know from experience this is usually better than a local fit
+raph.parental.degs = results(dds.parental.deg)
+raph.parental.degs.ids = rownames(subset(raph.parental.degs, padj<=0.1))
+#also check for parental deg GO terms
+GOscores.parental.raph = as.numeric(row.names(raph.gene.counts.clean)%in%raph.parental.degs.ids) %>% 'names<-'(row.names(raph.gene.counts.clean))
+parentGO.raph = topGO_wrapper(geneScores = GOscores.parental.raph,
+                               geneScoresDE = F,
+                               geneScoresDirection = NA,
+                               GOmapping = GOmapping.raph,
+                               algorithm = "weight01",
+                               statistic = "fisher",
+                               nodeSize = 10,
+                               discretisedDE = F,
+                               p = 0.05)
+print(paste0("Number of Raphanus genes with parental effects at p<0.1: ",length(raph.parental.degs.ids),"/",nrow(raph.parental.degs)))
+print(paste0("Number of GO terms enriched among Raphanus parental DEGs: ",nrow(parentGO.raph$consolidated_result)))
+write.csv(parentGO.raph$consolidated_result, file = "Analysis/RNAseq/Tables/raphanus_GO_parental.csv", row.names = F)
+```
+Just out of interest, we'd also like to know whether the fucntions associated with parental effects in each case are the same- in fact, there's no overlap:
+```{r parental-go-overlap}
+allGO = intersect(unlist(GOmapping.brass),unlist(GOmapping.raph))
+parentGO.overlap = gene_overlap_test(parentGO.brass,parentGO.raph, allGO, verbose=F)
+print(paste0("Number of shared GO terms enriched among parental effect DEGs in Brassica and Raphanus: ",
+             parentGO.overlap$intersect," (hypergeometric p=",parentGO.overlap$hypergeom,")."))
+```
+The number of genes that display parental effeects in each case is quite small. At this stage we could choose to exclude these genes entirely, or we could retain them but keep tabs as we go along to see if these genes overlap strongly with other sets of genes that we pull out as interesting. For now we'll go with the latter option. 
+
 
