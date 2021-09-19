@@ -209,7 +209,7 @@ pre code {
 <div id="work-package-1-comparing-domesticates-to-their-wild-progenitors" class="section level2">
 <h2>Work package 1: Comparing domesticates to their wild progenitors</h2>
 <p>For this work package, we wish to compare wild progenitor species to modern domesticates. For Brassica, the comparison is between domesticated B rapa with wild B rapa, while for Raphanus the comparison is between R raphanistrum (wild) and all other Raphanus samples, all of which appear to be domesticated. Our analytic design for DESeq2 is expression ~ domestication + treatment + domestication*treatment.</p>
-<p>First, let’s run the model and check that the fit looks good:</p>
+<p>First, let’s run the model for Brassica and check that the fit looks good:</p>
 <pre><code>## [1] &quot;Check for gene expression outliers&quot;</code></pre>
 <p><img src="Brassicas_2021_rnaseq_files/figure-html/deseq-domesticate-model-brassica-1.png" width="960" /><img src="Brassicas_2021_rnaseq_files/figure-html/deseq-domesticate-model-brassica-2.png" width="960" /></p>
 <pre><code>## [1] &quot;Local fit:&quot;</code></pre>
@@ -227,8 +227,26 @@ pre code {
 ## Unstressed_bias      9       15
 ## Stressed_bias       16       13
 ## Interaction         41       25</code></pre>
-<p>We’re particularly interested in the interaction DEGs, since these are genes that, under domestication, have expressed a change in the plasticity of their responses to a cultivated (i.e. no-competition) environment. Interaction terms are hard to interpret, but plotting helps:</p>
+<p>We’re particularly interested in the interaction DEGs, since these are genes that, under domestication, have expressed a change in the plasticity of their responses to a cultivated (i.e. no-competition) environment. Interaction terms are hard to interpret, but plotting helps. Here’s the 12 most significant interaction terms:</p>
 <p><img src="Brassicas_2021_rnaseq_files/figure-html/deseq-domesticate-results-brassica-interactionplots-1.png" width="960" /></p>
+<p>There doesn’t appear to be an overall trend in terms of gains or losses of plasticity, but we can check this by asking whether the fold changes on average are higher or lower for wild or domesticated samples:</p>
+<p>Now, let’s repeat the above analyses using Raphanus. First check that the fit looks good:</p>
+<pre><code>## [1] &quot;Check for gene expression outliers&quot;</code></pre>
+<p><img src="Brassicas_2021_rnaseq_files/figure-html/deseq-domesticate-model-raphanus-1.png" width="960" /><img src="Brassicas_2021_rnaseq_files/figure-html/deseq-domesticate-model-raphanus-2.png" width="960" /></p>
+<pre><code>## [1] &quot;Local fit:&quot;</code></pre>
+<p><img src="Brassicas_2021_rnaseq_files/figure-html/deseq-domesticate-model-raphanus-3.png" width="960" /></p>
+<pre><code>## [1] &quot;Parametric fit&quot;</code></pre>
+<p><img src="Brassicas_2021_rnaseq_files/figure-html/deseq-domesticate-model-raphanus-4.png" width="960" /></p>
+<p>There are no apparent gene expression outliers. The parametric model is smoother and levels off more soundly to the right of the x axis, so we’ll move forward using this model for the results (remember, in general it’s better to overestimate than underestimate the dispersion parameter for genes with low expression).</p>
+<pre><code>## [1] &quot;Genes DE with treatment in Raphanus: 76 upregulated in no-competition treatment; 53 upregulated in competition treatment.&quot;</code></pre>
+<pre><code>## [1] &quot;Genes DE with domestication status in Raphanus: 533 upregulated in domesticated samples; 179 upregulated in wild samples.&quot;</code></pre>
+<pre><code>## [1] &quot;Genes DE with interaction between treatment and domestication in Raphanus: 98.&quot;</code></pre>
+<pre><code>##                   DEGs GO_terms
+## Domesticated_bias  533       48
+## Wild_bias          179       64
+## Unstressed_bias     76       34
+## Stressed_bias       53       27
+## Interaction         98       49</code></pre>
 </div>
 
 
