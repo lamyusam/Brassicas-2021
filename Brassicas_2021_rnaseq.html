@@ -202,8 +202,33 @@ pre code {
 <pre><code>## [1] &quot;Number of GO terms enriched among Brassica rapa parental DEGs: 26&quot;</code></pre>
 <pre><code>## [1] &quot;Number of Raphanus genes with parental effects at p&lt;0.1: 85/38625&quot;</code></pre>
 <pre><code>## [1] &quot;Number of GO terms enriched among Raphanus parental DEGs: 26&quot;</code></pre>
-<p>Just out of interest, we’d also like to know whether the fucntions associated with parental effects in each case are the same.</p>
+<p>Just out of interest, we’d also like to know whether the fucntions associated with parental effects in each case are the same- in fact, there’s no overlap:</p>
 <pre><code>## [1] &quot;Number of shared GO terms enriched among parental effect DEGs in Brassica and Raphanus: 0 (hypergeometric p=1).&quot;</code></pre>
+<p>The number of genes that display parental effeects in each case is quite small. At this stage we could choose to exclude these genes entirely, or we could retain them but keep tabs as we go along to see if these genes overlap strongly with other sets of genes that we pull out as interesting. For now we’ll go with the latter option.</p>
+</div>
+<div id="work-package-1-comparing-domesticates-to-their-wild-progenitors" class="section level2">
+<h2>Work package 1: Comparing domesticates to their wild progenitors</h2>
+<p>For this work package, we wish to compare wild progenitor species to modern domesticates. For Brassica, the comparison is between domesticated B rapa with wild B rapa, while for Raphanus the comparison is between R raphanistrum (wild) and all other Raphanus samples, all of which appear to be domesticated. Our analytic design for DESeq2 is expression ~ domestication + treatment + domestication*treatment.</p>
+<p>First, let’s run the model and check that the fit looks good:</p>
+<pre><code>## [1] &quot;Check for gene expression outliers&quot;</code></pre>
+<p><img src="Brassicas_2021_rnaseq_files/figure-html/deseq-domesticate-model-brassica-1.png" width="960" /><img src="Brassicas_2021_rnaseq_files/figure-html/deseq-domesticate-model-brassica-2.png" width="960" /></p>
+<pre><code>## [1] &quot;Local fit:&quot;</code></pre>
+<p><img src="Brassicas_2021_rnaseq_files/figure-html/deseq-domesticate-model-brassica-3.png" width="960" /></p>
+<pre><code>## [1] &quot;Parametric fit&quot;</code></pre>
+<p><img src="Brassicas_2021_rnaseq_files/figure-html/deseq-domesticate-model-brassica-4.png" width="960" /></p>
+<p>There are no apparent gene expression outliers. The parametric model is smoother and levels off more soundly to the right of the x axis, so we’ll move forward using this model for the results (remember, in general it’s better to overestimate than underestimate the dispersion parameter for genes with low expression).</p>
+<p>Now the results for Brassica:</p>
+<pre><code>## [1] &quot;Genes DE with treatment in Brassica rapa: 9 upregulated in no-competition treatment; 16 upregulated in competition treatment.&quot;</code></pre>
+<pre><code>## [1] &quot;Genes DE with domestication status in Brassica rapa: 2073 upregulated in domesticated samples; 1818 upregulated in wild samples.&quot;</code></pre>
+<pre><code>## [1] &quot;Genes DE with interaction between treatment and domestication in Brassica rapa: 41.&quot;</code></pre>
+<pre><code>##                   DEGs GO_terms
+## Domesticated_bias 2073       55
+## Wild_bias         1818       85
+## Unstressed_bias      9       15
+## Stressed_bias       16       13
+## Interaction         41       25</code></pre>
+<p>We’re particularly interested in the interaction DEGs, since these are genes that, under domestication, have expressed a change in the plasticity of their responses to a cultivated (i.e. no-competition) environment. Interaction terms are hard to interpret, but plotting helps:</p>
+<p><img src="Brassicas_2021_rnaseq_files/figure-html/deseq-domesticate-results-brassica-interactionplots-1.png" width="960" /></p>
 </div>
 
 

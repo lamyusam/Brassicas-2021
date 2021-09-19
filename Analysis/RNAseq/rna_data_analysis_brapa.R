@@ -222,7 +222,7 @@ parentGO$consolidated_result
 #18 GO terms
 
 #### wild brapa vs cultivated brapa ####
-#subset to remove all but raphanistrum sativus and its wild ancestor
+#subset to remove all but b rapa and its wild ancestor
 metadata.brass.subset = subset(metadata.brass.clean, species == "Brassica rapa")
 brass.gene.counts.clean.subset = brass.gene.counts.clean[,as.character(metadata.brass.subset$sample)]
 #check that metadata and count matrices conform
