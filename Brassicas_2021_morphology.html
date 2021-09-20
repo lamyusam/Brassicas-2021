@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+<meta name="author" content="Benjamin A Taylor" />
+
+
+<title>Brassicas_2021_morphology</title>
+
+<script src="Brassicas_2021_morphology_files/header-attrs-2.9/header-attrs.js"></script>
+<script src="Brassicas_2021_morphology_files/jquery-1.11.3/jquery.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="Brassicas_2021_morphology_files/bootstrap-3.3.5/css/bootstrap.min.css" rel="stylesheet" />
+<script src="Brassicas_2021_morphology_files/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="Brassicas_2021_morphology_files/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="Brassicas_2021_morphology_files/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="Brassicas_2021_morphology_files/navigation-1.1/tabsets.js"></script>
+<script src="Brassicas_2021_morphology_files/navigation-1.1/codefolding.js"></script>
+<link href="Brassicas_2021_morphology_files/highlightjs-9.12.0/default.css" rel="stylesheet" />
+<script src="Brassicas_2021_morphology_files/highlightjs-9.12.0/highlight.js"></script>
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "&#xe258;";
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+<style type="text/css">
+.code-folding-btn { margin-bottom: 4px; }
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+
+
+<div id="header">
+
+<div class="btn-group pull-right float-right">
+<button type="button" class="btn btn-default btn-xs btn-secondary btn-sm dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span>Code</span> <span class="caret"></span></button>
+<ul class="dropdown-menu dropdown-menu-right" style="min-width: 50px;">
+<li><a id="rmd-show-all-code" href="#">Show All Code</a></li>
+<li><a id="rmd-hide-all-code" href="#">Hide All Code</a></li>
+</ul>
+</div>
+
+
+
+<h1 class="title toc-ignore">Brassicas_2021_morphology</h1>
+<h4 class="author">Benjamin A Taylor</h4>
+<h4 class="date">20/09/2021</h4>
+
+</div>
+
+
+<div id="data-import-pre-filtering-and-qc" class="section level2">
+<h2>Data import, pre-filtering and QC</h2>
+<p>Check trait distributions for Brassica:</p>
+<p><img src="Brassicas_2021_morphology_files/figure-html/brass-distribution-qc-1.png" width="960" /></p>
+<p>And for Raphanus:</p>
+<p><img src="Brassicas_2021_morphology_files/figure-html/raph-distribution-qc-1.png" width="960" /></p>
+<p>#what’s going on with root dry weight in these plots? It looks unimodal, but the scale seems off, perhaps indicating outliers. Sure enough,if we look at the quantile distributions for dry weight there are definitely outliers here, which we can reasonably attribute to experimental error given the sensitivity of the weighing to e.g. residual moisture in the roots.</p>
+<pre><code>##     0%    25%    50%    75%    95%   100% 
+## 0.0001 0.0090 0.0180 0.0300 0.0670 0.6160</code></pre>
+<pre><code>##      0%     25%     50%     75%     95%    100% 
+## 0.00010 0.00900 0.03200 0.06725 0.15325 0.30200</code></pre>
+<p>To be safe, we’ll remove values for root dry weight that are more than 3 standard deviations above the mean.</p>
+<pre><code>## [1] &quot;Removing values: &quot;
+## [1] &quot;0.616&quot; &quot;0.175&quot; &quot;0.162&quot; &quot;0.171&quot; &quot;0.137&quot;</code></pre>
+<pre><code>## [1] &quot;Removing values: &quot;
+## [1] &quot;0.302&quot; &quot;0.238&quot; &quot;0.257&quot;</code></pre>
+<p>How do the disributions look now for Brassica and for Raphanus?</p>
+<p><img src="Brassicas_2021_morphology_files/figure-html/distribution-qc-secondpass-1.png" width="960" /><img src="Brassicas_2021_morphology_files/figure-html/distribution-qc-secondpass-2.png" width="960" /></p>
+<p>Root dry weight looks better now, but root-shoot ratio is still very skewed- not surprising for a ratio like this. If we log the ratio, it looks much better:</p>
+<p><img src="Brassicas_2021_morphology_files/figure-html/plot-logged-ratios-1.png" width="960" /><img src="Brassicas_2021_morphology_files/figure-html/plot-logged-ratios-2.png" width="960" /></p>
+<p>We’ll use logged root-shoot ratio instead of the unmodified ratio henceforth. We’ll also drop days to germination, since this is clearly a highly unimodal trait.</p>
+</div>
+<div id="trait-model-testing" class="section level2">
+<h2>Trait model testing</h2>
+<p>We’d now like to fit the data for each trait so that we can plug our data into mixed models down the line. In an ideal world each trait would be fit reasonably well by a normal distribution- let’s see if that’s the case. First for Brassica traits:</p>
+<p><img src="Brassicas_2021_morphology_files/figure-html/modeltesting-gauss-brassica-1.png" width="960" /><img src="Brassicas_2021_morphology_files/figure-html/modeltesting-gauss-brassica-2.png" width="960" /><img src="Brassicas_2021_morphology_files/figure-html/modeltesting-gauss-brassica-3.png" width="960" /><img src="Brassicas_2021_morphology_files/figure-html/modeltesting-gauss-brassica-4.png" width="960" /><img src="Brassicas_2021_morphology_files/figure-html/modeltesting-gauss-brassica-5.png" width="960" /><img src="Brassicas_2021_morphology_files/figure-html/modeltesting-gauss-brassica-6.png" width="960" /><img src="Brassicas_2021_morphology_files/figure-html/modeltesting-gauss-brassica-7.png" width="960" /><img src="Brassicas_2021_morphology_files/figure-html/modeltesting-gauss-brassica-8.png" width="960" /><img src="Brassicas_2021_morphology_files/figure-html/modeltesting-gauss-brassica-9.png" width="960" /><img src="Brassicas_2021_morphology_files/figure-html/modeltesting-gauss-brassica-10.png" width="960" /><img src="Brassicas_2021_morphology_files/figure-html/modeltesting-gauss-brassica-11.png" width="960" /><img src="Brassicas_2021_morphology_files/figure-html/modeltesting-gauss-brassica-12.png" width="960" /><img src="Brassicas_2021_morphology_files/figure-html/modeltesting-gauss-brassica-13.png" width="960" /></p>
+</div>
+
+
+
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+<script>
+$(document).ready(function () {
+  window.initializeCodeFolding("hide" === "show");
+});
+</script>
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

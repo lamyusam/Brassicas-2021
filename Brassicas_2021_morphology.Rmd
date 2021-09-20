@@ -1,0 +1,178 @@
+---
+title: "Brassicas_2021_morphology"
+author: "Benjamin A Taylor"
+date: "20/09/2021"
+output:   
+  html_document:
+    code_folding: hide
+    self_contained: FALSE
+    fig_width: 10
+    fig_height: 10 
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = F, message = F, warning = F, cache = T, 
+                      cache.path =  "/home/benjamin/Documents/Brassicas_repo/Brassicas_cache/Cache")
+knitr::opts_knit$set(root.dir = "/home/benjamin/Documents/Brassicas_repo")
+```
+
+```{r load-morphology-libraries, eval = TRUE, echo = FALSE, include = FALSE}
+# get libraries
+basic_libraries = c("tidyverse",
+                    "RColorBrewer",
+                    "reshape2",
+                    "DHARMa",
+                    "lme4",
+                    "lmerTest")
+for(lib in basic_libraries){
+  if(require(package = lib, character.only = TRUE)){
+    print("Successful")
+  }else{print("Installing")
+    install.packages(lib, Ncpus = 6)
+    library(lib, character.only = TRUE)}
+}
+#prevent other packages overriding dplyr's select
+select = dplyr::select
+```
+
+## Data import, pre-filtering and QC
+
+```{r import-morphology-data}
+#import data
+phenodata.gen2.clean = read.delim("Data/Phenotypic_data/morphology_data_gen2_clean.csv", sep = ",", header = T, row.names = NULL)
+#refactor to set reference levels
+phenodata.gen2.clean$Wild_Dom = factor(phenodata.gen2.clean$Wild_Dom, c("Wild","Cultivated"))
+phenodata.gen2.clean$Environment = factor(phenodata.gen2.clean$Environment, c("wheat","control"))
+
+# take note of the most relevant measured variables
+measure.vars = c("Days_germ",
+                 "Height_1820",
+                 "Height_2326",
+                 "Leaf_length_1820",
+                 "Leaf_length_2326",
+                 "Num_leaves_1820",
+                 "Num_leaves_2326",
+                 "Sla_1820",
+                 "Sla_2326",
+                 "Sldw_1820",
+                 "Sldw_2326",
+                 "Aboveground_dw",
+                 "Root_dw",
+                 "Root_to_shoot_ratio"
+) 
+
+#narrow to spp
+phenodata.gen2.clean.brass = subset(phenodata.gen2.clean, substr(Species,1,3)=="Bra")
+phenodata.gen2.clean.raph = subset(phenodata.gen2.clean, substr(Species,1,3)=="Rap")
+```
+
+Check trait distributions for Brassica:
+
+```{r brass-distribution-qc}
+#Begin by checking distributions for each variable, to check nothing fishy is going on
+brassmelt = melt(phenodata.gen2.clean.brass, id.vars = "Population", measure.vars = measure.vars)
+gg.brass.hist = ggplot(brassmelt, aes(x=value))+
+  geom_histogram() +
+  facet_wrap(~variable, scales = "free")
+gg.brass.hist
+```
+
+And for Raphanus:
+
+```{r raph-distribution-qc}
+#Repeat for raph
+raphmelt = melt(phenodata.gen2.clean.raph, id.vars = "Population", measure.vars = measure.vars)
+gg.raph.hist = ggplot(raphmelt, aes(x=value))+
+  geom_histogram() +
+  facet_wrap(~variable, scales = "free")
+gg.raph.hist
+```
+
+#what's going on with root dry weight in these plots? It looks unimodal, but the scale seems off, perhaps indicating outliers. Sure enough,if we look at the quantile distributions for dry weight there are definitely outliers here, which we can reasonably attribute to experimental error given the sensitivity of the weighing to e.g. residual moisture in the roots. 
+
+```{r root-dw-quantiles}
+quantile(phenodata.gen2.clean.brass$Root_dw, c(seq(0,0.75,0.25),0.95,1), na.rm=T)
+quantile(phenodata.gen2.clean.raph$Root_dw, c(seq(0,0.75,0.25),0.95,1), na.rm=T)
+```
+
+To be safe, we'll remove values for root dry weight that are more than 3 standard deviations above the mean.
+
+```{r remove-dw-outliers}
+#quick function to remove values 3+ SDs above the mean
+crude_outliercheck = function(x){
+  sd = sd(x, na.rm=T)
+  mean = mean(x, na.rm=T)
+  upper = (mean + sd*3)
+  print("Removing values: ");print(paste(x[which(x>upper)]))
+  x[which(x>upper)] = NA
+  return(x)
+}
+#apply function to rmeove these obvious outliers
+phenodata.gen2.clean.brass$Root_dw = crude_outliercheck(phenodata.gen2.clean.brass$Root_dw)
+phenodata.gen2.clean.raph$Root_dw = crude_outliercheck(phenodata.gen2.clean.raph$Root_dw)
+#also set root-shoot ratio to NA for these outliers
+phenodata.gen2.clean.brass$Root_to_shoot_ratio[which(is.na(phenodata.gen2.clean.brass$Root_dw))] = NA
+phenodata.gen2.clean.raph$Root_to_shoot_ratio[which(is.na(phenodata.gen2.clean.raph$Root_dw))] = NA
+```
+
+How do the disributions look now for Brassica and for Raphanus?
+
+```{r distribution-qc-secondpass}
+#Re-check distributions for each variable
+brassmelt = melt(phenodata.gen2.clean.brass, id.vars = "Population", measure.vars = measure.vars)
+gg.brass.hist = ggplot(brassmelt, aes(x=value))+
+  geom_histogram() +
+  facet_wrap(~variable, scales = "free")
+gg.brass.hist
+#Repeat for raph
+raphmelt = melt(phenodata.gen2.clean.raph, id.vars = "Population", measure.vars = measure.vars)
+gg.raph.hist = ggplot(raphmelt, aes(x=value))+
+  geom_histogram() +
+  facet_wrap(~variable, scales = "free")
+gg.raph.hist
+```
+
+Root dry weight looks better now, but root-shoot ratio is still very skewed- not surprising for a ratio like this. If we log the ratio, it looks much better:
+
+```{r plot-logged-ratios}
+hist(log(phenodata.gen2.clean.brass$Root_to_shoot_ratio)); hist(log(phenodata.gen2.clean.raph$Root_to_shoot_ratio))
+#okay, let's create a logged ratio
+phenodata.gen2.clean.brass$Log_root_shoot_ratio = log(phenodata.gen2.clean.brass$Root_to_shoot_ratio)
+phenodata.gen2.clean.raph$Log_root_shoot_ratio = log(phenodata.gen2.clean.raph$Root_to_shoot_ratio)
+#update the measure.vars object (also drop traits that remain clearly unimodal)
+measure.vars.brass = c(measure.vars[!(measure.vars %in% c("Days_germ","Root_to_shoot_ratio"))],"Log_root_shoot_ratio")
+measure.vars.raph = c(measure.vars[!(measure.vars %in% c("Days_germ","Root_to_shoot_ratio"))],"Log_root_shoot_ratio")
+
+```
+
+We'll use logged root-shoot ratio instead of the unmodified ratio henceforth. We'll also drop days to germination, since this is clearly a highly unimodal trait. 
+
+## Trait model testing
+
+We'd now like to fit the data for each trait so that we can plug our data into mixed models down the line. In an ideal world each trait would be fit reasonably well by a normal distribution- let's see if that's the case. First for Brassica traits:
+
+```{r modeltesting-gauss-brassica}
+for(i in 1:length(measure.vars.brass)){
+  
+  response.var = measure.vars.brass[i]
+  print(response.var)
+  
+  phenodata.gen2.clean.brass.omit = subset(phenodata.gen2.clean.brass, is.na(get(response.var))==F)
+  model.gauss = lmer(scale(get(response.var))~Environment + Wild_Dom + Environment:Wild_Dom + (1|Population), 
+                     data=phenodata.gen2.clean.brass.omit, 
+                     control = lmerControl(optimizer="bobyqa", optCtrl = list(maxfun = 10000)))
+  
+  # simulation.gauss = simulateResiduals(fittedModel = model.gauss, plot = F)
+  # #foo = testDispersion(simulation.gauss)
+  # residtest.gauss = testResiduals(simulation.gauss,plot=T)
+  # #return(plot(simulation.gauss))
+  # out = data.frame(c(residtest.gauss$uniformity$p.value,
+  #                  residtest.gauss$dispersion$p.value,
+  #                  residtest.gauss$outliers$p.value))
+  
+  if(i==1){outframe.gauss = out}else{outframe.gauss = cbind(outframe.gauss,out)}
+  
+}
+```
+
