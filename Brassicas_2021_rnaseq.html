@@ -230,6 +230,7 @@ pre code {
 <p>We’re particularly interested in the interaction DEGs, since these are genes that, under domestication, have expressed a change in the plasticity of their responses to a cultivated (i.e. no-competition) environment. Interaction terms are hard to interpret, but plotting helps. Here’s the 12 most significant interaction terms:</p>
 <p><img src="Brassicas_2021_rnaseq_files/figure-html/deseq-domesticate-results-brassica-interactionplots-1.png" width="960" /></p>
 <p>There doesn’t appear to be an overall trend in terms of gains or losses of plasticity, but we can check this by asking whether the fold changes on average are higher or lower for wild or domesticated samples:</p>
+<p>We must therefore conclude that Brassica interaction genes do not exhibit a consistent overall change in plasticity between wild and domesticated accessions.</p>
 <p>Now, let’s repeat the above analyses using Raphanus. First check that the fit looks good:</p>
 <pre><code>## [1] &quot;Check for gene expression outliers&quot;</code></pre>
 <p><img src="Brassicas_2021_rnaseq_files/figure-html/deseq-domesticate-model-raphanus-1.png" width="960" /><img src="Brassicas_2021_rnaseq_files/figure-html/deseq-domesticate-model-raphanus-2.png" width="960" /></p>
@@ -247,6 +248,20 @@ pre code {
 ## Unstressed_bias     76       34
 ## Stressed_bias       53       27
 ## Interaction         98       49</code></pre>
+<p>Plotting the 12 most significant interaction terms for Raphanus:</p>
+<p><img src="Brassicas_2021_rnaseq_files/figure-html/deseq-domesticate-results-raphanus-interactionplots-1.png" width="960" /></p>
+<p>Are Raphanus interaction genes statistically of greater plasticity in wild or domesticated samples?</p>
+<pre><code>## 
+## FALSE  TRUE 
+##    29    69</code></pre>
+<pre><code>## [1] &quot;Probability that changes in plasticity of Raphanus genes during domestication are non-random in their directionality:&quot;</code></pre>
+<pre><code>## [1] &quot;chi-squared p=5.33e-05; paired t-test p=0.15&quot;</code></pre>
+<p>At least based on the chi-squared output, it appears that Raphanus genes on average have increased in plasticity during domestication. However, this result might be misleading, because the values for the Raphanus domesticates combine multiple different species, which may have resulted in depressed estimates of gene expression plasticity. For a more robust analysis, we should re-run the above for each Raphanus domesticate individually:</p>
+<pre><code>##                          species up_wild up_dom    chisq      t       wilcox
+## 1    Raphanus raphanistrum munra      39     59 0.043400 0.0484 0.0008654630
+## 2               Raphanus sativus      31     67 0.000276 0.0928 0.0005876102
+## 3 Raphanus sativus var. caudatus      32     66 0.000594 0.7170 0.0002252579</code></pre>
+<p>When subsetting by species, the results are somewhat more interesting: per a chi-squared test, interaction genes are significantly more likely to be up-regulated than down-regulated. However, a t-test gives less consistent results.</p>
 </div>
 
 

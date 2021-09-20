@@ -772,10 +772,51 @@ print(paste0("chi-squared p=",signif(raph.inter.chisq$p.value,3),"; paired t-tes
 At least based on the chi-squared output, it appears that Raphanus genes on average have increased in plasticity during domestication. However, this result might be misleading, because the values for the Raphanus domesticates combine multiple different species, which may have resulted in depressed estimates of gene expression plasticity. For a more robust analysis, we should re-run the above for each Raphanus domesticate individually:
 
 ```{r raphanus-plasticity-analysis-per-domesticated-species}
-#re-run above chunk, but subset intgene.data to use only accession from one domesticate at a time
-#for each domesticate, generate values and p-values and stick them into a table
+#get domesticates
+raph.domesticates = unique(metadata.raph$species[which(metadata.raph$species!="Raphanus raphanistrum")])
 
+#loop, subsetting intgene.data to use only accessions from one domesticate at a time
+for(j in 1:length(raph.domesticates)){
+  #note species
+  focaldom = as.character(raph.domesticates[j])
+  for(i in 1:length(degs.raph.interaction.ids)){
+    #for gene, get count values by domestication and treatment
+    intgene.data = plotCounts(dds.gene.deg, gene=degs.raph.interaction.ids[i], intgroup=c("domesticated","treatment"), returnData = T)
+    #subset to only samples in wild and focal domesticate
+    comparesamples = as.character(subset(metadata.raph, species %in% c("Raphanus raphanistrum",focaldom))$sample)
+    intgene.data.focal = intgene.data[comparesamples,]
+    intgene.counts.focal = intgene.data.focal %>% group_by(domesticated,treatment) %>% 
+      summarise(mean = mean(count))
+    #get absolute difference in count means
+    intgene.diff.frame = data.frame(gene = degs.raph.interaction.ids[i],
+                                    wild = abs(diff(subset(intgene.counts.focal,domesticated == "Wild")$mean)),
+                                    dom = abs(diff(subset(intgene.counts.focal,domesticated == "Cultivated")$mean)))
+      #check whether absolute difference in count means is higher for wild or for cultivated
+    intgene.diff.frame = mutate(intgene.diff.frame, wild.higher = (wild>dom))
+    #collate output
+    if(i==1){intgene.diff.out = intgene.diff.frame}else{intgene.diff.out = rbind(intgene.diff.out,intgene.diff.frame)}
+  }
 
-beepr::beep(3)
+  #run a chisq test here checking whether higher wild or dom is statistically overrepresented
+  raph.inter.table = table(intgene.diff.out$wild.higher)
+  raph.inter.chisq = chisq.test(table(intgene.diff.out$wild.higher))
+  #run a paired t-test comparing fold changes in wild or domesticated
+  raph.inter.t.test = t.test(intgene.diff.out$wild,intgene.diff.out$dom,paired=T)
+  raph.inter.wilcox.test = wilcox.test(intgene.diff.out$wild,intgene.diff.out$dom,paired=T)
+  #collate statistics for this species
+  raph.inter.results =   data.frame(species = raph.domesticates[j],up_wild = raph.inter.table[1], up_dom = raph.inter.table[2], 
+                                    chisq = signif(raph.inter.chisq$p.value,3), t = signif(raph.inter.t.test$p.value,3),
+                                    wilcox = raph.inter.wilcox.test$p.value)
+  #collate output
+  if(j==1){raph.inter.out = raph.inter.results} else {raph.inter.out = rbind(raph.inter.out,raph.inter.results)}
+}
+#print
+raph.inter.out %>% remove_rownames()
 ```
+When subsetting by species, the results are more interesting: per a chi-squared test, interaction genes are significantly more likely to be up-regulated than down-regulated. Paired t-tests gives less consistent results, but paired Wilcoxon tests concur with the chi-squared results. We can therefore tentatively conclude that in Raphanus, genes with significant interactions between domestication and treatment are significantly more like than chance to have increased in their gene expression plasticity in the course of domestication: in other words, humans appear to have selected for increased gene expression plasticity in radishes. 
 
+## Work package 2: Comparing wild progenitors to never-domesticated wild species
+
+We now wish to ask a different question: do 'progenitor species' (i.e. those that were the original targets of human selection) differ systematically in their patterns of gene expression from wild species that were never domesticated? We are particularly interested in knowing whether progenitor species express greater gene expression plasticity than their never-domesticated relatives, since this could suggest that earty human farmers either intentionally or inadvertently targeted species that were particularly receptive to the benefits of cultivation. 
+
+Unfortunately, for Raphanus we have no data for non-domesticated wild species, so this analysis will be restricted to Brassica, comparing wild Brassica rapa to a number of never-domesticated Brassicas. We'll begin by fitting a DESeq2 model as before, except that instead of comparing wild to domesticated, we'll compare progenitors to non-progenitors. 
