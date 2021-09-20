@@ -514,14 +514,34 @@ ggsave(brass.intplot,
 There doesn't appear to be an overall trend in terms of gains or losses of plasticity, but we can check this by asking whether the fold changes on average are higher or lower for wild or domesticated samples:
 
 ```{r brassica-plasticity-analysis, eval=FALSE}
-foo = subset(brass.intplotdata, gene=="gene-LOC103873136")
+#set dplyr options to avoid excessively verbose output
+options(dplyr.summarise.inform=F)
+#loop across interaction genes, checking whether plasticity is higher in wild or domesticated
+for(i in 1:length(degs.brass.interaction.ids)){
+  #for each gene, summarise count values by domestication and treatment
+  intgene.data = plotCounts(dds.gene.deg, gene=degs.brass.interaction.ids[i], intgroup=c("domesticated","treatment"), returnData = T)
+  intgene.counts = intgene.data %>% group_by(domesticated,treatment) %>% 
+    summarise(mean = mean(count))
+  #get absolute difference in count means
+  intgene.diff.frame = data.frame(gene = degs.brass.interaction.ids[i],
+                                   wild = abs(diff(subset(intgene.counts,domesticated == "Wild")$mean)),
+                                   dom = abs(diff(subset(intgene.counts,domesticated == "Cultivated")$mean)))
+  #check whether absolute difference in count means is higher for wild or for cultivated
+  intgene.diff.frame = mutate(intgene.diff.frame, wild.higher = (wild>dom))
+  #collate output
+  if(i==1){intgene.diff.out = intgene.diff.frame}else{intgene.diff.out = rbind(intgene.diff.out,intgene.diff.frame)}
+}
 
-bar = foo %>% group_by(domesticated,treatment) %>% 
-  summarise(mean = mean(count))
-  
-wild_higher = abs(diff(subset(bar,domesticated == "Wild")$mean)) > abs(diff(subset(bar,domesticated == "Cultivated")$mean))
-  
+#run a chisq test here checking whether higher wild or dom is statistically overrepresented
+table(intgene.diff.out$wild.higher)
+brass.inter.chisq = chisq.test(table(intgene.diff.out$wild.higher))
+#run a paired t-test comparing fold changes in wild or domesticated
+brass.inter.t.test = t.test(intgene.diff.out$wild,intgene.diff.out$dom,paired=T)
+
+print("Probability that changes in plasticity of Brassica genes during domestication are non-random in their directionality:") 
+print(paste0("chi-squared p=",signif(brass.inter.chisq$p.value,3),"; paired t-test p=",signif(brass.inter.t.test$p.value,3)))
 ```
+We must therefore conclude that Brassica interaction genes do not exhibit a consistent overall change in plasticity between wild and domesticated accessions.
 
 Now, let's repeat the above analyses using Raphanus. First check that the fit looks good:
 
@@ -678,3 +698,80 @@ raph.output = data.frame(DEGs=numdegs, GO_terms=numGO,
 raph.output
 write.csv(raph.output, file = "Analysis/RNAseq/Tables/raphanus_deseq_domesticate_vs_progenitor_summary.csv")
 ```
+
+Plotting the 12 most significant interaction terms for Raphanus:
+
+```{r deseq-domesticate-results-raphanus-interactionplots}
+#for the interaction terms, we also plot the output to understand what exactly is going on
+#get the 12 terms with lowest adjusted p value
+degs.raph.interaction.signif = subset(degs.raph.interaction, padj<0.05)
+interestgenes = row.names(degs.raph.interaction.signif)[order(degs.raph.interaction.signif$log2FoldChange,decreasing = T)[1:12]]
+#for each gene, extract the counts for plotting and label by gene
+for(i in 1:length(interestgenes)){
+  #if first element, instantiate frame, otherwise rbind to frame
+  if(i==1) {
+    raph.intplotdata = plotCounts(dds.gene.deg, gene=interestgenes[i], intgroup=c("domesticated","treatment"), returnData = T)
+    raph.intplotdata$gene = interestgenes[i]
+  } else {
+    addrows = data.frame(plotCounts(dds.gene.deg, gene=interestgenes[i], intgroup=c("domesticated","treatment"), returnData = T), 
+                         gene = interestgenes[i])
+    raph.intplotdata = rbind(raph.intplotdata, addrows)
+  }
+}
+
+#plot with ggplot facet wrap
+raph.intplot= ggplot(raph.intplotdata, aes(x = treatment, y = count)) +
+  stat_summary(aes(group = domesticated), fun = mean, geom = "path") +
+  stat_summary(aes(color = domesticated), fun.data = mean_cl_boot, geom = "errorbar", width = 0.1) +
+  stat_summary(aes(color = domesticated), fun = mean, geom = "point", size = 4) +
+  geom_point(aes(color = domesticated), size = 2) +
+  scale_color_manual(values = brewer.pal(6,"Set3")[c(5,6)]) +
+  facet_wrap(~gene, scales = "free")
+raph.intplot
+#save plot
+ggsave(raph.intplot, 
+       filename = "raphanus_interaction_deg_plots.png",
+       device = "png", path = "Analysis/RNAseq/Images/",
+       width =  40, height = 25, units = "cm")
+```
+
+Are Raphanus interaction genes statistically of greater plasticity in wild or domesticated samples?
+
+```{r raphanus-plasticity-analysis}
+#set dplyr options to avoid excessively verbose output
+options(dplyr.summarise.inform=F)
+#loop across interaction genes, checking whether plasticity is higher in wild or domesticated
+for(i in 1:length(degs.raph.interaction.ids)){
+  #for each gene, summarise count values by domestication and treatment
+  intgene.data = plotCounts(dds.gene.deg, gene=degs.raph.interaction.ids[i], intgroup=c("domesticated","treatment"), returnData = T)
+  intgene.counts = intgene.data %>% group_by(domesticated,treatment) %>% 
+    summarise(mean = mean(count))
+  #get absolute difference in count means
+  intgene.diff.frame = data.frame(gene = degs.raph.interaction.ids[i],
+                                   wild = abs(diff(subset(intgene.counts,domesticated == "Wild")$mean)),
+                                   dom = abs(diff(subset(intgene.counts,domesticated == "Cultivated")$mean)))
+  #check whether absolute difference in count means is higher for wild or for cultivated
+  intgene.diff.frame = mutate(intgene.diff.frame, wild.higher = (wild>dom))
+  #collate output
+  if(i==1){intgene.diff.out = intgene.diff.frame}else{intgene.diff.out = rbind(intgene.diff.out,intgene.diff.frame)}
+}
+
+#run a chisq test here checking whether higher wild or dom is statistically overrepresented
+table(intgene.diff.out$wild.higher)
+raph.inter.chisq = chisq.test(table(intgene.diff.out$wild.higher))
+#run a paired t-test comparing fold changes in wild or domesticated
+raph.inter.t.test = t.test(intgene.diff.out$wild,intgene.diff.out$dom,paired=T)
+
+print("Probability that changes in plasticity of Raphanus genes during domestication are non-random in their directionality:") 
+print(paste0("chi-squared p=",signif(raph.inter.chisq$p.value,3),"; paired t-test p=",signif(raph.inter.t.test$p.value,3)))
+```
+At least based on the chi-squared output, it appears that Raphanus genes on average have increased in plasticity during domestication. However, this result might be misleading, because the values for the Raphanus domesticates combine multiple different species, which may have resulted in depressed estimates of gene expression plasticity. For a more robust analysis, we should re-run the above for each Raphanus domesticate individually:
+
+```{r raphanus-plasticity-analysis-per-domesticated-species}
+#re-run above chunk, but subset intgene.data to use only accession from one domesticate at a time
+#for each domesticate, generate values and p-values and stick them into a table
+
+
+beepr::beep(3)
+```
+
