@@ -261,7 +261,27 @@ pre code {
 ## 1    Raphanus raphanistrum munra      39     59 0.043400 0.0484 0.0008654630
 ## 2               Raphanus sativus      31     67 0.000276 0.0928 0.0005876102
 ## 3 Raphanus sativus var. caudatus      32     66 0.000594 0.7170 0.0002252579</code></pre>
-<p>When subsetting by species, the results are somewhat more interesting: per a chi-squared test, interaction genes are significantly more likely to be up-regulated than down-regulated. However, a t-test gives less consistent results.</p>
+<p>When subsetting by species, the results are more interesting: per a chi-squared test, interaction genes are significantly more likely to be up-regulated than down-regulated. Paired t-tests gives less consistent results, but paired Wilcoxon tests concur with the chi-squared results. We can therefore tentatively conclude that in Raphanus, genes with significant interactions between domestication and treatment are significantly more like than chance to have increased in their gene expression plasticity in the course of domestication: in other words, humans appear to have selected for increased gene expression plasticity in radishes.</p>
+</div>
+<div id="work-package-2-comparing-wild-progenitors-to-never-domesticated-wild-species" class="section level2">
+<h2>Work package 2: Comparing wild progenitors to never-domesticated wild species</h2>
+<p>We now wish to ask a different question: do ‘progenitor species’ (i.e. those that were the original targets of human selection) differ systematically in their patterns of gene expression from wild species that were never domesticated? We are particularly interested in knowing whether progenitor species express greater gene expression plasticity than their never-domesticated relatives, since this could suggest that earty human farmers either intentionally or inadvertently targeted species that were particularly receptive to the benefits of cultivation.</p>
+<p>Unfortunately, for Raphanus we have no data for non-domesticated wild species, so this analysis will be restricted to Brassica, comparing wild Brassica rapa to a number of never-domesticated Brassicas. We’ll begin by fitting a DESeq2 model as before, except that instead of comparing wild to domesticated, we’ll compare progenitors to non-progenitors.</p>
+<pre><code>## [1] &quot;Check for gene expression outliers&quot;</code></pre>
+<p><img src="Brassicas_2021_rnaseq_files/figure-html/deseq-wilds-model-brassica-1.png" width="960" /><img src="Brassicas_2021_rnaseq_files/figure-html/deseq-wilds-model-brassica-2.png" width="960" /></p>
+<pre><code>## [1] &quot;Local fit:&quot;</code></pre>
+<p><img src="Brassicas_2021_rnaseq_files/figure-html/deseq-wilds-model-brassica-3.png" width="960" /></p>
+<pre><code>## [1] &quot;Local fit:&quot;</code></pre>
+<p><img src="Brassicas_2021_rnaseq_files/figure-html/deseq-wilds-model-brassica-4.png" width="960" /></p>
+<p>Results summary:</p>
+<pre><code>##                   DEGs GO_terms
+## Domesticated_bias 8710       53
+## Wild_bias         9520       75
+## Unstressed_bias      9       40
+## Stressed_bias       11       10
+## Interaction         63       30</code></pre>
+<p>Plot top 12 interaction terms:</p>
+<p><img src="Brassicas_2021_rnaseq_files/figure-html/deseq-wilds-results-brassica-interactionplots-1.png" width="960" /></p>
 </div>
 
 

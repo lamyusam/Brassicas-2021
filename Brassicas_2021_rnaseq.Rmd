@@ -813,6 +813,7 @@ for(j in 1:length(raph.domesticates)){
 #print
 raph.inter.out %>% remove_rownames()
 ```
+
 When subsetting by species, the results are more interesting: per a chi-squared test, interaction genes are significantly more likely to be up-regulated than down-regulated. Paired t-tests gives less consistent results, but paired Wilcoxon tests concur with the chi-squared results. We can therefore tentatively conclude that in Raphanus, genes with significant interactions between domestication and treatment are significantly more like than chance to have increased in their gene expression plasticity in the course of domestication: in other words, humans appear to have selected for increased gene expression plasticity in radishes. 
 
 ## Work package 2: Comparing wild progenitors to never-domesticated wild species
@@ -820,3 +821,242 @@ When subsetting by species, the results are more interesting: per a chi-squared 
 We now wish to ask a different question: do 'progenitor species' (i.e. those that were the original targets of human selection) differ systematically in their patterns of gene expression from wild species that were never domesticated? We are particularly interested in knowing whether progenitor species express greater gene expression plasticity than their never-domesticated relatives, since this could suggest that earty human farmers either intentionally or inadvertently targeted species that were particularly receptive to the benefits of cultivation. 
 
 Unfortunately, for Raphanus we have no data for non-domesticated wild species, so this analysis will be restricted to Brassica, comparing wild Brassica rapa to a number of never-domesticated Brassicas. We'll begin by fitting a DESeq2 model as before, except that instead of comparing wild to domesticated, we'll compare progenitors to non-progenitors. 
+
+```{r deseq-wilds-model-brassica}
+#subset
+metadata.brass.wilds = subset(metadata.brass.clean, domesticated == "Wild")
+brass.gene.counts.clean.wilds = brass.gene.counts.clean[,as.character(metadata.brass.wilds$sample)]
+#check that metadata and count matrices conform
+#table(metadata.brass.wilds$sample %in% colnames(brass.gene.counts.clean.wilds))
+brass.gene.counts.clean.wilds = brass.gene.counts.clean.wilds[,as.character(metadata.brass.wilds$sample)]
+#add column to check whether ancestor of domesticated or not
+metadata.brass.wilds$wild.ancestor = (metadata.brass.wilds$species=="Brassica rapa")
+#make sure that wild is the baseline
+metadata.brass.wilds$wild.ancestor = forcats::fct_relevel(as.factor(metadata.brass.wilds$wild.ancestor),"FALSE")
+
+#now run model with our variables of interest
+dds.gene.wilds = DESeqDataSetFromMatrix(countData = brass.gene.counts.clean.wilds,
+                                        colData = metadata.brass.wilds,
+                                        design = as.formula(~treatment+wild.ancestor+treatment*wild.ancestor))
+dds.gene.deg.wilds = DESeq(dds.gene.wilds, fitType = "local", betaPrior = FALSE)
+# Check for outliers: none are apparent
+print("Check for gene expression outliers")
+boxplot(log10(assays(dds.gene.deg.wilds)[["cooks"]]), range=0, las=2)
+boxplot(log10(assays(dds.gene.deg.wilds)[["counts"]]), range=0, las=2)
+#Also plot the dispersion extimates to make sure they look fine
+print("Local fit:")
+plotDispEsts(dds.gene.deg.wilds)
+#re-run with parametric to see how this looks:
+dds.gene.deg.wilds.parametric = DESeq(dds.gene.wilds, fitType = "parametric", betaPrior = FALSE)
+print("Local fit:")
+plotDispEsts(dds.gene.deg.wilds.parametric)
+#parametric looks better so use this instead
+dds.gene.deg.wilds = dds.gene.deg.wilds.parametric
+
+#save for later
+save(dds.gene.deg.wilds, file = "Analysis/RNAseq/Tables/brassica_wilds_deseq.R")
+```
+
+```{r deseq-wilds-results-brassica-treatment}
+#results: wheat vs control
+degs.brass.wilds.treatment = results(dds.gene.deg.wilds, 
+                               name="treatment_Control_vs_Wheat",     
+                               alpha = 0.05,
+                               lfcThreshold = log2(1))
+degs.brass.wilds.treatment.Nup = nrow(subset(degs.brass.wilds.treatment, padj<=0.05 & log2FoldChange>0)) #9 up in control
+degs.brass.wilds.treatment.Ndown = nrow(subset(degs.brass.wilds.treatment, padj<=0.05 & log2FoldChange<0)) #11 up in wheat
+degs.brass.wilds.treatment.ids = rownames(subset(degs.brass.wilds.treatment, padj<=0.05))
+#none of these degs shared with parental degs
+#table(degs.brass.wilds.treatment.ids%in%parental.degs.ids)
+#also check for  GO terms 
+brass.wilds.treatment.GO.up = topGO_wrapper(geneScores = degs.brass.wilds.treatment,
+                                      geneScoresDE = T,
+                                      geneScoresDirection = "Up",
+                                      GOmapping = GOmapping.brass,
+                                      algorithm = "weight01",
+                                      statistic = "fisher",
+                                      nodeSize = 10,
+                                      discretisedDE = T,
+                                      p = 0.05)
+write.csv(brass.wilds.treatment.GO.up$consolidated_result, 
+          file = "Analysis/RNAseq/Tables/brapas_wilds_GO_controlbias.csv", row.names = FALSE)
+#40 GO terms up
+brass.wilds.treatment.GO.down = topGO_wrapper(geneScores = degs.brass.wilds.treatment,
+                                        geneScoresDE = T,
+                                        geneScoresDirection = "Down",
+                                        GOmapping = GOmapping.brass,
+                                        algorithm = "weight01",
+                                        statistic = "fisher",
+                                        nodeSize = 10,
+                                        discretisedDE = T,
+                                        p = 0.05)
+write.csv(brass.wilds.treatment.GO.down$consolidated_result, 
+          file = "Analysis/RNAseq/Tables/brapas_wilds_GO_wheatbias.csv", row.names = FALSE)
+#10 GO terms down
+```
+```{r deseq-wilds-results-brassica-progenitorstatus}
+#results: cultivated vs wild
+degs.brass.wilds.cultivated = results(dds.gene.deg.wilds, 
+                                name="wild.ancestor_TRUE_vs_FALSE",     
+                                alpha = 0.05,
+                                lfcThreshold = log2(1))
+#summary(degs.brass.wilds.cultivated) #~2000 degs
+degs.brass.wilds.cultivated.Nup = nrow(subset(degs.brass.wilds.cultivated, padj<=0.05 & log2FoldChange>0)) #8710 up in cultivar
+degs.brass.wilds.cultivated.Ndown = nrow(subset(degs.brass.wilds.cultivated, padj<=0.05 & log2FoldChange<0)) #9520 up in wild
+degs.brass.wilds.cultivated.ids = rownames(subset(degs.brass.wilds.cultivated, padj<=0.05))
+#104 of these degs are shared with parental degs
+#table(degs.brass.wilds.cultivated.ids%in%parental.degs.ids)
+#also check for deg GO terms 
+brass.wilds.cultivated.GO.up = topGO_wrapper(geneScores = degs.brass.wilds.cultivated,
+                                       geneScoresDE = T,
+                                       geneScoresDirection = "Up",
+                                       GOmapping = GOmapping.brass,
+                                       algorithm = "weight01",
+                                       statistic = "fisher",
+                                       nodeSize = 10,
+                                       discretisedDE = T,
+                                       p = 0.05)
+write.csv(brass.wilds.cultivated.GO.up$consolidated_result, 
+          file = "Analysis/RNAseq/Tables/brapas_wilds_GO_cultivatedbias.csv", row.names = FALSE)
+#53 GO terms up inc e.g. responseto bacteria, response to chitin
+brass.wilds.cultivated.GO.down = topGO_wrapper(geneScores = degs.brass.wilds.cultivated,
+                                         geneScoresDE = T,
+                                         geneScoresDirection = "Down",
+                                         GOmapping = GOmapping.brass,
+                                         algorithm = "weight01",
+                                         statistic = "fisher",
+                                         nodeSize = 10,
+                                         discretisedDE = T,
+                                         p = 0.05)
+write.csv(brass.wilds.treatment.GO.down$consolidated_result, 
+          file = "Analysis/RNAseq/Tables/brapas_wilds_GO_wildbias.csv", row.names = FALSE)
+#10 down
+```
+
+```{r deseq-wilds-results-brassica-interaction}
+#results: interaction
+degs.brass.wilds.interaction = results(dds.gene.deg.wilds, 
+                                      name="treatmentControl.wild.ancestorTRUE",     
+                                      alpha = 0.05,
+                                      lfcThreshold = log2(1))
+#summary(degs.brass.wilds.interaction) #63 degs
+degs.brass.wilds.interaction.ids = rownames(subset(degs.brass.wilds.interaction, padj<=0.05))
+degs.brass.wilds.interaction.N = length(degs.brass.wilds.interaction.ids)
+#1 of these degs are shared with parental degs
+#table(degs.brass.wilds.interaction.ids%in%parental.degs.ids)
+#also check for GO terms
+brass.wilds.interaction.GO = topGO_wrapper(geneScores = degs.brass.wilds.interaction,
+                                          geneScoresDE = T,
+                                          geneScoresDirection = NA,
+                                          GOmapping = GOmapping.brass,
+                                          algorithm = "weight01",
+                                          statistic = "fisher",
+                                          nodeSize = 10,
+                                          discretisedDE = T,
+                                          p = 0.05)
+#30 GO terms
+```
+
+Results summary:
+
+```{r brass.intplot.wilds.results.print}
+#save output summary
+wildsnumdegs = c(degs.brass.wilds.cultivated.Nup, degs.brass.wilds.cultivated.Ndown,
+                 degs.brass.wilds.treatment.Nup, degs.brass.wilds.treatment.Ndown, degs.brass.wilds.interaction.N)
+wildsnumGO = c(nrow(brass.wilds.cultivated.GO.up$consolidated_result), nrow(brass.wilds.cultivated.GO.down$consolidated_result),
+               nrow(brass.wilds.treatment.GO.up$consolidated_result), nrow(brass.wilds.treatment.GO.down$consolidated_result),
+               nrow(brass.wilds.interaction.GO$consolidated_result))
+
+brass.wilds.output = data.frame(DEGs=wildsnumdegs, GO_terms=wildsnumGO,
+                               row.names = c("Domesticated_bias","Wild_bias","Unstressed_bias","Stressed_bias","Interaction"))
+write.csv(brass.wilds.output, file = "Analysis/RNAseq/Tables/brass_wilds_summary.csv")
+brass.wilds.output
+```
+
+Plot top 12 interaction terms:
+
+```{r deseq-wilds-results-brassica-interactionplots}
+#for the interaction terms, we also plot the output to understand what exactly is going on
+#get the 12 terms with lowest adjusted p value
+degs.brass.wilds.interaction.signif = subset(degs.brass.wilds.interaction, padj<0.05)
+interestgeneswild = row.names(degs.brass.wilds.interaction.signif)[order(degs.brass.wilds.interaction.signif$log2FoldChange,decreasing = T)[1:12]]
+#for each gene, extract the counts for plotting and label by gene
+for(i in 1:length(interestgeneswild)){
+  #if first element, instantiate frame, otherwise rbind to frame
+  if(i==1) {
+    brass.intplotdata = plotCounts(dds.gene.deg.wilds, gene=interestgeneswild[i], intgroup=c("wild.ancestor","treatment"), returnData = T)
+    brass.intplotdata$gene = interestgeneswild[i]
+  } else {
+    addrows = data.frame(plotCounts(dds.gene.deg.wilds, gene=interestgeneswild[i], intgroup=c("wild.ancestor","treatment"), returnData = T), 
+                         gene = interestgeneswild[i])
+    brass.intplotdata = rbind(brass.intplotdata, addrows)
+  }
+}
+
+#plot with ggplot facet wrap
+brass.intplot.wilds= ggplot(brass.intplotdata, aes(x = treatment, y = count)) +
+  stat_summary(aes(group = wild.ancestor), fun = mean, geom = "path") +
+  stat_summary(aes(color = wild.ancestor), fun.data = mean_cl_boot, geom = "errorbar", width = 0.1) +
+  stat_summary(aes(color = wild.ancestor), fun = mean, geom = "point", size = 4) +
+  geom_point(aes(color = wild.ancestor), size = 2) +
+  scale_color_manual(values = brewer.pal(6,"Set3")[c(5,6)]) +
+  facet_wrap(~gene, scales = "free") +
+  labs(color = "Rapa")
+
+#save plot
+ggsave(brass.intplot.wilds, 
+       filename = "brassica_interaction_deg_plots_wilds.png",
+       device = "png", path = "Analysis/RNAseq/Images/",
+       width =  40, height = 25, units = "cm")
+
+brass.intplot.wilds
+```
+
+Our big question is, again, whether the set of genes with identified as displaying an interaction between treatment and progenitor status exhibit significantly greater (or lesser) plasticity in the progenitor than in never-domesticated wilds. Again, we need to subset by wild species so as to avoid combining many different wild species and thereby depressing plasticity estimates. 
+
+```{r brassica-plasticity-analysis-per-wild-species}
+#get wilds
+brass.otherwilds = unique(metadata.brass.wilds$species[which(metadata.brass.wilds$species!="Brassica rapa")])
+
+#loop, subsetting intgene.data to use only accessions from one domesticate at a time
+for(j in 1:length(brass.otherwilds)){
+  #note species
+  focalwild = as.character(brass.otherwilds[j])
+  for(i in 1:length(degs.brass.wilds.interaction.ids)){
+    #for gene, get count values by domestication and treatment
+    intgene.data = plotCounts(dds.gene.deg.wilds, gene=degs.brass.wilds.interaction.ids[i], 
+                              intgroup=c("wild.ancestor","treatment"), returnData = T)
+    #subset to only samples in wild and focal domesticate
+    comparesamples = as.character(subset(metadata.brass.wilds, species %in% c("Brassica rapa",focalwild))$sample)
+    intgene.data.focal = intgene.data[comparesamples,]
+    intgene.counts.focal = intgene.data.focal %>% group_by(wild.ancestor,treatment) %>% 
+      summarise(mean = mean(count))
+    #get absolute difference in count means
+    intgene.diff.frame = data.frame(gene = degs.brass.wilds.interaction.ids[i],
+                                    progenitor = abs(diff(subset(intgene.counts.focal,wild.ancestor == TRUE)$mean)),
+                                    otherwild = abs(diff(subset(intgene.counts.focal,wild.ancestor == FALSE)$mean)))
+    #check whether absolute difference in count means is higher for wild or for cultivated
+    intgene.diff.frame = mutate(intgene.diff.frame, progenitor.higher = (progenitor>otherwild))
+    #collate output
+    if(i==1){intgene.diff.out = intgene.diff.frame}else{intgene.diff.out = rbind(intgene.diff.out,intgene.diff.frame)}
+  }
+
+  #run a chisq test here checking whether higher wild or dom is statistically overrepresented
+  brass.wilds.inter.table = table(intgene.diff.out$progenitor.higher)
+  brass.wilds.inter.chisq = chisq.test(table(intgene.diff.out$progenitor.higher))
+  #run a paired t-test comparing fold changes in progenitor or other wild
+  brass.wilds.inter.t.test = t.test(intgene.diff.out$otherwild,intgene.diff.out$progenitor,paired=T)
+  brass.wilds.inter.wilcox.test = wilcox.test(intgene.diff.out$otherwild,intgene.diff.out$progenitor,paired=T)
+  #collate statistics for this species
+  brass.wilds.inter.results =   data.frame(species = brass.otherwilds[j],up_otherwild = brass.wilds.inter.table[1], 
+                                           up_progenitor = brass.wilds.inter.table[2], chisq = signif(brass.wilds.inter.chisq$p.value,3),
+                                           t = signif(brass.wilds.inter.t.test$p.value,3),
+                                           wilcox = brass.wilds.inter.wilcox.test$p.value)
+  #collate output
+  if(j==1){brass.wilds.inter.out = brass.wilds.inter.results} else {
+    brass.wilds.inter.out = rbind(brass.wilds.inter.out,brass.wilds.inter.results)}}
+
+#print
+brass.wilds.inter.out %>% remove_rownames()
+```
+These results appear fairly clear: there is no consistent difference between wild Brassica rapa and any other wild Brassica species in terms of the overall plasticity of gene expression among genes with significant interaction terms. 
