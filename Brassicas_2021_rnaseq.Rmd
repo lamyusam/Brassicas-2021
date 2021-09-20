@@ -61,6 +61,10 @@ data.meta = read.csv("/home/benjamin/Documents/Brassicas_repo/Data/RNAseq/RNASeq
 #subset by genus
 metadata.brass = subset(data.meta, substr(species,1,3)=="Bra")
 metadata.raph = subset(data.meta, substr(species,1,3)=="Rap")
+
+#fix an apparent typo in raphanus metadata
+metadata.raph$species[which(metadata.raph$species=="Raphanus raphanistrum mungra")] = "Raphanus raphanistrum munra"
+
 #import rnaseq data
 brass.gene.counts = read.csv("/home/benjamin/Documents/Brassicas_repo/Data/RNAseq/brapa.gene.counts.csv", row.names = 1)
 raph.gene.counts = read.csv("/home/benjamin/Documents/Brassicas_repo/Data/RNAseq/raph.gene.counts.csv", row.names = 1)
