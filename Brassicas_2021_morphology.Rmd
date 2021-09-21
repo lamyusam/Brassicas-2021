@@ -234,7 +234,7 @@ for(i in 1:length(measure.vars.raph)){
 
 While none of these fits are perfect, the only massive issues are with number of leaves, since this is a discrete integer trait and thus fits weirdly to a gaussian distribution. For this trait, we might be better off fitting a Poisson distribution:
 
-```{r modeltesting-poisson-brassica, fig.show="hold", results='asis'}
+```{r modeltesting-poisson-brassica, fig.show="hold", results='asis', fig.height = 5}
 discrete.traits = c("Num_leaves_1820","Num_leaves_2326")
 
 for(i in 1:length(discrete.traits)){
@@ -265,7 +265,7 @@ This doesn't necessarily look better, but it does make more sense (number of lea
 
 The other trait that looks odd in the above diagnostic plots is root dry-weight. We already know that this trait suffers from some skew, but we'd hoped to improve that by removing outliers earlier. Perhaps some kind of inverse link function could help with this?
 
-```{r modeltesting-inverse-brassica, fig.show="hold", results='asis}
+```{r modeltesting-inverse-brassica, fig.show="hold", results='asis', fig.height = 5}
   response.var = "Root_dw"
   phenodata.gen2.clean.brass.omit = subset(phenodata.gen2.clean.brass, is.na(get(response.var))==F)
   model.gauss = glmer(get(response.var)~Environment + Wild_Dom + Environment:Wild_Dom + (1|Population), 
@@ -286,7 +286,7 @@ The other trait that looks odd in the above diagnostic plots is root dry-weight.
 
 That doesn't look any better. What about a gamma distribution?
 
-```{r modeltesting-gamma-brassica, fig.show="hold", results='asis}
+```{r modeltesting-gamma-brassica, fig.show="hold", results='asis', fig.height = 5}
 model.gauss = glmer(get(response.var)~Environment + Wild_Dom + Environment:Wild_Dom + (1|Population), 
                      data=phenodata.gen2.clean.brass.omit, 
                      control = glmerControl(optimizer="bobyqa", optCtrl = list(maxfun = 10000)),family=Gamma())
