@@ -24,7 +24,9 @@ basic_libraries = c("tidyverse",
                     "reshape2",
                     "DHARMa",
                     "lme4",
-                    "lmerTest")
+                    "lmerTest",
+                    "grid",
+                    "gridExtra")
 for(lib in basic_libraries){
   if(require(package = lib, character.only = TRUE)){
     print("Successful")
@@ -150,29 +152,156 @@ We'll use logged root-shoot ratio instead of the unmodified ratio henceforth. We
 
 ## Trait model testing
 
-We'd now like to fit the data for each trait so that we can plug our data into mixed models down the line. In an ideal world each trait would be fit reasonably well by a normal distribution- let's see if that's the case. First for Brassica traits:
+We'd now like to fit the data for each trait so that we can plug our data into mixed models down the line. In an ideal world each trait would be fit reasonably well by a normal distribution- let's see if that's the case. What we're looking for: 
 
-```{r modeltesting-gauss-brassica}
+1. Points fitted nicely along the QQ plot abline
+2. Even distribution about abline in fitted vs residuals plot
+3. Roughly horizontal fit for scale-location plot
+4. No outiers in residuals vs leverage plot
+
+First for Brassica traits:
+
+```{r modeltesting-gauss-brassica, fig.show="hold", results='asis'}
 for(i in 1:length(measure.vars.brass)){
   
   response.var = measure.vars.brass[i]
-  print(response.var)
-  
   phenodata.gen2.clean.brass.omit = subset(phenodata.gen2.clean.brass, is.na(get(response.var))==F)
   model.gauss = lmer(scale(get(response.var))~Environment + Wild_Dom + Environment:Wild_Dom + (1|Population), 
                      data=phenodata.gen2.clean.brass.omit, 
                      control = lmerControl(optimizer="bobyqa", optCtrl = list(maxfun = 10000)))
-  
-  # simulation.gauss = simulateResiduals(fittedModel = model.gauss, plot = F)
-  # #foo = testDispersion(simulation.gauss)
-  # residtest.gauss = testResiduals(simulation.gauss,plot=T)
-  # #return(plot(simulation.gauss))
-  # out = data.frame(c(residtest.gauss$uniformity$p.value,
-  #                  residtest.gauss$dispersion$p.value,
-  #                  residtest.gauss$outliers$p.value))
-  
-  if(i==1){outframe.gauss = out}else{outframe.gauss = cbind(outframe.gauss,out)}
-  
+
+  #qq plot
+  plot.qq = qqmath(model.gauss,
+                   main="Q-Q plot", font.main=1)
+  #fitted vs residuals plot
+  plot.fitres = plot(model.gauss, type=c("p","smooth"), col.line=1, 
+                     main="Fitted vs residuals", font.main=1)
+  #scale-location plot
+  plot.scaloc = plot(model.gauss,
+     sqrt(abs(resid(.)))~fitted(.),
+     type=c("p","smooth"), col.line=1, 
+     main="Scale-location",font.main=1)
+  #residuals vs leverage
+  plot.reslev = plot(model.gauss, rstudent(.) ~ hatvalues(.),
+                     main="Residuals vs leverage",font.main=1)
+  #return plots
+  grid.arrange(plot.qq,
+               plot.fitres,
+               plot.scaloc,
+               plot.reslev,
+               top=grid::textGrob(response.var, gp=grid::gpar(fontsize=18,font=2)))
+
 }
+
 ```
 
+Then for Raphanus traits:
+
+```{r modeltesting-gauss-raphanus, fig.show="hold", results='asis'}
+for(i in 1:length(measure.vars.raph)){
+  
+  response.var = measure.vars.raph[i]
+  phenodata.gen2.clean.raph.omit = subset(phenodata.gen2.clean.raph, is.na(get(response.var))==F)
+  model.gauss = lmer(scale(get(response.var))~Environment + Wild_Dom + Environment:Wild_Dom + (1|Population), 
+                     data=phenodata.gen2.clean.raph.omit, 
+                     control = lmerControl(optimizer="bobyqa", optCtrl = list(maxfun = 10000)))
+
+  #qq plot
+  plot.qq = qqmath(model.gauss,
+                   main="Q-Q plot", font.main=1)
+  #fitted vs residuals plot
+  plot.fitres = plot(model.gauss, type=c("p","smooth"), col.line=1, 
+                     main="Fitted vs residuals", font.main=1)
+  #scale-location plot
+  plot.scaloc = plot(model.gauss,
+     sqrt(abs(resid(.)))~fitted(.),
+     type=c("p","smooth"), col.line=1, 
+     main="Scale-location",font.main=1)
+  #residuals vs leverage
+  plot.reslev = plot(model.gauss, rstudent(.) ~ hatvalues(.),
+                     main="Residuals vs leverage",font.main=1)
+  #return plots
+  grid.arrange(plot.qq,
+               plot.fitres,
+               plot.scaloc,
+               plot.reslev,
+               top=grid::textGrob(response.var, gp=grid::gpar(fontsize=18,font=2)))
+
+}
+
+```
+
+
+While none of these fits are perfect, the only massive issues are with number of leaves, since this is a discrete integer trait and thus fits weirdly to a gaussian distribution. For this trait, we might be better off fitting a Poisson distribution:
+
+```{r modeltesting-poisson-brassica, fig.show="hold", results='asis'}
+discrete.traits = c("Num_leaves_1820","Num_leaves_2326")
+
+for(i in 1:length(discrete.traits)){
+  
+  response.var = discrete.traits[i]
+  phenodata.gen2.clean.brass.omit = subset(phenodata.gen2.clean.brass, is.na(get(response.var))==F)
+  model.gauss = glmer(get(response.var)~Environment + Wild_Dom + Environment:Wild_Dom + (1|Population), 
+                     data=phenodata.gen2.clean.brass.omit, 
+                     control = glmerControl(optimizer="bobyqa", optCtrl = list(maxfun = 10000)),family = poisson())
+
+  #qq plot
+  plot.qq = qqmath(model.gauss,
+                   main="Q-Q plot", font.main=1)
+  #fitted vs residuals plot
+  plot.fitres = plot(model.gauss, type=c("p","smooth"), col.line=1, 
+                     main="Fitted vs residuals", font.main=1)
+  #return plots
+  grid.arrange(plot.qq,
+               plot.fitres,
+               ncol=2,
+               top=grid::textGrob(response.var, gp=grid::gpar(fontsize=18,font=2)))
+
+}
+
+```
+
+This doesn't necessarily look better, but it does make more sense (number of leaves is much more likely to be poisson distributed than gaussian, since it's a discrete trait) so for num leaves we'll use a poisson distribution going forward in place of a gaussian. 
+
+The other trait that looks odd in the above diagnostic plots is root dry-weight. We already know that this trait suffers from some skew, but we'd hoped to improve that by removing outliers earlier. Perhaps some kind of inverse link function could help with this?
+
+```{r modeltesting-inverse-brassica, fig.show="hold", results='asis}
+  response.var = "Root_dw"
+  phenodata.gen2.clean.brass.omit = subset(phenodata.gen2.clean.brass, is.na(get(response.var))==F)
+  model.gauss = glmer(get(response.var)~Environment + Wild_Dom + Environment:Wild_Dom + (1|Population), 
+                     data=phenodata.gen2.clean.brass.omit, 
+                     control = glmerControl(optimizer="bobyqa", optCtrl = list(maxfun = 10000)),family=gaussian(link="inverse"))
+  #qq plot
+  plot.qq = qqmath(model.gauss,
+                   main="Q-Q plot", font.main=1)
+  #fitted vs residuals plot
+  plot.fitres = plot(model.gauss, type=c("p","smooth"), col.line=1, 
+                     main="Fitted vs residuals", font.main=1)
+  #return plots
+  grid.arrange(plot.qq,
+               plot.fitres,
+               ncol=2,
+               top=grid::textGrob(response.var, gp=grid::gpar(fontsize=18,font=2)))
+```
+
+That doesn't look any better. What about a gamma distribution?
+
+```{r modeltesting-gamma-brassica, fig.show="hold", results='asis}
+model.gauss = glmer(get(response.var)~Environment + Wild_Dom + Environment:Wild_Dom + (1|Population), 
+                     data=phenodata.gen2.clean.brass.omit, 
+                     control = glmerControl(optimizer="bobyqa", optCtrl = list(maxfun = 10000)),family=Gamma())
+
+  #qq plot
+  plot.qq = qqmath(model.gauss,
+                   main="Q-Q plot", font.main=1)
+  #fitted vs residuals plot
+  plot.fitres = plot(model.gauss, type=c("p","smooth"), col.line=1, 
+                     main="Fitted vs residuals", font.main=1)
+  #return plots
+  grid.arrange(plot.qq,
+               plot.fitres,
+               ncol=2,
+               top=grid::textGrob(response.var, gp=grid::gpar(fontsize=18,font=2)))
+```
+
+Even worse! Okay, there doesn't seem to be any way to fit this trait nicely, so let's just model it with a gaussian distribution but take the results with a pinch of salt.
