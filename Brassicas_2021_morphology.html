@@ -189,7 +189,7 @@ pre code {
 <p><img src="Brassicas_2021_morphology_files/figure-html/brass-distribution-qc-1.png" width="960" /></p>
 <p>And for Raphanus:</p>
 <p><img src="Brassicas_2021_morphology_files/figure-html/raph-distribution-qc-1.png" width="960" /></p>
-<p>#what’s going on with root dry weight in these plots? It looks unimodal, but the scale seems off, perhaps indicating outliers. Sure enough,if we look at the quantile distributions for dry weight there are definitely outliers here, which we can reasonably attribute to experimental error given the sensitivity of the weighing to e.g. residual moisture in the roots.</p>
+<p>What’s going on with root dry weight in these plots? It looks unimodal, but the scale seems off, perhaps indicating outliers. Sure enough,if we look at the quantile distributions for dry weight there are definitely outliers here, which we can reasonably attribute to experimental error given the sensitivity of the weighing to e.g. residual moisture in the roots.</p>
 <pre><code>##     0%    25%    50%    75%    95%   100% 
 ## 0.0001 0.0090 0.0180 0.0300 0.0670 0.6160</code></pre>
 <pre><code>##      0%     25%     50%     75%     95%    100% 
@@ -226,6 +226,12 @@ pre code {
 <p>That doesn’t look any better. What about a gamma distribution?</p>
 <p><img src="Brassicas_2021_morphology_files/figure-html/modeltesting-gamma-brassica-1.png" width="960" /></p>
 <p>Even worse! Okay, there doesn’t seem to be any way to fit this trait nicely, so let’s just model it with a gaussian distribution but take the results with a pinch of salt.</p>
+</div>
+<div id="work-package-1-comparing-domesticates-to-their-wild-progenitors" class="section level2">
+<h2>Work package 1: Comparing domesticates to their wild progenitors</h2>
+<p>For this work package, we wish to compare wild progenitor species to modern domesticates. For Brassica, the comparison is between domesticated B rapa with wild B rapa, while for Raphanus the comparison is between R raphanistrum (wild) and all other Raphanus samples, all of which appear to be domesticated. Our analytic design is:</p>
+<p>expression ~ domestication + treatment + domestication*treatment + (1|population) + (1|parental_effects_status).</p>
+<p><embed src="Analysis/Phenotypic_analysis/Images/phenotypic_lmer_pvals_brassica_subset.pdf" /><!-- --></p>
 </div>
 
 

@@ -91,7 +91,7 @@ gg.raph.hist = ggplot(raphmelt, aes(x=value))+
 gg.raph.hist
 ```
 
-#what's going on with root dry weight in these plots? It looks unimodal, but the scale seems off, perhaps indicating outliers. Sure enough,if we look at the quantile distributions for dry weight there are definitely outliers here, which we can reasonably attribute to experimental error given the sensitivity of the weighing to e.g. residual moisture in the roots. 
+What's going on with root dry weight in these plots? It looks unimodal, but the scale seems off, perhaps indicating outliers. Sure enough,if we look at the quantile distributions for dry weight there are definitely outliers here, which we can reasonably attribute to experimental error given the sensitivity of the weighing to e.g. residual moisture in the roots. 
 
 ```{r root-dw-quantiles}
 quantile(phenodata.gen2.clean.brass$Root_dw, c(seq(0,0.75,0.25),0.95,1), na.rm=T)
@@ -305,3 +305,93 @@ model.gauss = glmer(get(response.var)~Environment + Wild_Dom + Environment:Wild_
 ```
 
 Even worse! Okay, there doesn't seem to be any way to fit this trait nicely, so let's just model it with a gaussian distribution but take the results with a pinch of salt.
+
+## Work package 1: Comparing domesticates to their wild progenitors
+
+For this work package, we wish to compare wild progenitor species to modern domesticates. For Brassica, the comparison is between domesticated B rapa with wild B rapa, while for Raphanus the comparison is between R raphanistrum (wild) and all other Raphanus samples, all of which appear to be domesticated. Our analytic design is: 
+  
+  expression ~ domestication + treatment + domestication*treatment + (1|population) + (1|parental_effects_status). 
+
+```{r brassica-morphology-dom-vs-progenitor-models}
+#subset to rapas
+phenodata.gen2.clean.brass.subset = subset(phenodata.gen2.clean.brass, Species == "Brassica_rapa")
+#loop over traits and save model outputs
+for(i in 1:length(measure.vars.brass)){
+  #get trait of interest
+  response.var = measure.vars.brass[i]
+  isDiscrete = response.var %in% discrete.traits
+  #remove NAs
+  phenodata.gen2.clean.brass.omit = subset(phenodata.gen2.clean.brass.subset, is.na(get(response.var))==F)
+  #run poisson if trait is discretised, otherwise run gaussian
+  if(isDiscrete){
+    model.out = glmer(get(response.var)~Environment + Wild_Dom + Environment:Wild_Dom + 
+                          (1|Population) + (1|Parental_effects_status), 
+                        data=phenodata.gen2.clean.brass.omit,family = poisson(),
+                        control = glmerControl(optimizer="bobyqa", optCtrl = list(maxfun = 10000)))
+    out = summary(model.out)
+    pvals = data.frame(out$coefficients[,"Pr(>|z|)"])
+    ests = data.frame(out$coefficients[,"Estimate"])
+  }else{
+    model.out = lmer(scale(get(response.var))~Environment + Wild_Dom + Environment:Wild_Dom +
+                         (1|Population) + (1|Parental_effects_status), 
+                       data=phenodata.gen2.clean.brass.omit, 
+                       control = lmerControl(optimizer="bobyqa", optCtrl = list(maxfun = 10000)))
+    out = summary(model.out)
+    pvals = data.frame(out$coefficients[,"Pr(>|t|)"])
+    ests = data.frame(out$coefficients[,"Estimate"])
+  }
+  #record output
+  if(i==1){pvals.out = pvals; ests.out = ests}else{
+    pvals.out = cbind(pvals.out,pvals); ests.out = cbind(ests.out,ests)}
+
+}
+#set dimnames for outputs
+dimnames(pvals.out)=list(c("Intercept","Cultivated_environment","Domesticated_history","Interaction"),measure.vars.brass)
+dimnames(ests.out)=list(c("Intercept","Cultivated_environment","Domesticated_history","Interaction"),measure.vars.brass)
+```
+
+```{r brassica-morphology-dom-vs-progenitor-plotting}
+#adjust p-vlaues
+pvals.out = data.frame(t(apply(pvals.out,1,function(x) p.adjust(x, "BH"))))
+
+#get labels for plot
+brassica.subset.coef.labels = paste0(as.matrix(signif(pvals.out,2)),"\n(",as.matrix(signif(ests.out,2)),")")
+
+#coerce df for ggplot and apply FDR correction
+brassica.subset.coefs.fdr = reshape2::melt(rownames_to_column(pvals.out)) #%>% mutate(value = p.adjust(value, method = "BH"))
+
+#plot
+brassica.subset.traits.fdr.plot = ggplot(data = brassica.subset.coefs.fdr, aes(x = variable, 
+                                                                               y = factor(rowname,levels = c("Interaction",
+                                                                                                             "Domesticated_history",
+                                                                                                             "Cultivated_environment",
+                                                                                                             "Intercept")), fill = value)) +
+  geom_tile(aes(fill = value),color = "gray", size=.75, width=1, height = 1) +
+  geom_text(aes(label=c(brassica.subset.coef.labels), 
+                lineheight = 0.75, size = 2), show.legend = FALSE) +
+  scale_fill_gradientn(colours = colorRampPalette(rev(c("#FFFFFF",brewer.pal(n = 9, name = "Reds")[1:5])),bias=6)(20),
+                       breaks = c(0.0,0.05,1),
+                       expand = c(0,0),
+                       limits = c(0,1),
+                       guide = guide_colourbar(barheight = 25,
+                                               #title = "p-value\n(adjusted)",
+                                               title = "p-value\n(adjusted)",
+                                               title.vjust = 2,
+                                               frame.colour = "black", 
+                                               frame.linewidth = 1.5)) +
+  theme_minimal() + 
+  theme(#aspect.ratio = 1,
+    panel.grid = element_line(size = 0.2, colour = "gray80"),
+    axis.text.x = element_text(angle = 45, vjust = 1, size = 12, hjust = 1),
+    axis.text.y = element_text(size = 12),
+    axis.title = element_blank()#,
+    #legend.text = element_text(size=12),
+    #legend.title = element_text(size=15, face = "bold")
+  ) + coord_fixed()
+
+ggsave(brassica.subset.traits.fdr.plot, filename = "phenotypic_lmer_pvals_brassica_subset.pdf",
+       device = "pdf", path = "Analysis/Phenotypic_analysis/Images",
+       width =  40, height = 20, units = "cm")
+
+knitr::include_graphics("Analysis/Phenotypic_analysis/Images/phenotypic_lmer_pvals_brassica_subset.pdf")
+```
