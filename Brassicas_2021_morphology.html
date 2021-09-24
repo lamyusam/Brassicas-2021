@@ -185,6 +185,9 @@ pre code {
 
 <div id="data-import-pre-filtering-and-qc" class="section level2">
 <h2>Data import, pre-filtering and QC</h2>
+<pre><code>## 
+##  15  16  17  18  19  20  21  22  23  24  25  26  28 
+##   9  10   4 238 291 178  10   3 110 228 206 212   1</code></pre>
 <p>Check trait distributions for Brassica:</p>
 <p><img src="Brassicas_2021_morphology_files/figure-html/brass-distribution-qc-1.png" width="960" /></p>
 <p>And for Raphanus:</p>
@@ -226,6 +229,39 @@ pre code {
 <p>That doesn’t look any better. What about a gamma distribution?</p>
 <p><img src="Brassicas_2021_morphology_files/figure-html/modeltesting-gamma-brassica-1.png" width="960" /></p>
 <p>Even worse! Okay, there doesn’t seem to be any way to fit this trait nicely, so let’s just model it with a gaussian distribution but take the results with a pinch of salt.</p>
+</div>
+<div id="parental-effects-testing" class="section level2">
+<h2>Parental effects testing</h2>
+<p>Before running any other models, we’d like to check if any traits exhibit strong differences between those accessions with parental effect standardization and those without. Note that for Raphanus, all species/subspecies have both standardised and unstandardised samples, so we can just compare all against all, whereas for Brassica standardisation is present only for some B rapa (both wild and domesticated) so we need to subset before running the comparison.</p>
+<p>First for the Brassicas:</p>
+<pre><code>## [1] &quot;Parental effects p for Height_1820 in Brassica rapa: 0.00482&quot;
+## [1] &quot;Parental effects p for Height_2326 in Brassica rapa: 0.00581&quot;
+## [1] &quot;Parental effects p for Leaf_length_1820 in Brassica rapa: 0.0332&quot;
+## [1] &quot;Parental effects p for Leaf_length_2326 in Brassica rapa: 0.00167&quot;
+## [1] &quot;Parental effects p for Num_leaves_1820 in Brassica rapa: 0.268&quot;
+## [1] &quot;Parental effects p for Num_leaves_2326 in Brassica rapa: 0.00483&quot;
+## [1] &quot;Parental effects p for Sla_1820 in Brassica rapa: 0.0337&quot;
+## [1] &quot;Parental effects p for Sla_2326 in Brassica rapa: 0.00257&quot;
+## [1] &quot;Parental effects p for Sldw_1820 in Brassica rapa: 0.0129&quot;
+## [1] &quot;Parental effects p for Sldw_2326 in Brassica rapa: 4.26e-05&quot;
+## [1] &quot;Parental effects p for Aboveground_dw in Brassica rapa: 0.0149&quot;
+## [1] &quot;Parental effects p for Root_dw in Brassica rapa: 0.00163&quot;
+## [1] &quot;Parental effects p for Log_root_shoot_ratio in Brassica rapa: 0.0986&quot;</code></pre>
+<p>And for Raphanus:</p>
+<pre><code>## [1] &quot;Parental effects p for Height_1820 in Raphanus: 0.71&quot;
+## [1] &quot;Parental effects p for Height_2326 in Raphanus: 0.0032&quot;
+## [1] &quot;Parental effects p for Leaf_length_1820 in Raphanus: 0.0562&quot;
+## [1] &quot;Parental effects p for Leaf_length_2326 in Raphanus: 0.00118&quot;
+## [1] &quot;Parental effects p for Num_leaves_1820 in Raphanus: 0.56&quot;
+## [1] &quot;Parental effects p for Num_leaves_2326 in Raphanus: 0.0812&quot;
+## [1] &quot;Parental effects p for Sla_1820 in Raphanus: 0.00553&quot;
+## [1] &quot;Parental effects p for Sla_2326 in Raphanus: 6.41e-05&quot;
+## [1] &quot;Parental effects p for Sldw_1820 in Raphanus: 0.0458&quot;
+## [1] &quot;Parental effects p for Sldw_2326 in Raphanus: 0.0211&quot;
+## [1] &quot;Parental effects p for Aboveground_dw in Raphanus: 0.804&quot;
+## [1] &quot;Parental effects p for Root_dw in Raphanus: 0.221&quot;
+## [1] &quot;Parental effects p for Log_root_shoot_ratio in Raphanus: 0.0241&quot;</code></pre>
+<p>The large majority of traits in both Raphanus and Brassica display some kind of parental effect, so we will have to include parental standardisation status as a random effect in our subsequent models.</p>
 </div>
 <div id="work-package-1-comparing-domesticates-to-their-wild-progenitors" class="section level2">
 <h2>Work package 1: Comparing domesticates to their wild progenitors</h2>

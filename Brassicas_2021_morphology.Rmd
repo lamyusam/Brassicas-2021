@@ -26,7 +26,8 @@ basic_libraries = c("tidyverse",
                     "lme4",
                     "lmerTest",
                     "grid",
-                    "gridExtra")
+                    "gridExtra",
+                    "lattice")
 for(lib in basic_libraries){
   if(require(package = lib, character.only = TRUE)){
     print("Successful")
@@ -36,33 +37,77 @@ for(lib in basic_libraries){
 }
 #prevent other packages overriding dplyr's select
 select = dplyr::select
+#set working directory
+setwd("/home/benjamin/Documents/Brassicas_repo")
 ```
 
 ## Data import, pre-filtering and QC
 
 ```{r import-morphology-data}
-#import data
-phenodata.gen2.clean = read.delim("Data/Phenotypic_data/morphology_data_gen2_clean.csv", sep = ",", header = T, row.names = NULL)
+# import data
+phenodata.gen2 = read.delim("Data/Phenotypic_data/morphology_data_gen2.txt", sep = ",", header = T, row.names = NULL)
+
+# remove unused columns
+phenodata.gen2 = select(phenodata.gen2, -c("Total_la"))
+
+# change the environment labels to something less verbose
+phenodata.gen2$Environment =  ifelse(phenodata.gen2$Environment == "wheat competition", "wheat", "control")
+# for now simplify down to wild vs domesticated
+phenodata.gen2$Wild_Dom =  ifelse(phenodata.gen2$Wild_Dom == "Wild", "Wild", "Cultivated")
+# simplify the parental effects status data
+phenodata.gen2$Parental_effects_status = ifelse(phenodata.gen2$Parental_effects_status == "standardised",
+                                                            "standardised","unstandardised")
+# munra and mungra are almost certainly the same species, divided by a typo, so combine these
+phenodata.gen2$Species[which(phenodata.gen2$Species=="Raphanus_raphanistrum_mungra")] = "Raphanus_raphanistrum_munra"
+
+# for some factors, we need to take into account timepoint of measurement
+table(phenodata.gen2$Days_meas_taken)
+phenodata.gen2$DayMeasured = ifelse(phenodata.gen2$Days_meas_taken %in% c(18:20,23:26), 
+                                    ifelse(phenodata.gen2$Days_meas_taken %in% c(18:20), 
+                                           "d18to20", "d23to26"), NA)
+#subset height, num leaves, sla, sldw, leaf length based on measure data
+repeated.measures = c("Height","Leaf_length","Num_leaves","Sla","Sldw")
+#new cols for days 18-20
+newcols = select(phenodata.gen2, repeated.measures)
+newcols[which(phenodata.gen2$DayMeasured != "d18to20"),] = NA
+colnames(newcols) = paste0(colnames(newcols),"_1820")
+phenodata.gen2 = cbind(phenodata.gen2, newcols)
+#new cols for days 23-26
+newcols = select(phenodata.gen2, repeated.measures)
+newcols[which(phenodata.gen2$DayMeasured != "d23to26"),] = NA
+colnames(newcols) = paste0(colnames(newcols),"_2326")
+phenodata.gen2 = cbind(phenodata.gen2, newcols)
+#remove old, now-defunct measure cols
+phenodata.gen2 = select(phenodata.gen2, -repeated.measures)
+
+# take note of the most relevant measured variables
+measure.vars = c("Days_germ", #days from potting to germination
+                 "Height_1820", #max distance from soil to plant
+                 "Height_2326",
+                 "Leaf_length_1820", #base to tip of longest non-cotyledon
+                 "Leaf_length_2326",
+                 "Num_leaves_1820", #number of leaves
+                 "Num_leaves_2326", 
+                 "Sla_1820", #single leaf area of oldest non-cotyledon
+                 "Sla_2326",
+                 "Sldw_1820", #single lead dry weight of oldest non-cotyledon
+                 "Sldw_2326",
+                 #"Sp_la", #specific leaf area
+                 "Aboveground_dw", #all biomass above soil
+                 #"Day_flowering", #days from germination to flowering
+                 "Root_dw", #all biomass below soil
+                 #"Total_biomass", #sum of above and below ground biomass
+                 "Root_to_shoot_ratio" #ratio of below to above-ground biomass (I think)
+) 
+
+# convert to numeric where applicable
+phenodata.gen2.clean =  mutate_at(phenodata.gen2, measure.vars, function(x) as.numeric(as.character(x))) %>%
+  select(c("Label_front","Species","Population","Wild_Dom","Environment","Parental_effects_status",measure.vars)) 
+
+
 #refactor to set reference levels
 phenodata.gen2.clean$Wild_Dom = factor(phenodata.gen2.clean$Wild_Dom, c("Wild","Cultivated"))
 phenodata.gen2.clean$Environment = factor(phenodata.gen2.clean$Environment, c("wheat","control"))
-
-# take note of the most relevant measured variables
-measure.vars = c("Days_germ",
-                 "Height_1820",
-                 "Height_2326",
-                 "Leaf_length_1820",
-                 "Leaf_length_2326",
-                 "Num_leaves_1820",
-                 "Num_leaves_2326",
-                 "Sla_1820",
-                 "Sla_2326",
-                 "Sldw_1820",
-                 "Sldw_2326",
-                 "Aboveground_dw",
-                 "Root_dw",
-                 "Root_to_shoot_ratio"
-) 
 
 #narrow to spp
 phenodata.gen2.clean.brass = subset(phenodata.gen2.clean, substr(Species,1,3)=="Bra")
@@ -149,6 +194,7 @@ measure.vars.raph = c(measure.vars[!(measure.vars %in% c("Days_germ","Root_to_sh
 ```
 
 We'll use logged root-shoot ratio instead of the unmodified ratio henceforth. We'll also drop days to germination, since this is clearly a highly unimodal trait. 
+
 
 ## Trait model testing
 
@@ -306,6 +352,70 @@ model.gauss = glmer(get(response.var)~Environment + Wild_Dom + Environment:Wild_
 
 Even worse! Okay, there doesn't seem to be any way to fit this trait nicely, so let's just model it with a gaussian distribution but take the results with a pinch of salt.
 
+## Parental effects testing
+
+Before running any other models, we'd like to check if any traits exhibit strong differences between those accessions with parental effect standardization and those without. Note that for Raphanus, all species/subspecies have both standardised and unstandardised samples, so we can just compare all against all, whereas for Brassica standardisation is present only for some B rapa (both wild and domesticated) so we need to subset before running the comparison. 
+
+First for the Brassicas:
+```{r parental-effects-brassica}
+#subset to rapas
+phenodata.gen2.clean.brass.subset = subset(phenodata.gen2.clean.brass, Species == "Brassica_rapa")
+
+for(i in 1:length(measure.vars.brass)){
+  
+  #get trait
+  response.var = measure.vars.brass[i]
+  #check whether trait is discrete
+  isDiscrete = response.var %in% discrete.traits
+  #remove NAs
+  phenodata.gen2.clean.brass.omit = subset(phenodata.gen2.clean.brass.subset, is.na(get(response.var))==F)
+  #run model
+  if(isDiscrete){
+    model = glmer(get(response.var) ~ Parental_effects_status + (1|Population), 
+                  data=phenodata.gen2.clean.brass.omit, family = poisson(),
+                  control = glmerControl(optimizer="bobyqa", optCtrl = list(maxfun = 10000)))
+    out = signif(data.frame(summary(model)$coefficients)[2,4],3)
+    print(paste0("Parental effects p for ",response.var," in Brassica rapa: ",out))
+  } else {
+    model = lmer(get(response.var) ~ Parental_effects_status + (1|Population), 
+                 data=phenodata.gen2.clean.brass.omit,
+                 control = lmerControl(optimizer="bobyqa", optCtrl = list(maxfun = 10000)))
+    out = signif(data.frame(summary(model)$coefficients)[2,5],3)
+    print(paste0("Parental effects p for ",response.var," in Brassica rapa: ",out))
+  }
+  
+}
+```
+
+And for Raphanus:
+
+```{r parental-effects-raphanus}
+for(i in 1:length(measure.vars.raph)){
+  
+  #get trait
+  response.var = measure.vars.raph[i]
+  #check whether trait is discrete
+  isDiscrete = response.var %in% discrete.traits
+  #remove NAs
+  phenodata.gen2.clean.raph.omit = subset(phenodata.gen2.clean.raph, is.na(get(response.var))==F)
+  #run model
+  if(isDiscrete){
+    model = glmer(get(response.var) ~ Parental_effects_status + (1|Population), 
+                  data=phenodata.gen2.clean.raph.omit, family = poisson())
+    out = signif(data.frame(summary(model)$coefficients)[2,4],3)
+    print(paste0("Parental effects p for ",response.var," in Raphanus: ",out))
+  } else {
+    model = lmer(get(response.var) ~ Parental_effects_status + (1|Population), 
+                 data=phenodata.gen2.clean.raph.omit)
+    out = signif(data.frame(summary(model)$coefficients)[2,5],3)
+    print(paste0("Parental effects p for ",response.var," in Raphanus: ",out))
+  }
+  
+}
+```
+
+The large majority of traits in both Raphanus and Brassica display some kind of parental effect, so we will have to include parental standardisation status as a random effect in our subsequent models. 
+
 ## Work package 1: Comparing domesticates to their wild progenitors
 
 For this work package, we wish to compare wild progenitor species to modern domesticates. For Brassica, the comparison is between domesticated B rapa with wild B rapa, while for Raphanus the comparison is between R raphanistrum (wild) and all other Raphanus samples, all of which appear to be domesticated. Our analytic design is: 
@@ -313,8 +423,6 @@ For this work package, we wish to compare wild progenitor species to modern dome
   $$expression \sim domestication + treatment + domestication*treatment + (1|population) + (1|parental\ standardization\ status)$$
 
 ```{r brassica-morphology-dom-vs-progenitor-models}
-#subset to rapas
-phenodata.gen2.clean.brass.subset = subset(phenodata.gen2.clean.brass, Species == "Brassica_rapa")
 #loop over traits and save model outputs
 for(i in 1:length(measure.vars.brass)){
   #get trait of interest
@@ -483,4 +591,8 @@ knitr::include_graphics("Analysis/Phenotypic_analysis/Images/phenotypic_lmer_pva
 ```
 
 Again, we reach the unfortunate conclusion that there seem to be no significant terms in any of the models. Might we find some if we subset by the separate Raphanus domesticates, rather than combining them all into one?
+
+```{r}
+
+```
 
