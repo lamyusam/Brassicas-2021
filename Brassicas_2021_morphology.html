@@ -271,7 +271,19 @@ pre code {
 <p>Our primary interest is in the bottom row, since significant terms here will indicate traits that exhibit differential plasticity in domesticated vs wild rapa. However, none of these interaction terms are significant. Nor, indeed, are any traits significantly different between wild and domesticated rapa overall, which is very surprising!</p>
 <p>Let’s try the same analysis for Raphanus, comparing R raphanistrum to the various domesticated Raphanus using the same model.</p>
 <p><img src="Analysis/Phenotypic_analysis/Images/phenotypic_lmer_pvals_raphanus_subset.png" width="2362" /></p>
-<p>Again, we reach the unfortunate conclusion that there seem to be no significant terms in any of the models. Might we find some if we subset by the separate Raphanus domesticates, rather than combining them all into one?</p>
+<p>Again, we reach the unfortunate conclusion that there seem to be no significant terms in any of the models. Might we find some if we subset by the separate Raphanus domesticates, rather than combining them all into one? Below we plot the interaction terms only for each comparison.</p>
+<p><img src="Analysis/Phenotypic_analysis/Images/phenotypic_lmer_pvals_raph_doms_perspecies.png" width="2362" /></p>
+<p>To the contrary, subsetting by domesticate further erases any traces of interaction significance that we might have found for Raphanus (not least because we have to apply FDR correction over 3 x 13 = 39 comparisons here).</p>
+<p>We must therefore conclude that domestication hasn’t selected for greeater phenotypic plasticity in domesticates relative to their wild progenitors.</p>
+</div>
+<div id="work-package-2-comparing-wild-progenitors-to-never-domesticated-wild-species" class="section level2">
+<h2>Work package 2: Comparing wild progenitors to never-domesticated wild species</h2>
+<p>We now wish to ask a different question: do ‘progenitor species’ (i.e. those that were the original targets of human selection) differ systematically in their patterns of phenotypic expression from wild species that were never domesticated? We are particularly interested in knowing whether progenitor species express greater phenotypic plasticity than their never-domesticated relatives, since this could suggest that earty human farmers either intentionally or inadvertently targeted species that were particularly receptive to the benefits of cultivation.</p>
+<p>Unfortunately, for Raphanus we have no data for non-domesticated wild species, so this analysis will be restricted to Brassica, comparing wild Brassica rapa to a number of never-domesticated Brassicas. We’ll begin by running a lmer/glmer model as before, except that instead of comparing wild to domesticated, we’ll compare progenitors to non-progenitors.</p>
+<p><img src="Analysis/Phenotypic_analysis/Images/phenotypic_lmer_pvals_brassica_wilds.png" width="2362" /></p>
+<p>This is somewhat more promising: many traits differ in their expression between B rapa and the other wild species, and several of the interaction terms are near-significant. However, to be sure we’ll again need to subset by species, since we once again may have lost power by combining distinct species.</p>
+<p><img src="Analysis/Phenotypic_analysis/Images/phenotypic_lmer_pvals_brass_wilds_perspecies.png" width="2362" /></p>
+<p>Unfortunately, as with the Raphanus domesticates, subsetting by wild species in Brassica results in a total loss of interesting interaction effects. We must therefore conclude that Brassica rapa does not display greater phenotypic plasticity than other wild Brassicaspecies that were never domesticated.</p>
 </div>
 
 
