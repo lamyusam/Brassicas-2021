@@ -55,3 +55,75 @@ read.csv("Analysis/RNAseq/Tables/brassica_deseq_domesticate_vs_progenitor_summar
 ```
 
 We can see from this that a great many genes are associated with domestication, but few with stress. 41 genes show an interaction between treatment and domestication, and are therefore of particular interest. Summary of the 25 GO terms associated with these interaction genes:
+
+```{r,out.width="70%",fig.align="center"}
+knitr::include_graphics("Analysis/RNAseq/Images/brassica_domesticate_vs_progenitor_GO_treeplot.png")
+```
+
+We can also plot these interaction terms to get a better idea of what the reaction norms look like for wild and domesticates accessions respectively:
+
+```{r}
+knitr::include_graphics("Analysis/RNAseq/Images/brapas_interaction_deg_plots.png")
+```
+
+Eyeballing these plots, there's no obvious trend in terms of increases or decreases in plasticity for wild vs domesticated accessions. Let's run statistical tests to check whether this is actually the case:
+
+```{r}
+brass.int.table = read.csv("Analysis/RNAseq/brassica_interaction_gene_directionality_table.csv")
+print("Plasticity higher in wild vs domesticate?:")
+table(brass.int.table$wild.higher)
+
+load("Analysis/RNAseq/brassica_interaction_gene_directionality_ttest.R")
+load("Analysis/RNAseq/brassica_interaction_gene_directionality_chisq.R")
+load("Analysis/RNAseq/brassica_interaction_gene_directionality_wilcox.R")
+
+data.frame("Chi-squared"=signif(brass.inter.chisq$p.value,3),
+           "Paired Wilcoxon"=signif(brass.inter.wilcox$p.value,3),
+           "Paired t-test"=signif(brass.inter.t.test$p.value,3)) %>% "row.names<-"("p-value")
+```
+
+From this we must conclude that, in Brassica rapa, genes have not changed systematically in their plasticity in the course of domestication. 
+
+# Raphanus gene expression
+
+Results summary (number of genes and GO terms enriched for each dependent variable) for wild vs domesticated Raphanus:
+
+```{r}
+read.csv("Analysis/RNAseq/Tables/raphanus_deseq_domesticate_vs_progenitor_summary.csv", row.names = 1)
+```
+
+Compared to Brassica, we find that fewer genes are associated with domestication, but more with stress. 98 genes show an interaction between treatment and domestication, and are therefore of particular interest. Summary of the 49 GO terms associated with these interaction genes:
+
+```{r,out.width="70%",fig.align="center"}
+knitr::include_graphics("Analysis/RNAseq/Images/raphanus_domesticate_vs_progenitor_GO_treeplot.png")
+```
+
+We can also plot these interaction terms to get a better idea of what the reaction norms look like for wild and domesticates accessions respectively:
+
+```{r}
+knitr::include_graphics("Analysis/RNAseq/Images/raphanus_interaction_deg_plots.png")
+```
+
+Eyeballing these plots, there's no obvious trend in terms of increases or decreases in plasticity for wild vs domesticated accessions. Let's run statistical tests to check whether this is actually the case:
+
+```{r}
+raph.int.table = read.csv("Analysis/RNAseq/raphanus_interaction_gene_directionality_table.csv")
+print("Plasticity higher in wild vs domesticate?:")
+table(raph.int.table$wild.higher)
+
+load("Analysis/RNAseq/raphanus_interaction_gene_directionality_ttest.R")
+load("Analysis/RNAseq/raphanus_interaction_gene_directionality_chisq.R")
+load("Analysis/RNAseq/raphanus_interaction_gene_directionality_wilcox.R")
+
+data.frame("Chi-squared"=signif(raph.inter.chisq$p.value,3),
+           "Paired Wilcoxon"=signif(raph.inter.wilcox$p.value,3),
+           "Paired t-test"=signif(raph.inter.t.test$p.value,3)) %>% "row.names<-"("p-value")
+```
+
+While the t-test is less conclusive, both the chi-squared and paired Wilcoxon tests strongly suggest that plasticity is higher in wild accessions than in domesticated ones. However, this result might be misleading, because the values for the Raphanus domesticates combine multiple different species, which may have resulted in depressed estimates of gene expression plasticity. For a more robust analysis, we need to run the analysis for each Raphanus domesticate individually.
+
+```{r}
+read.csv("Analysis/RNAseq/Tables/raphanus_interaction_gene_directionality_perspecies_summary.csv")[-1]
+```
+
+Again, while the t-test results are less conclusive, per the Wilcox and Chi-squared tests it's clear that for interaction genes plasticity is higher overall in the wild progenitor than in modern domesticates. We must therefore conclude that domestication has selected for decreased gene expression plasticity in radishes. 

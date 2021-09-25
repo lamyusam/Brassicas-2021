@@ -15,6 +15,7 @@ output:
 knitr::opts_chunk$set(echo = F, message = F, warning = F, cache = T, 
                       cache.path =  "/home/benjamin/Documents/Brassicas_repo/Brassicas_cache/Cache")
 knitr::opts_knit$set(root.dir = "/home/benjamin/Documents/Brassicas_repo")
+setwd("/home/benjamin/Documents/Brassicas_repo")
 ```
 ```{r load-rnaseq-libraries-and-functions, eval = TRUE, echo = FALSE, include = FALSE}
 # get libraries
@@ -22,7 +23,10 @@ basic_libraries = c("DESeq2",
                     "tidyverse",
                     "WGCNA",
                     "RColorBrewer",
-                    "forcats")
+                    "topGO",
+                    "rrvgo",
+                    "GOSemSim",
+                    "org.Dm.eg.db")
 for(lib in basic_libraries){
   if(require(package = lib, character.only = TRUE)){
     print("Successful")
@@ -36,6 +40,7 @@ select = dplyr::select
 source("Functions/expression_heatmap.R")
 source("Functions/topGO_wrapper.R")
 source("Functions/gene_overlap_test.R")
+source("Functions/GO_treeplots.R")
 ```
 
 ## Data import, pre-filtering and QC
@@ -456,6 +461,10 @@ brass.interaction.GO = topGO_wrapper(geneScores = degs.brass.interaction,
                                     p = 0.05)
 #brass.interaction.GO$consolidated_result
 #25 GO terms
+
+#save GO output plot
+GO_treeplots(brass.interaction.GO,
+             path = "Analysis/RNAseq/Images/brassica_domesticate_vs_progenitor_GO_treeplot.png")
 ```
 
 ```{r deseq-domesticate-results-brassica-print}
@@ -547,6 +556,7 @@ brass.inter.wilcox = wilcox.test(intgene.diff.out$wild,intgene.diff.out$dom,pair
 print("Probability that changes in plasticity of Brassica genes during domestication are non-random in their directionality:") 
 print(paste0("chi-squared p=",signif(brass.inter.chisq$p.value,3),"; paired t-test p=",signif(brass.inter.t.test$p.value,3)))
 #save for later
+write.csv(intgene.diff.out,file = "Analysis/RNAseq/brassica_interaction_gene_directionality_table.csv")
 save(brass.inter.t.test,file = "Analysis/RNAseq/brassica_interaction_gene_directionality_ttest.R")
 save(brass.inter.chisq,file = "Analysis/RNAseq/brassica_interaction_gene_directionality_chisq.R")
 save(brass.inter.wilcox,file = "Analysis/RNAseq/brassica_interaction_gene_directionality_wilcox.R")
@@ -686,6 +696,8 @@ raph.interaction.GO = topGO_wrapper(geneScores = degs.raph.interaction,
                                     p = 0.05)
 #raph.interaction.GO$consolidated_result
 #25 GO terms
+GO_treeplots(raph.interaction.GO,
+             path = "Analysis/RNAseq/Images/raphanus_domesticate_vs_progenitor_GO_treeplot.png")
 ```
 
 ```{r deseq-domesticate-results-raphanus-print}
@@ -771,14 +783,18 @@ table(intgene.diff.out$wild.higher)
 raph.inter.chisq = chisq.test(table(intgene.diff.out$wild.higher))
 #run a paired t-test comparing fold changes in wild or domesticated
 raph.inter.t.test = t.test(intgene.diff.out$wild,intgene.diff.out$dom,paired=T)
+raph.inter.wilcox = wilcox.test(intgene.diff.out$wild,intgene.diff.out$dom,paired=T)
+
 
 print("Probability that changes in plasticity of Raphanus genes during domestication are non-random in their directionality:") 
 print(paste0("chi-squared p=",signif(raph.inter.chisq$p.value,3),"; paired t-test p=",signif(raph.inter.t.test$p.value,3)))
 #save for later
 save(raph.inter.t.test,file = "Analysis/RNAseq/raphanus_interaction_gene_directionality_ttest.R")
 save(raph.inter.chisq,file = "Analysis/RNAseq/raphanus_interaction_gene_directionality_chisq.R")
+save(raph.inter.wilcox,file = "Analysis/RNAseq/raphanus_interaction_gene_directionality_wilcox.R")
+write.csv(intgene.diff.out, file = "Analysis/RNAseq/raphanus_interaction_gene_directionality_table.csv")
 ```
-At least based on the chi-squared output, it appears that Raphanus genes on average have increased in plasticity during domestication. However, this result might be misleading, because the values for the Raphanus domesticates combine multiple different species, which may have resulted in depressed estimates of gene expression plasticity. For a more robust analysis, we should re-run the above for each Raphanus domesticate individually:
+At least based on the chi-squared output, it appears that Raphanus genes on average have decreased in plasticity during domestication. However, this result might be misleading, because the values for the Raphanus domesticates combine multiple different species, which may have resulted in depressed estimates of gene expression plasticity. For a more robust analysis, we should re-run the above for each Raphanus domesticate individually:
 
 ```{r raphanus-plasticity-analysis-per-domesticated-species}
 #get domesticates
@@ -824,7 +840,7 @@ raph.inter.out %>% remove_rownames()
 write.csv(raph.inter.out, file = "Analysis/RNAseq/Tables/raphanus_interaction_gene_directionality_perspecies_summary.csv")
 ```
 
-When subsetting by species, the results are more interesting: per a chi-squared test, interaction genes are significantly more likely to be up-regulated than down-regulated. Paired t-tests gives less consistent results, but paired Wilcoxon tests concur with the chi-squared results. We can therefore tentatively conclude that in Raphanus, genes with significant interactions between domestication and treatment are significantly more like than chance to have increased in their gene expression plasticity in the course of domestication: in other words, humans appear to have selected for increased gene expression plasticity in radishes. 
+When subsetting by species, the results are more interesting: per a chi-squared test, interaction genes are significantly more likely to be up-regulated than down-regulated. Paired t-tests gives less consistent results, but paired Wilcoxon tests concur with the chi-squared results. We can therefore tentatively conclude that in Raphanus, genes with significant interactions between domestication and treatment are significantly more like than chance to have decreased in their gene expression plasticity in the course of domestication: in other words, humans appear to have selected for decreased gene expression plasticity in radishes. 
 
 ## Work package 2: Comparing wild progenitors to never-domesticated wild species
 
