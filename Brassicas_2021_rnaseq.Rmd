@@ -541,9 +541,15 @@ table(intgene.diff.out$wild.higher)
 brass.inter.chisq = chisq.test(table(intgene.diff.out$wild.higher))
 #run a paired t-test comparing fold changes in wild or domesticated
 brass.inter.t.test = t.test(intgene.diff.out$wild,intgene.diff.out$dom,paired=T)
+brass.inter.wilcox = wilcox.test(intgene.diff.out$wild,intgene.diff.out$dom,paired=T)
+
 
 print("Probability that changes in plasticity of Brassica genes during domestication are non-random in their directionality:") 
 print(paste0("chi-squared p=",signif(brass.inter.chisq$p.value,3),"; paired t-test p=",signif(brass.inter.t.test$p.value,3)))
+#save for later
+save(brass.inter.t.test,file = "Analysis/RNAseq/brassica_interaction_gene_directionality_ttest.R")
+save(brass.inter.chisq,file = "Analysis/RNAseq/brassica_interaction_gene_directionality_chisq.R")
+save(brass.inter.wilcox,file = "Analysis/RNAseq/brassica_interaction_gene_directionality_wilcox.R")
 ```
 We must therefore conclude that Brassica interaction genes do not exhibit a consistent overall change in plasticity between wild and domesticated accessions.
 
@@ -768,6 +774,9 @@ raph.inter.t.test = t.test(intgene.diff.out$wild,intgene.diff.out$dom,paired=T)
 
 print("Probability that changes in plasticity of Raphanus genes during domestication are non-random in their directionality:") 
 print(paste0("chi-squared p=",signif(raph.inter.chisq$p.value,3),"; paired t-test p=",signif(raph.inter.t.test$p.value,3)))
+#save for later
+save(raph.inter.t.test,file = "Analysis/RNAseq/raphanus_interaction_gene_directionality_ttest.R")
+save(raph.inter.chisq,file = "Analysis/RNAseq/raphanus_interaction_gene_directionality_chisq.R")
 ```
 At least based on the chi-squared output, it appears that Raphanus genes on average have increased in plasticity during domestication. However, this result might be misleading, because the values for the Raphanus domesticates combine multiple different species, which may have resulted in depressed estimates of gene expression plasticity. For a more robust analysis, we should re-run the above for each Raphanus domesticate individually:
 
@@ -812,6 +821,7 @@ for(j in 1:length(raph.domesticates)){
 }
 #print
 raph.inter.out %>% remove_rownames()
+write.csv(raph.inter.out, file = "Analysis/RNAseq/Tables/raphanus_interaction_gene_directionality_perspecies_summary.csv")
 ```
 
 When subsetting by species, the results are more interesting: per a chi-squared test, interaction genes are significantly more likely to be up-regulated than down-regulated. Paired t-tests gives less consistent results, but paired Wilcoxon tests concur with the chi-squared results. We can therefore tentatively conclude that in Raphanus, genes with significant interactions between domestication and treatment are significantly more like than chance to have increased in their gene expression plasticity in the course of domestication: in other words, humans appear to have selected for increased gene expression plasticity in radishes. 
