@@ -3,17 +3,19 @@ title: "Brassicas_2021_summarized_results"
 author: "Benjamin A Taylor"
 date: "25/09/2021"
 output:   
+  pdf_document:
+    fig_width: 10
+    fig_height: 10 
   html_document:
     keep_md: TRUE
     code_folding: hide
     self_contained: FALSE
     fig_width: 10
     fig_height: 10 
-  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = F, message = F, warning = F, cache = F, 
+knitr::opts_chunk$set(echo = F, message = F, warning = F, cache = F, fig.width = 10, fig.height = 10, out.width="100%",
                       cache.path =  "/home/benjamin/Documents/Brassicas_repo/Brassicas_cache/Cache")
 knitr::opts_knit$set(root.dir = "/home/benjamin/Documents/Brassicas_repo")
 ```
@@ -98,7 +100,7 @@ knitr::kable(read.csv("Analysis/RNAseq/Tables/raphanus_deseq_domesticate_vs_prog
 
 Compared to Brassica, we find that fewer genes are associated with domestication, but more with stress. 98 genes show an interaction between treatment and domestication, and are therefore of particular interest. Summary of the 49 GO terms associated with these interaction genes:
 
-```{r,out.width="70%",fig.align="center"}
+```{r,out.width="90%",out.height="90%",fig.align="center"}
 knitr::include_graphics("Analysis/RNAseq/Images/raphanus_domesticate_vs_progenitor_GO_treeplot.png")
 ```
 
