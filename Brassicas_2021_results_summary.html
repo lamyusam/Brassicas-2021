@@ -230,7 +230,7 @@ pre code {
 <p>We can see from this that a great many genes are associated with domestication, but few with stress. 41 genes show an interaction between treatment and domestication, and are therefore of particular interest. Summary of the 25 GO terms associated with these interaction genes:</p>
 <p><img src="Analysis/RNAseq/Images/brassica_domesticate_vs_progenitor_GO_treeplot.png" width="70%" style="display: block; margin: auto;" /></p>
 <p>We can also plot these interaction terms to get a better idea of what the reaction norms look like for wild and domesticates accessions respectively:</p>
-<p><img src="Analysis/RNAseq/Images/brapas_interaction_deg_plots.png" width="2362" /></p>
+<p><img src="Analysis/RNAseq/Images/brapas_interaction_deg_plots.png" width="4724" /></p>
 <p>Eyeballing these plots, there’s no obvious trend in terms of increases or decreases in plasticity for wild vs domesticated accessions. Let’s run statistical tests to check whether this is actually the case:</p>
 <pre><code>## [1] &quot;Interaction genes with higher plasticity in wild: 17&quot;</code></pre>
 <pre><code>## [1] &quot;Interaction genes with higher plasticity in domesticate: 24&quot;</code></pre>
@@ -296,14 +296,10 @@ pre code {
 <p>Compared to Brassica, we find that fewer genes are associated with domestication, but more with stress. 98 genes show an interaction between treatment and domestication, and are therefore of particular interest. Summary of the 49 GO terms associated with these interaction genes:</p>
 <p><img src="Analysis/RNAseq/Images/raphanus_domesticate_vs_progenitor_GO_treeplot.png" width="70%" style="display: block; margin: auto;" /></p>
 <p>We can also plot these interaction terms to get a better idea of what the reaction norms look like for wild and domesticates accessions respectively:</p>
-<p><img src="Analysis/RNAseq/Images/raphanus_interaction_deg_plots.png" width="2362" /></p>
+<p><img src="Analysis/RNAseq/Images/raphanus_interaction_deg_plots.png" width="4724" /></p>
 <p>Eyeballing these plots, it looks like wild accessions tend to exhibit higher gene expression plasticity than domesticated accessions. Let’s run statistical tests to check whether this is actually the case:</p>
 <pre><code>## [1] &quot;Interaction genes with higher plasticity in wild: 69&quot;</code></pre>
 <pre><code>## [1] &quot;Interaction genes with higher plasticity in domesticate: 29&quot;</code></pre>
-<pre><code>## [1] &quot;Plasticity higher in wild vs domesticate?:&quot;</code></pre>
-<pre><code>## 
-## FALSE  TRUE 
-##    29    69</code></pre>
 <table>
 <thead>
 <tr class="header">
@@ -368,14 +364,14 @@ pre code {
 <p>Here, we perform a similar analysis to above but using phenotypic traits instead of genes as the response variable. In each case we use a gaussian linear model, except for leaf number which is analysed using a Poisson model since it’s a discrete trait. Here we include random effects, so the model design is:</p>
 <p><span class="math display">\[expression \sim domestication + treatment + domestication*treatment + (1|population) + (1|parental\ standardization\ status)\]</span></p>
 <p>Here we plot the p-values and coefficients (in parentheses) for each independent effect for each trait. FDR correction is applied across each row and response variables are scaled prior to analysis, again with the exception of those modeled using a Poisson distribution.</p>
-<p><img src="Analysis/Phenotypic_analysis/Images/phenotypic_lmer_pvals_brassica_subset.png" width="2362" /></p>
+<p><img src="Analysis/Phenotypic_analysis/Images/phenotypic_lmer_pvals_brassica_subset.png" width="4724" /></p>
 <p>Our primary interest is in the bottom row, since significant terms here will indicate traits that exhibit differential plasticity in domesticated vs wild rapa. However, none of these interaction terms are significant. Nor, indeed, are any traits significantly different between wild and domesticated rapa overall, which is very surprising! However, we’re forced to conclude that none of the traits examined appear to have shown a shift in plasticity in the course of Brassica rapa domestication.</p>
 </div>
 <div id="raphanus-phenotypic-expression" class="section level3">
 <h3>Raphanus phenotypic expression</h3>
-<p><img src="Analysis/Phenotypic_analysis/Images/phenotypic_lmer_pvals_raphanus_subset.png" width="2362" /></p>
+<p><img src="Analysis/Phenotypic_analysis/Images/phenotypic_lmer_pvals_raphanus_subset.png" width="4724" /></p>
 <p>Again, we reach the unfortunate conclusion that there seem to be no significant terms in any of the models. Might we find some if we subset by the separate Raphanus domesticates, rather than combining them all into one? Below we plot the interaction terms only for each comparison:</p>
-<p><img src="Analysis/Phenotypic_analysis/Images/phenotypic_lmer_pvals_raph_doms_perspecies.png" width="2362" /></p>
+<p><img src="Analysis/Phenotypic_analysis/Images/phenotypic_lmer_pvals_raph_doms_perspecies.png" width="4724" /></p>
 <p>To the contrary, subsetting by domesticate further erases any traces of interaction significance that we might have found for Raphanus (not least because we have to apply FDR correction over 3 x 13 = 39 comparisons here).</p>
 <p>We must therefore conclude that domestication hasn’t selected for greeater phenotypic plasticity in domesticates relative to their wild progenitors.</p>
 </div>
@@ -423,14 +419,10 @@ pre code {
 </tbody>
 </table>
 <p>The results here are similar to those we generated when comparing the wild and domesticated Brassica rapas: many genes dividing the different species, few differing with treatment, and a mid-sized number with interaction terms. Again, our primary interest is in these interaction genes, since these are those that show differential plasticity between the progenitor and its never-domesticated relatives. Plotting the 12 genes with the lowest p-vlaues for this comparison:</p>
-<p><img src="Analysis/RNAseq/Images/brassica_interaction_deg_plots_wilds.png" width="2362" /></p>
+<p><img src="Analysis/RNAseq/Images/brassica_interaction_deg_plots_wilds.png" width="4724" /></p>
 <p>Eyeballing these plots, there’s surprisingly little difference in the reaction norms for progenitor and non-progenitor accessions, so it seems likely that the effect sizes we’re observing here are quite low despite the small p-values. Nonetheless, we can check whether there’s an overall trend in terms of increases/decreases in plasticity between the two groups:</p>
 <pre><code>## [1] &quot;Interaction genes with higher plasticity in progenitor: 36&quot;</code></pre>
 <pre><code>## [1] &quot;Interaction genes with higher plasticity in other wilds: 27&quot;</code></pre>
-<pre><code>## [1] &quot;Plasticity higher in progenitor vs other wilds?:&quot;</code></pre>
-<pre><code>## 
-## FALSE  TRUE 
-##    27    36</code></pre>
 <table>
 <thead>
 <tr class="header">
@@ -517,9 +509,9 @@ pre code {
 <div id="phenotypic-expression" class="section level3">
 <h3>Phenotypic expression</h3>
 <p>What about phenotypes- does wild B rapa exhibit increased phenotypic plasticity relative to its never-domesticated relatives, upon which human ancestors might have selected?</p>
-<p><img src="Analysis/Phenotypic_analysis/Images/phenotypic_lmer_pvals_brassica_wilds.png" width="2362" /></p>
+<p><img src="Analysis/Phenotypic_analysis/Images/phenotypic_lmer_pvals_brassica_wilds.png" width="4724" /></p>
 <p>Here we see a more interesting set of results: many traits differ between wild Rapa and the other wild species, and a few traits have near-significant interaction terms: height, above-ground dry weight, and root dry weight. Perhaps these interaction terms will become more clearly significant (or non-significant) if we subset the never-domesticated wilds by species instead of combining them all into one?</p>
-<p><img src="Analysis/Phenotypic_analysis/Images/phenotypic_lmer_pvals_brass_wilds_perspecies.png" width="2362" /></p>
+<p><img src="Analysis/Phenotypic_analysis/Images/phenotypic_lmer_pvals_brass_wilds_perspecies.png" width="4724" /></p>
 <p>Alas, to the contrary: when we subset, we lose any hint of significance in the interaction terms. Note that these values will once again have been hit hard by FDR correction, since we have to correct for 13x6=78 comparisons. Nonetheless, we’re forced to conclude that Brassica rapa was not selected for its uniquly high plasticity at the level of either gene expression or phenotypic expression.</p>
 </div>
 </div>
