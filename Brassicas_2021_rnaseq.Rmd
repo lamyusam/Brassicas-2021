@@ -526,7 +526,7 @@ ggsave(brass.intplot,
 
 There doesn't appear to be an overall trend in terms of gains or losses of plasticity, but we can check this by asking whether the fold changes on average are higher or lower for wild or domesticated samples:
 
-```{r brassica-plasticity-analysis, eval=FALSE}
+```{r brassica-plasticity-analysis}
 #set dplyr options to avoid excessively verbose output
 options(dplyr.summarise.inform=F)
 #loop across interaction genes, checking whether plasticity is higher in wild or domesticated
@@ -829,7 +829,7 @@ for(j in 1:length(raph.domesticates)){
   raph.inter.t.test = t.test(intgene.diff.out$wild,intgene.diff.out$dom,paired=T)
   raph.inter.wilcox.test = wilcox.test(intgene.diff.out$wild,intgene.diff.out$dom,paired=T)
   #collate statistics for this species
-  raph.inter.results =   data.frame(species = raph.domesticates[j],up_wild = raph.inter.table[1], up_dom = raph.inter.table[2], 
+  raph.inter.results =   data.frame(species = raph.domesticates[j],up_wild = raph.inter.table[2], up_dom = raph.inter.table[1], 
                                     chisq = signif(raph.inter.chisq$p.value,3), t = signif(raph.inter.t.test$p.value,3),
                                     wilcox = raph.inter.wilcox.test$p.value)
   #collate output
@@ -1038,7 +1038,42 @@ ggsave(brass.intplot.wilds,
 brass.intplot.wilds
 ```
 
-Our big question is, again, whether the set of genes with identified as displaying an interaction between treatment and progenitor status exhibit significantly greater (or lesser) plasticity in the progenitor than in never-domesticated wilds. Again, we need to subset by wild species so as to avoid combining many different wild species and thereby depressing plasticity estimates. 
+Our big question is, again, whether the set of genes with identified as displaying an interaction between treatment and progenitor status exhibit significantly greater (or lesser) plasticity in the progenitor than in never-domesticated wilds. 
+
+```{r brassica-plasticity-analysis-wilds}
+#loop across interaction genes, checking whether plasticity is higher in wild or wild.ancestor
+for(i in 1:length(degs.brass.wilds.interaction.ids)){
+  #for each gene, summarise count values by domestication and treatment
+  intgene.data = plotCounts(dds.gene.deg.wilds, gene=degs.brass.wilds.interaction.ids[i], 
+                            intgroup=c("wild.ancestor","treatment"), returnData = T)
+  intgene.counts = intgene.data %>% group_by(wild.ancestor,treatment) %>% 
+    summarise(mean = mean(count))
+  #get absolute difference in count means
+  intgene.diff.frame = data.frame(gene = degs.brass.wilds.interaction.ids[i],
+                                   wild = abs(diff(subset(intgene.counts,wild.ancestor == "FALSE")$mean)),
+                                   progenitor = abs(diff(subset(intgene.counts,wild.ancestor == "TRUE")$mean)))
+  #check whether absolute difference in count means is higher for wild or for cultivated
+  intgene.diff.frame = mutate(intgene.diff.frame, progenitor.higher = (progenitor>wild))
+  #collate output
+  if(i==1){intgene.diff.out = intgene.diff.frame}else{intgene.diff.out = rbind(intgene.diff.out,intgene.diff.frame)}
+}
+
+#run a chisq test here checking whether higher wild or dom is statistically overrepresented
+table(intgene.diff.out$progenitor.higher)
+brass.inter.wilds.chisq = chisq.test(table(intgene.diff.out$progenitor.higher))
+#run a paired t-test comparing fold changes in wild or wild.ancestor
+brass.inter.wilds.t.test = t.test(intgene.diff.out$progenitor,intgene.diff.out$wild,paired=T)
+brass.inter.wilds.wilcox = wilcox.test(intgene.diff.out$progenitor,intgene.diff.out$wild,paired=T)
+
+print(paste0("chi-squared p=",signif(brass.inter.chisq$p.value,3),"; paired t-test p=",signif(brass.inter.t.test$p.value,3)))
+#save for later
+write.csv(intgene.diff.out,file = "Analysis/RNAseq/brassica_wilds_interaction_gene_directionality_table.csv")
+save(brass.inter.wilds.t.test,file = "Analysis/RNAseq/brassica_wilds_interaction_gene_directionality_ttest.R")
+save(brass.inter.wilds.chisq,file = "Analysis/RNAseq/brassica_wilds_interaction_gene_directionality_chisq.R")
+save(brass.inter.wilds.wilcox,file = "Analysis/RNAseq/brassica_wilds_interaction_gene_directionality_wilcox.R")
+```
+
+Again, we need to subset by wild species so as to avoid combining many different wild species and thereby depressing plasticity estimates. 
 
 ```{r brassica-plasticity-analysis-per-wild-species}
 #get wilds
@@ -1084,5 +1119,13 @@ for(j in 1:length(brass.otherwilds)){
 
 #print
 brass.wilds.inter.out %>% remove_rownames()
+
+write.csv(brass.wilds.inter.out, 
+          file = "Analysis/RNAseq/Tables/brassica_wilds_interaction_gene_directionality_perspecies_summary.csv", row.names = FALSE)
 ```
 These results appear fairly clear: there is no consistent difference between wild Brassica rapa and any other wild Brassica species in terms of the overall plasticity of gene expression among genes with significant interaction terms. 
+
+```{r}
+beepr::beep(3)
+```
+

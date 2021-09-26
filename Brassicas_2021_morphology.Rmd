@@ -12,7 +12,7 @@ output:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = F, message = F, warning = F, cache = T, 
+knitr::opts_chunk$set(echo = F, message = F, warning = F, cache = F, 
                       cache.path =  "/home/benjamin/Documents/Brassicas_repo/Brassicas_cache/Cache")
 knitr::opts_knit$set(root.dir = "/home/benjamin/Documents/Brassicas_repo")
 ```
