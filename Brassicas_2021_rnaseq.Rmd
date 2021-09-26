@@ -3,12 +3,14 @@ title: "Brassicas_2021_RNAseq"
 author: "Benjamin A Taylor"
 date: "15/09/2021"
 output:   
+  pdf_document:
+    fig_width: 10
+    fig_height: 10 
   html_document:
     code_folding: hide
     self_contained: FALSE
     fig_width: 10
     fig_height: 10 
-  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
