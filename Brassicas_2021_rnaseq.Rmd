@@ -78,6 +78,8 @@ raph.gene.counts = read.csv("/home/benjamin/Documents/Brassicas_repo/Data/RNAseq
 #import GO mapping
 load("Data/GO/brass_GOmapping.Rdata")
 load("Data/GO/raph_GOmapping.Rdata")
+
+#choose whether to keep or exclude outlying samples ()
 ```
 
 We begin by performing QC on the RNAseq data, removing genes with low expression and samples that have evidence of being mislabeled. First for Brassica:
@@ -1002,7 +1004,7 @@ wildsnumGO = c(nrow(brass.wilds.cultivated.GO.up$consolidated_result), nrow(bras
                nrow(brass.wilds.interaction.GO$consolidated_result))
 
 brass.wilds.output = data.frame(DEGs=wildsnumdegs, GO_terms=wildsnumGO,
-                               row.names = c("Domesticated_bias","Wild_bias","Unstressed_bias","Stressed_bias","Interaction"))
+                               row.names = c("Progenitor_bias","Wild_bias","Unstressed_bias","Stressed_bias","Interaction"))
 write.csv(brass.wilds.output, file = "Analysis/RNAseq/Tables/brass_wilds_summary.csv")
 brass.wilds.output
 ```
