@@ -315,7 +315,13 @@ parentGO.overlap = gene_overlap_test(parentGO.brass,parentGO.raph, allGO, verbos
 print(paste0("Number of shared GO terms enriched among parental effect DEGs in Brassica and Raphanus: ",
              parentGO.overlap$intersect," (hypergeometric p=",parentGO.overlap$hypergeom,")."))
 ```
-The number of genes that display parental effeects in each case is quite small. At this stage we could choose to exclude these genes entirely, or we could retain them but keep tabs as we go along to see if these genes overlap strongly with other sets of genes that we pull out as interesting. For now we'll go with the latter option. 
+The number of genes that display parental effeects in each case is quite small. At this stage we could choose to exclude these genes entirely, or we could retain them but keep tabs as we go along to see if these genes overlap strongly with other sets of genes that we pull out as interesting. To be safe, we'll simply drop these genes.
+```{r parental-deg-filtering}
+#filter out genes with parental effects
+brass.gene.counts.clean = brass.gene.counts.clean[!(row.names(brass.gene.counts.clean)%in%brass.parental.degs.ids),]
+raph.gene.counts.clean = raph.gene.counts.clean[!(row.names(raph.gene.counts.clean)%in%raph.parental.degs.ids),]
+```
+
 
 ## Work package 1: Comparing domesticates to their wild progenitors
 
