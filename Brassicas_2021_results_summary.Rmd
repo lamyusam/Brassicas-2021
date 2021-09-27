@@ -59,6 +59,12 @@ Results summary (number of genes and GO terms enriched for each dependent variab
 knitr::kable(read.csv("Analysis/RNAseq/Tables/brassica_deseq_domesticate_vs_progenitor_summary.csv", row.names = 1))
 ```
 
+And the same analyses after excluding ssp. tricoloris outliers:
+
+```{r}
+knitr::kable(read.csv("Analysis/RNAseq/Tables/brassica_deseq_domesticate_vs_progenitor_summary_exclude_weird_tricoloris.csv", row.names = 1))
+```
+
 We can see from this that a great many genes are associated with domestication, but few with stress. 41 genes show an interaction between treatment and domestication, and are therefore of particular interest. Summary of the 25 GO terms associated with these interaction genes:
 
 ```{r,out.width="70%",fig.align="center"}
@@ -96,6 +102,12 @@ Results summary (number of genes and GO terms enriched for each dependent variab
 
 ```{r}
 knitr::kable(read.csv("Analysis/RNAseq/Tables/raphanus_deseq_domesticate_vs_progenitor_summary.csv", row.names = 1))
+```
+
+And the same analyses after excluding ssp. caudatus outliers:
+
+```{r}
+knitr::kable(read.csv("Analysis/RNAseq/Tables/raphanus_deseq_domesticate_vs_progenitor_summary_exclude_weird_caudatus.csv", row.names = 1))
 ```
 
 Compared to Brassica, we find that fewer genes are associated with domestication, but more with stress. 98 genes show an interaction between treatment and domestication, and are therefore of particular interest. Summary of the 49 GO terms associated with these interaction genes:

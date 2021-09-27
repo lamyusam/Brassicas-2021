@@ -79,7 +79,8 @@ raph.gene.counts = read.csv("/home/benjamin/Documents/Brassicas_repo/Data/RNAseq
 load("Data/GO/brass_GOmapping.Rdata")
 load("Data/GO/raph_GOmapping.Rdata")
 
-#choose whether to keep or exclude outlying samples ()
+#choose whether to keep or exclude unusual samples
+dropWeirds = FALSE
 ```
 
 We begin by performing QC on the RNAseq data, removing genes with low expression and samples that have evidence of being mislabeled. First for Brassica:
@@ -195,6 +196,11 @@ outcheck= subset(checkframe, RNAseq.sample.name %in% outgroup)
 tricoloris.outsamples = subset(checkframe, RNAseq.sample.name %in% outgroup)$RNAseq.sample.name
 #plot PCA for markdown
 knitr::include_graphics("Analysis/RNAseq/Images/brass_clean_pca.png")
+#drop weird samples if user has specified to do so
+if(dropWeirds){
+  metadata.brass.clean = subset(metadata.brass.clean,!(sample%in%tricoloris.outsamples))
+  brass.gene.counts.clean = select(brass.gene.counts.clean,metadata.brass.clean$sample)
+  }
 ```
 
 Now repeat QC and pre-filtering for Raphanus samples:
@@ -254,6 +260,11 @@ checkframe = read.csv("/home/benjamin/Documents/Brassicas_repo/Data/RNAseq/RNASe
 outgroup = subset(ggpcadata,PC2<(-100))$label
 caudatus.outsamples = subset(checkframe, Label %in% outgroup)$RNAseq.sample.name
 knitr::include_graphics("Analysis/RNAseq/Images/raph_clean_pca.png")
+#drop weird samples if user has specified to do so
+if(dropWeirds){
+  metadata.raph = subset(metadata.raph,!(sample%in%caudatus.outsamples))
+  raph.gene.counts.clean = select(raph.gene.counts.clean,metadata.raph$sample)
+  }
 ```
 
 ## Parental effect handling
@@ -495,7 +506,11 @@ numGO = c(nrow(brass.cultivated.GO.up$consolidated_result), nrow(brass.cultivate
 brass.output = data.frame(DEGs=numdegs, GO_terms=numGO, 
                                          row.names = c("Domesticated_bias","Wild_bias","Unstressed_bias","Stressed_bias","Interaction"))
 brass.output
-write.csv(brass.output, file = "Analysis/RNAseq/Tables/brassica_deseq_domesticate_vs_progenitor_summary.csv")
+if(dropWeirds){
+  write.csv(brass.output, file = "Analysis/RNAseq/Tables/brassica_deseq_domesticate_vs_progenitor_summary_exclude_weird_tricoloris.csv")
+}else{
+  write.csv(brass.output, file = "Analysis/RNAseq/Tables/brassica_deseq_domesticate_vs_progenitor_summary.csv")
+}
 ```
 
 We're particularly interested in the interaction DEGs, since these are genes that, under domestication, have expressed a change in the plasticity of their responses to a cultivated (i.e. no-competition) environment. Interaction terms are hard to interpret, but plotting helps. Here's the 12 most significant interaction terms:
@@ -728,7 +743,11 @@ numGO = c(nrow(raph.cultivated.GO.up$consolidated_result), nrow(raph.cultivated.
 raph.output = data.frame(DEGs=numdegs, GO_terms=numGO, 
                                          row.names = c("Domesticated_bias","Wild_bias","Unstressed_bias","Stressed_bias","Interaction"))
 raph.output
-write.csv(raph.output, file = "Analysis/RNAseq/Tables/raphanus_deseq_domesticate_vs_progenitor_summary.csv")
+if(dropWeirds){
+  write.csv(raph.output, file = "Analysis/RNAseq/Tables/raphanus_deseq_domesticate_vs_progenitor_summary_exclude_weird_caudatus.csv")
+}else{
+  write.csv(raph.output, file = "Analysis/RNAseq/Tables/raphanus_deseq_domesticate_vs_progenitor_summary.csv")
+  }
 ```
 
 Plotting the 12 most significant interaction terms for Raphanus:
