@@ -806,7 +806,7 @@ for(j in 1:length(brass.otherwilds)){
   focaldom = brass.otherwilds[j]
   
   #subset to just progenitor and chosen wild, then list whether b rapa or not
-  phenodata.gen2.clean.brass.focalpair = subset(phenodata.gen2.clean.brass, Species %in% c("Brassica_rapa",focaldom))
+  phenodata.gen2.clean.brass.focalpair = subset(phenodata.gen2.clean.brass.wilds, Species %in% c("Brassica_rapa",focaldom))
   phenodata.gen2.clean.brass.focalpair$Progenitor = ifelse(phenodata.gen2.clean.brass.focalpair$Species == "Brassica_rapa",TRUE,FALSE)
   
   #loop across each each phenotypic variable
@@ -820,25 +820,33 @@ for(j in 1:length(brass.otherwilds)){
 
     #run poisson if trait is discretised, otherwise run gaussian
     if(isDiscrete){
-      model.out = glmer(get(response.var)~Environment + Wild_Dom + Environment:Wild_Dom + 
+      model.out = glmer(get(response.var)~Environment + Progenitor + Environment:Progenitor + 
                           (1|Population) + (1|Parental_effects_status), 
                         data=phenodata.gen2.clean.brass.omit,family = poisson(),
                         control = glmerControl(optimizer="bobyqa", optCtrl = list(maxfun = 10000)))
       #extract info regarding interaction term
       out = summary(model.out)
-      outinter = data.frame(out$coefficients["Environmentcontrol:Wild_DomCultivated",c("Pr(>|z|)","Estimate")]) 
+      outinter = data.frame(out$coefficients["Environmentcontrol:ProgenitorTRUE",c("Pr(>|z|)","Estimate")]) 
+      outcomp = data.frame(out$coefficients["ProgenitorTRUE",c("Pr(>|z|)","Estimate")])
     }else{
-      model.out = lmer(scale(get(response.var))~Environment + Wild_Dom + Environment:Wild_Dom +
+      model.out = lmer(scale(get(response.var))~Environment + Progenitor + Environment:Progenitor +
                          (1|Population) + (1|Parental_effects_status), 
                        data=phenodata.gen2.clean.brass.omit, 
                        control = lmerControl(optimizer="bobyqa", optCtrl = list(maxfun = 10000)))
       #extract info regarding interaction term
       out = summary(model.out)
-      outinter = data.frame(out$coefficients["Environmentcontrol:Wild_DomCultivated",c("Pr(>|t|)","Estimate")]) 
+      outinter = data.frame(out$coefficients["Environmentcontrol:ProgenitorTRUE",c("Pr(>|t|)","Estimate")]) 
+      outcomp = data.frame(out$coefficients["ProgenitorTRUE",c("Pr(>|t|)","Estimate")]) 
     }
     
     #save loop output
-    if(i==1){outframe = outinter}else{outframe = cbind(outframe,outinter)}
+    if(i==1){
+      outframe = outinter
+      outcompframe = outcomp
+    }else{
+      outframe = cbind(outframe,outinter)
+      outcompframe = cbind(outcompframe,outcomp)
+    }
     
   }
   
@@ -846,10 +854,16 @@ for(j in 1:length(brass.otherwilds)){
   dimnames(outframe)=list(c("pval","estimate"),measure.vars.brass)
   if(j==1){pvals.out = outframe["pval",]; ests.out = outframe["estimate",]}else{
     pvals.out = rbind(pvals.out,outframe["pval",]); ests.out = rbind(ests.out,outframe["estimate",])}
+  #also for simple comparison
+  dimnames(outcompframe)=list(c("pval","estimate"),measure.vars.brass)
+  if(j==1){pvals.comp.out = outcompframe["pval",]; ests.comp.out = outcompframe["estimate",]}else{
+    pvals.comp.out = rbind(pvals.comp.out,outcompframe["pval",]); ests.comp.out = rbind(ests.comp.out,outcompframe["estimate",])}
+  
 }
 
 #rename
 row.names(pvals.out) = brass.otherwilds ; row.names(ests.out) = brass.otherwilds 
+row.names(pvals.comp.out) = brass.otherwilds ; row.names(ests.comp.out) = brass.otherwilds 
 ```
 
 ```{r brassica-morphology-dom-vs-progenitor-perspecies-plotting}
@@ -902,3 +916,56 @@ knitr::include_graphics("Analysis/Phenotypic_analysis/Images/phenotypic_lmer_pva
 ```
 
 Unfortunately, as with the Raphanus domesticates, subsetting by wild species in Brassica results in a total loss of interesting interaction effects. We must therefore conclude that Brassica rapa does not display greater phenotypic plasticity than other wild Brassicaspecies that were never domesticated. 
+
+Nonetheless, we can still look at the traits that differ in their expression between wild rapa and other wild Brassicas, which is less exciting but may go some way to explaining what made rapa a better progenitor crop than its relatives. In the below, we plot the significance of the term comparing the progenitor to each wild relative. The values in parentheses are the actual coefficients: negative values indicate that wild rapa exhibits lower trait values than the never-domesticated wild species, and positive values the converse.
+
+```{r brassica-morphology-dom-vs-progenitor-perspecies-plotting}
+#adjust p-vlaues (across all comparisons, not just rows or columns)
+pvals.comp.out.fdr = pvals.comp.out %>% 
+  as.matrix %>% 
+  as.vector %>% 
+  p.adjust(method='BH') %>% 
+  matrix(nrow=6) %>%
+  data.frame() %>%
+  'dimnames<-'(dimnames(pvals.comp.out))
+
+#get labels for plot
+brass.wilds.comps.coefs.labels = paste0(as.matrix(signif(pvals.comp.out.fdr,2)),"\n(",as.matrix(signif(ests.comp.out,2)),")")
+
+#coerce df for ggplot 
+brass.wilds.comps.coefs.fdr = reshape2::melt(rownames_to_column(pvals.comp.out.fdr)) 
+
+#plot
+brass.wilds.speciescomps.fdr.plot = ggplot(data = brass.wilds.comps.coefs.fdr, aes(x = variable,  y = rowname,  fill = value)) +
+  geom_tile(aes(fill = value),color = "gray", size=.75, width=1, height = 1) +
+  geom_text(aes(label=c(brass.wilds.comps.coefs.labels), 
+                lineheight = 0.75, size = 2), show.legend = FALSE) +
+  scale_fill_gradientn(colours = colorRampPalette(rev(c("#FFFFFF",brewer.pal(n = 9, name = "Reds")[1:5])),bias=6)(20),
+                       breaks = c(0.0,0.05,1),
+                       expand = c(0,0),
+                       limits = c(0,1),
+                       guide = guide_colourbar(barheight = 25,
+                                               #title = "p-value\n(adjusted)",
+                                               title = "p-value\n(adjusted)",
+                                               title.vjust = 2,
+                                               frame.colour = "black", 
+                                               frame.linewidth = 1.5)) +
+  theme_minimal() + 
+  theme(#aspect.ratio = 1,
+    panel.grid = element_line(size = 0.2, colour = "gray80"),
+    axis.text.x = element_text(angle = 45, vjust = 1, size = 12, hjust = 1),
+    axis.text.y = element_text(size = 12),
+    axis.title = element_blank()#,
+    #legend.text = element_text(size=12),
+    #legend.title = element_text(size=15, face = "bold")
+  ) +
+  coord_fixed()
+#save plot
+ggsave(brass.wilds.speciescomps.fdr.plot, filename = "phenotypic_lmer_pvals_brass_wilds_directprogcomp_perspecies.png",
+       device = "png", path = "Analysis/Phenotypic_analysis/Images",
+       width =  40, height = 20, units = "cm")
+#plot in markdown
+knitr::include_graphics("Analysis/Phenotypic_analysis/Images/phenotypic_lmer_pvals_brass_wilds_directprogcomp_perspecies.png")
+```
+
+The most mobvious effect here is that wild Brassica rapa seems to generally have lighter, smaller leaves than its wild relatives, which seems surprising! It also has a significantly lower root-shoot ratio than most other examined species. 
