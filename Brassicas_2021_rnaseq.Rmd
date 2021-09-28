@@ -57,9 +57,9 @@ data.meta = read.csv("/home/benjamin/Documents/Brassicas_repo/Data/RNAseq/RNASeq
   mutate(Environment = ifelse(Environment=="wheat competition","Wheat","Control"),
          Parental.effects.status = ifelse(Parental.effects.status == "'\"standardised\"","Standardised","Unstandardised")) %>%
   #drop unused variables
-  dplyr::select(c("RNAseq.sample.name","Species","Label","Parental.effects.status","Environment","Domesticated")) %>%
+  dplyr::select(c("RNAseq.sample.name","Species","Label","Parental.effects.status","Environment","Domesticated","Generation")) %>%
   #rename variables for consistency
-  'colnames<-'(c("sample","species","label","parental.effects","treatment","domesticated")) %>%
+  'colnames<-'(c("sample","species","label","parental.effects","treatment","domesticated","generation")) %>%
   #convert all variables to factor
   mutate_all(as.factor) %>%
   #relevel variables of interest so that the 'natural' state (wild+wheat) is always the base level

@@ -244,3 +244,63 @@ knitr::include_graphics("Analysis/Phenotypic_analysis/Images/phenotypic_lmer_pva
 ```
 
 The most mobvious effect here is that wild Brassica rapa seems to generally have lighter, smaller leaves than its wild relatives, which seems surprising! It also has a significantly lower root-shoot ratio than most other examined species. 
+
+## Work package 3: Comparing generation 4 to generation 2
+
+Another question we can ask regards the changes we observe when rearing plants over many generations. This is very much a WIP, but a preliminary question is whether, when performing a plasticity analysis similar to those performed above for WPs 1 & 2, we see greater (or lesser) degrees of plasticity for plants in generation 4 vs plants in generation 2. 
+
+To test this, we subset to only those gen2 accessions which havea matching accession represented in the gen4 RNAseq data, and then we run the following DESEq2 model:
+
+  $$gene expression \sim generation + treatment + generation*treatment$$
+
+### Brassica
+
+For Brassica, this analysis yields only 12 interaction genes. Plotting these, we don't see a strong signal of increased or decreased plasticity: 
+
+```{r}
+knitr::include_graphics("Analysis/RNAseq/Images/brass_gen2_gen4_interaction_deg_plots.png")
+```
+
+Statistical tests here are indeed non-significant, but do recall that we have little power here due to the small sample size of interaction genes:
+
+```{r}
+brass.combo.int.table = read.csv("Analysis/RNAseq/brassica_gen2_gen4_interaction_gene_directionality_table.csv")
+check = table(brass.combo.int.table$gen4.higher) 
+print(paste0("Interaction genes with higher plasticity in generation 4: ",check[2]))
+print(paste0("Interaction genes with higher plasticity in generation 2: ",check[1]))
+
+load("Analysis/RNAseq/brassica_gen2_gen4_interaction_gene_directionality_ttest.R")
+load("Analysis/RNAseq/brassica_gen2_gen4_interaction_gene_directionality_chisq.R")
+load("Analysis/RNAseq/brassica_gen2_gen4_interaction_gene_directionality_wilcox.R")
+
+knitr::kable(data.frame("Chi-squared"=signif(brass.gen2.gen4.inter.chisq$p.value,3),
+                        "Paired Wilcoxon"=signif(brass.gen2.gen4.inter.wilcox$p.value,3),
+                        "Paired t-test"=signif(brass.gen2.gen4.inter.t.test$p.value,3)) %>% "row.names<-"("p-value"))
+```
+
+### Raphanus
+
+For Raphanus, we have a more promising number: 52 interaction genes. Plotting the top 12 of these:
+
+```{r}
+knitr::include_graphics("Analysis/RNAseq/Images/raph_gen2_gen4_interaction_deg_plots.png")
+```
+
+It looks like plasticity might be higher on average in gen2, but unfortunately this isn't borne out in the stats:
+
+```{r}
+raph.combo.int.table = read.csv("Analysis/RNAseq/raphanus_gen2_gen4_interaction_gene_directionality_table.csv")
+check = table(raph.combo.int.table$gen4.higher) 
+print(paste0("Interaction genes with higher plasticity in generation 4: ",check[2]))
+print(paste0("Interaction genes with higher plasticity in generation 2: ",check[1]))
+
+load("Analysis/RNAseq/raphanus_gen2_gen4_interaction_gene_directionality_ttest.R")
+load("Analysis/RNAseq/raphanus_gen2_gen4_interaction_gene_directionality_chisq.R")
+load("Analysis/RNAseq/raphanus_gen2_gen4_interaction_gene_directionality_wilcox.R")
+
+knitr::kable(data.frame("Chi-squared"=signif(raph.gen2.gen4.inter.chisq$p.value,3),
+                        "Paired Wilcoxon"=signif(raph.gen2.gen4.inter.wilcox$p.value,3),
+                        "Paired t-test"=signif(raph.gen2.gen4.inter.t.test$p.value,3)) %>% "row.names<-"("p-value"))
+```
+
+Thus, the conclusion from this preliminary analysis is that there has been no systematic increase or decrease in gene expression plasticity between generations 2 and 4 for Brassica. 

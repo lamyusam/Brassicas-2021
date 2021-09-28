@@ -1,0 +1,53 @@
+RNAseq sample name,Short label,Label,Generation,Species,Parental effects status,Wild/ Domesticated,Variety/population,Environment,Previous generation environment,Accession_number,Seed_origin
+RN003,3,4-BRP-WP4-CC-3,4,Brassica rapa,"""standardised""",Wild,WP4,control -no competition,control -no competition,PI649162,Sweden
+RN016,16,4-BRP-WP4-CW-16,4,Brassica rapa,"""standardised""",Wild,WP4,wheat competition,control -no competition,PI649162,Sweden
+RN033,33,4-BRP-WP4-WC-33,4,Brassica rapa,"""standardised""",Wild,WP4,control -no competition,wheat competition,PI649162,Sweden
+RN046,46,4-BRP-WP4-WW-46,4,Brassica rapa,"""standardised""",Wild,WP4,wheat competition,wheat competition,PI649162,Sweden
+RN064,64,4-BRP-WP7-CC-64,4,Brassica rapa,"""standardised""",Wild,WP7,control -no competition,control -no competition,PI250004,Egypt
+RN077,77,4-BRP-WP7-CW-77,4,Brassica rapa,"""standardised""",Wild,WP7,wheat competition,control -no competition,PI250004,Egypt
+RN092,92,4-BRP-WP7-WC-92,4,Brassica rapa,"""standardised""",Wild,WP7,control -no competition,wheat competition,PI250004,Egypt
+RN112,112,4-BRP-WP7-WW-112,4,Brassica rapa,"""standardised""",Wild,WP7,wheat competition,wheat competition,PI250004,Egypt
+RN126,126,4-BRP-WP8-CC-126,4,Brassica rapa,"""standardised""",Wild,WP8,control -no competition,control -no competition,Ames30078,USA
+RN150,150,4-BRP-WP8-CW-150,4,Brassica rapa,"""standardised""",Wild,WP8,wheat competition,control -no competition,Ames30078,USA
+RN157,157,4-BRP-WP8-WC-157,4,Brassica rapa,"""standardised""",Wild,WP8,control -no competition,wheat competition,Ames30078,USA
+RN168,168,4-BRP-WP8-WW-168,4,Brassica rapa,"""standardised""",Wild,WP8,wheat competition,wheat competition,Ames30078,USA
+RN181,181,4-BRP-CH1-CC-181,4,Brassica rapa,"""standardised""",Domesticated,ssp. chinensis 1,control -no competition,control -no competition,PI508409,Korea
+RN196,196,4-BRP-CH1-CW-196,4,Brassica rapa,"""standardised""",Domesticated,ssp. chinensis 1,wheat competition,control -no competition,PI508409,Korea
+RN211,211,4-BRP-CH1-WC-211,4,Brassica rapa,"""standardised""",Domesticated,ssp. chinensis 1,control -no competition,wheat competition,PI508409,Korea
+RN226,226,4-BRP-CH1-WW-226,4,Brassica rapa,"""standardised""",Domesticated,ssp. chinensis 1,wheat competition,wheat competition,PI508409,Korea
+RN243,243,4-BRP-CH2-CC-243,4,Brassica rapa,"""standardised""",Domesticated,ssp. chinensis 2,control -no competition,control -no competition,PI662679,Japan
+RN258,258,4-BRP-CH2-CW-258,4,Brassica rapa,"""standardised""",Domesticated,ssp. chinensis 2,wheat competition,control -no competition,PI662679,Japan
+RN272,272,4-BRP-CH2-WC-272,4,Brassica rapa,"""standardised""",Domesticated,ssp. chinensis 2,control -no competition,wheat competition,PI662679,Japan
+RN288,288,4-BRP-CH2-WW-288,4,Brassica rapa,"""standardised""",Domesticated,ssp. chinensis 2,wheat competition,wheat competition,PI662679,Japan
+RN421,421,4-BRP-TR2-CC-421,4,Brassica rapa,"""standardised""",Domesticated,ssp.  tricolouris 2,control -no competition,control -no competition,PI649201,"Iowa, US"
+RN438,438,4-BRP-TR2-CW-438,4,Brassica rapa,"""standardised""",Domesticated,ssp.  tricolouris 2,wheat competition,control -no competition,PI649201,"Iowa, US"
+RN454,454,4-BRP-TR2-WC-454,4,Brassica rapa,"""standardised""",Domesticated,ssp.  tricolouris 2,control -no competition,wheat competition,PI649201,"Iowa, US"
+RN467,467,4-BRP-TR2-WW-467,4,Brassica rapa,"""standardised""",Domesticated,ssp.  tricolouris 2,wheat competition,wheat competition,PI649201,"Iowa, US"
+RN484,484,4-BRP-TR3-CC-484,4,Brassica rapa,"""standardised""",Domesticated,ssp.  tricolouris 3,control -no competition,control -no competition,PI649208,"Iowa, US"
+RN496,496,4-BRP-TR3-CW-496,4,Brassica rapa,"""standardised""",Domesticated,ssp.  tricolouris 3,wheat competition,control -no competition,PI649208,"Iowa, US"
+RN513,513,4-BRP-TR3-WC-513,4,Brassica rapa,"""standardised""",Domesticated,ssp.  tricolouris 3,control -no competition,wheat competition,PI649208,"Iowa, US"
+RN527,527,4-BRP-TR3-WW-527,4,Brassica rapa,"""standardised""",Domesticated,ssp.  tricolouris 3,wheat competition,wheat competition,PI649208,"Iowa, US"
+RN603,603,4-RRA-WP2-CC-603,4,Raphanus raphanistrum,"""standardised""",Wild,RRA-WP2,control -no competition,control -no competition,HRIGRU 1015,Netherlands
+RN617,617,4-RRA-WP2-CW-617,4,Raphanus raphanistrum,"""standardised""",Wild,RRA-WP2,wheat competition,control -no competition,HRIGRU 1015,Netherlands
+RN631,631,4-RRA-WP2-WC-631,4,Raphanus raphanistrum,"""standardised""",Wild,RRA-WP2,control -no competition,wheat competition,HRIGRU 1015,Netherlands
+RN646,646,4-RRA-WP2-WW-646,4,Raphanus raphanistrum,"""standardised""",Wild,RRA-WP2,wheat competition,wheat competition,HRIGRU 1015,Netherlands
+RN662,662,4-RRA-WP5-CC-662,4,Raphanus raphanistrum,"""standardised""",Wild,RRA-WP5,control -no competition,control -no competition,PI 381011,U.S.
+RN677,677,4-RRA-WP5-CW-677,4,Raphanus raphanistrum,"""standardised""",Wild,RRA-WP5,wheat competition,control -no competition,PI 381011,U.S.
+RN693,693,4-RRA-WP5-WC-693,4,Raphanus raphanistrum,"""standardised""",Wild,RRA-WP5,control -no competition,wheat competition,PI 381011,U.S.
+RN709,709,4-RRA-WP5-WW-709,4,Raphanus raphanistrum,"""standardised""",Wild,RRA-WP5,wheat competition,wheat competition,PI 381011,U.S.
+RN842,842,4-RSA-CU4-CC-842,4,Raphanus sativus,"""standardised""",Domesticated,RSA-CU4 (Diabolo),control -no competition,control -no competition,HRIGRU 13094,Netherlands
+RN857,857,4-RSA-CU4-CW-857,4,Raphanus sativus,"""standardised""",Domesticated,RSA-CU4 (Diabolo),wheat competition,control -no competition,HRIGRU 13094,Netherlands
+RN871,871,4-RSA-CU4-WC-871,4,Raphanus sativus,"""standardised""",Domesticated,RSA-CU4 (Diabolo),control -no competition,wheat competition,HRIGRU 13094,Netherlands
+RN888,888,4-RSA-CU4-WW-888,4,Raphanus sativus,"""standardised""",Domesticated,RSA-CU4 (Diabolo),wheat competition,wheat competition,HRIGRU 13094,Netherlands
+RN903,903,4-RCA-WP1-CC-903,4,Raphanus sativus var caudatus,"""standardised""",Domesticated,RCA-WP1 ,control -no competition,control -no competition,HRIGRU 4597 ,Thailand
+RN916,916,4-RCA-WP1-CW-916,4,Raphanus sativus var caudatus,"""standardised""",Domesticated,RCA-WP1 ,wheat competition,control -no competition,HRIGRU 4597 ,Thailand
+RN941,941,4-RCA-WP1-WC-941,4,Raphanus sativus var caudatus,"""standardised""",Domesticated,RCA-WP1 ,control -no competition,wheat competition,HRIGRU 4597 ,Thailand
+RN948,948,4-RCA-WP1-WW-948,4,Raphanus sativus var caudatus,"""standardised""",Domesticated,RCA-WP1 ,wheat competition,wheat competition,HRIGRU 4597 ,Thailand
+RN962,962,4-RCA-WP2-CC-962,4,Raphanus sativus var caudatus,"""standardised""",Domesticated,RCA-WP2,control -no competition,control -no competition,HRIGRU 800 ,
+RN978,978,4-RCA-WP2-CW-978,4,Raphanus sativus var caudatus,"""standardised""",Domesticated,RCA-WP2,wheat competition,control -no competition,HRIGRU 800 ,
+RN997,997,4-RCA-WP2-WC-997,4,Raphanus sativus var caudatus,"""standardised""",Domesticated,RCA-WP2,control -no competition,wheat competition,HRIGRU 800 ,
+RN1007,1007,4-RCA-WP2-WW-1007,4,Raphanus sativus var caudatus,"""standardised""",Domesticated,RCA-WP2,wheat competition,wheat competition,HRIGRU 800 ,
+RN1082,1082,4-RCA-WP6-CC-1082,4,Raphanus sativus var caudatus,"""standardised""",Domesticated,RCA-WP6,control -no competition,control -no competition,PI 647068,U.S.
+RN1096,1096,4-RCA-WP6-CW-1096,4,Raphanus sativus var caudatus,"""standardised""",Domesticated,RCA-WP6,wheat competition,control -no competition,PI 647068,U.S.
+RN1113,1113,4-RCA-WP6-WC-1113,4,Raphanus sativus var caudatus,"""standardised""",Domesticated,RCA-WP6,control -no competition,wheat competition,PI 647068,U.S.
+RN1127,1127,4-RCA-WP6-WW-1127,4,Raphanus sativus var caudatus,"""standardised""",Domesticated,RCA-WP6,wheat competition,wheat competition,PI 647068,U.S.
