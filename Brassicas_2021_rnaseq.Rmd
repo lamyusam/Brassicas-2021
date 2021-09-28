@@ -1154,7 +1154,3 @@ write.csv(brass.wilds.inter.out,
 ```
 These results appear fairly clear: there is no consistent difference between wild Brassica rapa and any other wild Brassica species in terms of the overall plasticity of gene expression among genes with significant interaction terms. 
 
-```{r}
-beepr::beep(3)
-```
-
