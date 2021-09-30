@@ -586,7 +586,59 @@ save(brass.inter.t.test,file = "Analysis/RNAseq/brassica_interaction_gene_direct
 save(brass.inter.chisq,file = "Analysis/RNAseq/brassica_interaction_gene_directionality_chisq.R")
 save(brass.inter.wilcox,file = "Analysis/RNAseq/brassica_interaction_gene_directionality_wilcox.R")
 ```
-We must therefore conclude that Brassica interaction genes do not exhibit a consistent overall change in plasticity between wild and domesticated accessions.
+
+Try this analysis again, but subset between the Brassica subspecies (tricoloris vs others)
+
+```{r brassica-plasticity-analysis-per-domesticated-subspecies}
+#domesticates are either tricoloris or chinensis 
+tricolouris = subset(checkframe,substr(Variety.population,7,17)=="tricolouris")$RNAseq.sample.name
+chinensis = subset(checkframe,substr(Variety.population,6,14)=="chinensis")$RNAseq.sample.name
+wildRapas = as.character(subset(metadata.brass.subset,domesticated=="Wild")$sample)
+
+brass.domesticates = c("tricolouris","chinensis")
+
+#loop, subsetting intgene.data to use only accessions from one domesticate at a time
+for(j in 1:length(brass.domesticates)){
+  #note species
+  focaldom = as.character(brass.domesticates[j])
+  for(i in 1:length(degs.brass.interaction.ids)){
+    #for gene, get count values by domestication and treatment
+    intgene.data = plotCounts(dds.gene.deg, gene=degs.brass.interaction.ids[i], intgroup=c("domesticated","treatment"), returnData = T)
+    #subset to only samples in wild and focal domesticate
+    comparesamples = c(wildRapas,get(focaldom))
+    intgene.data.focal = intgene.data[comparesamples,]
+    intgene.counts.focal = intgene.data.focal %>% group_by(domesticated,treatment) %>% 
+      summarise(mean = mean(count))
+    #get absolute difference in count means
+    intgene.diff.frame = data.frame(gene = degs.brass.interaction.ids[i],
+                                    wild = abs(diff(subset(intgene.counts.focal,domesticated == "Wild")$mean)),
+                                    dom = abs(diff(subset(intgene.counts.focal,domesticated == "Cultivated")$mean)))
+    #check whether absolute difference in count means is higher for wild or for cultivated
+    intgene.diff.frame = mutate(intgene.diff.frame, wild.higher = (wild>dom))
+    #collate output
+    if(i==1){intgene.diff.out = intgene.diff.frame}else{intgene.diff.out = rbind(intgene.diff.out,intgene.diff.frame)}
+  }
+
+  #run a chisq test here checking whether higher wild or dom is statistically overrepresented
+  brass.inter.table = table(intgene.diff.out$wild.higher)
+  brass.inter.chisq = chisq.test(table(intgene.diff.out$wild.higher))
+  #run a paired t-test comparing fold changes in wild or domesticated
+  brass.inter.t.test = t.test(intgene.diff.out$wild,intgene.diff.out$dom,paired=T)
+  brass.inter.wilcox.test = wilcox.test(intgene.diff.out$wild,intgene.diff.out$dom,paired=T)
+  #collate statistics for this species
+  brass.inter.results =   data.frame(species = brass.domesticates[j],up_wild = brass.inter.table[2], up_dom = brass.inter.table[1], 
+                                    chisq = signif(brass.inter.chisq$p.value,3), t = signif(brass.inter.t.test$p.value,3),
+                                    wilcox = brass.inter.wilcox.test$p.value)
+  #collate output
+  if(j==1){brass.inter.out = brass.inter.results} else {brass.inter.out = rbind(brass.inter.out,brass.inter.results)}
+}
+#print
+brass.inter.out %>% remove_rownames()
+write.csv(brass.inter.out, file = "Analysis/RNAseq/Tables/brassica_interaction_gene_directionality_perspecies_summary.csv", row.names = F)
+```
+
+This is interesting: when we subset by the domesticated subspecies, we do get significant results for at least some of the statistical tests: it seems that wild rapa is more plastic than tricolouris, but may be less plastic than chinensis. 
+
 
 Now, let's repeat the above analyses using Raphanus. First check that the fit looks good:
 

@@ -508,6 +508,182 @@ knitr::include_graphics("Analysis/Phenotypic_analysis/Images/phenotypic_lmer_pva
 
 Our primary interest is in the bottom row, since significant terms here will indicate traits that exhibit differential plasticity in domesticated vs wild rapa. However, none of these interaction terms are significant. Nor, indeed, are any traits significantly different between wild and domesticated rapa overall, which is very surprising!
 
+Perhaps we'll have more luck if we subset the domesticated rapas down to just chinensis and just tricoloris? 
+
+```{r brassica-morphology-dom-vs-progenitor-perspecies}
+brass.domesticates = c("BRP-CH","BRP-TR")
+#table(phenodata.gen2.clean.brass.subset$Population)
+
+#loop across domesticates, comparing to raphanistrum
+for(j in 1:length(brass.domesticates)){
+  focaldom = brass.domesticates[j]
+  
+  #subset to just progenitor and chosen dom
+  phenodata.gen2.clean.brass.focalpair = subset(phenodata.gen2.clean.brass, substr(Population,1,6)%in% c("BRP-WP",focaldom))
+
+  #loop across each each phenotypic variable
+  for(i in 1:length(measure.vars.brass)){
+    
+    #get variable and check if discretised
+    response.var = measure.vars.brass[i]
+    isDiscrete = response.var %in% discrete.traits
+    #remove NAs
+    phenodata.gen2.clean.brass.omit = subset(phenodata.gen2.clean.brass.focalpair, is.na(get(response.var))==F)
+
+    #run poisson if trait is discretised, otherwise run gaussian
+    if(isDiscrete){
+      model.out = glmer(get(response.var)~Environment + Wild_Dom + Environment:Wild_Dom + 
+                          (1|Population) + (1|Parental_effects_status), 
+                        data=phenodata.gen2.clean.brass.omit,family = poisson(),
+                        control = glmerControl(optimizer="bobyqa", optCtrl = list(maxfun = 10000)))
+      #extract info regarding interaction term
+      out = summary(model.out)
+      outinter = data.frame(out$coefficients["Environmentcontrol:Wild_DomCultivated",c("Pr(>|z|)","Estimate")]) 
+      #and also dom wild comparison term
+      outcomp = data.frame(out$coefficients["Wild_DomCultivated",c("Pr(>|z|)","Estimate")]) 
+
+    }else{
+      model.out = lmer(scale(get(response.var))~Environment + Wild_Dom + Environment:Wild_Dom +
+                         (1|Population) + (1|Parental_effects_status), 
+                       data=phenodata.gen2.clean.brass.omit, 
+                       control = lmerControl(optimizer="bobyqa", optCtrl = list(maxfun = 10000)))
+      #extract info regarding interaction term
+      out = summary(model.out)
+      outinter = data.frame(out$coefficients["Environmentcontrol:Wild_DomCultivated",c("Pr(>|t|)","Estimate")]) 
+      outcomp = data.frame(out$coefficients["Wild_DomCultivated",c("Pr(>|t|)","Estimate")]) 
+    }
+    
+    #save loop output
+    if(i==1){
+      outframe = outinter
+      outcompframe = outcomp
+    }else{
+      outframe = cbind(outframe,outinter)
+      outcompframe = cbind(outcompframe,outcomp)
+    }
+    
+  }
+  
+  #collate info per spp loop
+  dimnames(outframe)=list(c("pval","estimate"),measure.vars.brass)
+  if(j==1){pvals.out = outframe["pval",]; ests.out = outframe["estimate",]}else{
+    pvals.out = rbind(pvals.out,outframe["pval",]); ests.out = rbind(ests.out,outframe["estimate",])}
+  #also for simple comparison
+  dimnames(outcompframe)=list(c("pval","estimate"),measure.vars.brass)
+  if(j==1){pvals.comp.out = outcompframe["pval",]; ests.comp.out = outcompframe["estimate",]}else{
+    pvals.comp.out = rbind(pvals.comp.out,outcompframe["pval",]); ests.comp.out = rbind(ests.comp.out,outcompframe["estimate",])}
+  
+}
+
+#rename
+row.names(pvals.out) = c("ssp. chinensis","ssp. tricolouris") ; row.names(ests.out) = c("ssp. chinensis","ssp. tricolouris")
+row.names(pvals.comp.out) =  c("ssp. chinensis","ssp. tricolouris")  ; row.names(ests.comp.out) =  c("ssp. chinensis","ssp. tricolouris")  
+
+```
+
+```{r brassica-morphology-dom-vs-wild-interaction-perspecies-plotting}
+#adjust p-vlaues (across all comparisons, not just rows or )
+pvals.out.fdr = pvals.out %>% 
+  as.matrix %>% 
+  as.vector %>% 
+  p.adjust(method='BH') %>% 
+  matrix(nrow=2) %>%
+  data.frame() %>%
+  'dimnames<-'(dimnames(pvals.out))
+
+#get labels for plot
+brass.doms.coefs.labels = paste0(as.matrix(signif(pvals.out.fdr,2)),"\n(",as.matrix(signif(ests.out,2)),")")
+
+#coerce df for ggplot 
+brass.doms.coefs.fdr = reshape2::melt(rownames_to_column(pvals.out.fdr)) 
+
+#plot
+brass.doms.speciesinteractions.fdr.plot = ggplot(data = brass.doms.coefs.fdr, aes(x = variable,  y = rowname,  fill = value)) +
+  geom_tile(aes(fill = value),color = "gray", size=.75, width=1, height = 1) +
+  geom_text(aes(label=c(brass.doms.coefs.labels), 
+                lineheight = 0.75, size = 2), show.legend = FALSE) +
+  scale_fill_gradientn(colours = colorRampPalette(rev(c("#FFFFFF",brewer.pal(n = 9, name = "Reds")[1:5])),bias=6)(20),
+                       breaks = c(0.0,0.05,1),
+                       expand = c(0,0),
+                       limits = c(0,1),
+                       guide = guide_colourbar(barheight = 25,
+                                               #title = "p-value\n(adjusted)",
+                                               title = "p-value\n(adjusted)",
+                                               title.vjust = 2,
+                                               frame.colour = "black", 
+                                               frame.linewidth = 1.5)) +
+  theme_minimal() + 
+  theme(#aspect.ratio = 1,
+    panel.grid = element_line(size = 0.2, colour = "gray80"),
+    axis.text.x = element_text(angle = 45, vjust = 1, size = 12, hjust = 1),
+    axis.text.y = element_text(size = 12),
+    axis.title = element_blank()#,
+    #legend.text = element_text(size=12),
+    #legend.title = element_text(size=15, face = "bold")
+  ) +
+  coord_fixed()
+
+ggsave(brass.doms.speciesinteractions.fdr.plot, filename = "phenotypic_lmer_pvals_brass_doms_perspecies.png",
+       device = "png", path = "Analysis/Phenotypic_analysis/Images",
+       width =  40, height = 20, units = "cm")
+
+knitr::include_graphics("Analysis/Phenotypic_analysis/Images/phenotypic_lmer_pvals_brass_doms_perspecies.png")
+```
+
+The same plot, but for the wild vs dom comparison:
+
+```{r brassica-morphology-dom-vs-wild-perspecies-plotting}
+#adjust p-vlaues (across all comparisons, not just rows or )
+pvals.out.fdr = pvals.out %>% 
+  as.matrix %>% 
+  as.vector %>% 
+  p.adjust(method='BH') %>% 
+  matrix(nrow=2) %>%
+  data.frame() %>%
+  'dimnames<-'(dimnames(pvals.out))
+
+#get labels for plot
+brass.doms.coefs.labels = paste0(as.matrix(signif(pvals.out.fdr,2)),"\n(",as.matrix(signif(ests.out,2)),")")
+
+#coerce df for ggplot 
+brass.doms.coefs.fdr = reshape2::melt(rownames_to_column(pvals.out.fdr)) 
+
+#plot
+brass.doms.specieswildvsdom.fdr.plot = ggplot(data = brass.doms.coefs.fdr, aes(x = variable,  y = rowname,  fill = value)) +
+  geom_tile(aes(fill = value),color = "gray", size=.75, width=1, height = 1) +
+  geom_text(aes(label=c(brass.doms.coefs.labels), 
+                lineheight = 0.75, size = 2), show.legend = FALSE) +
+  scale_fill_gradientn(colours = colorRampPalette(rev(c("#FFFFFF",brewer.pal(n = 9, name = "Reds")[1:5])),bias=6)(20),
+                       breaks = c(0.0,0.05,1),
+                       expand = c(0,0),
+                       limits = c(0,1),
+                       guide = guide_colourbar(barheight = 25,
+                                               #title = "p-value\n(adjusted)",
+                                               title = "p-value\n(adjusted)",
+                                               title.vjust = 2,
+                                               frame.colour = "black", 
+                                               frame.linewidth = 1.5)) +
+  theme_minimal() + 
+  theme(#aspect.ratio = 1,
+    panel.grid = element_line(size = 0.2, colour = "gray80"),
+    axis.text.x = element_text(angle = 45, vjust = 1, size = 12, hjust = 1),
+    axis.text.y = element_text(size = 12),
+    axis.title = element_blank()#,
+    #legend.text = element_text(size=12),
+    #legend.title = element_text(size=15, face = "bold")
+  ) +
+  coord_fixed()
+
+ggsave(brass.doms.specieswildvsdom.fdr.plot, filename = "phenotypic_lmer_pvals_brass_doms_directdomcomp_perspecies.png",
+       device = "png", path = "Analysis/Phenotypic_analysis/Images",
+       width =  40, height = 20, units = "cm")
+
+knitr::include_graphics("Analysis/Phenotypic_analysis/Images/phenotypic_lmer_pvals_brass_doms_directdomcomp_perspecies.png")
+```
+
+Even when subsetting by chinensis/tricolouris, we find no significant effects here, so we're forced to accept that wild vs domesticated Brassica rapa do not differ in the phenotypes, nor their phenotypic plasiticty. 
+
+
 Let's try the same analysis for Raphanus, comparing R raphanistrum to the various domesticated Raphanus using the same model. 
 
 ```{r raphanus-morphology-dom-vs-progenitor-models}
@@ -919,7 +1095,7 @@ Unfortunately, as with the Raphanus domesticates, subsetting by wild species in 
 
 Nonetheless, we can still look at the traits that differ in their expression between wild rapa and other wild Brassicas, which is less exciting but may go some way to explaining what made rapa a better progenitor crop than its relatives. In the below, we plot the significance of the term comparing the progenitor to each wild relative. The values in parentheses are the actual coefficients: negative values indicate that wild rapa exhibits lower trait values than the never-domesticated wild species, and positive values the converse.
 
-```{r brassica-morphology-dom-vs-progenitor-perspecies-plotting}
+```{r brassica-morphology-dom-vs-progenitor-perspecies-plotting-domvswild}
 #adjust p-vlaues (across all comparisons, not just rows or columns)
 pvals.comp.out.fdr = pvals.comp.out %>% 
   as.matrix %>% 

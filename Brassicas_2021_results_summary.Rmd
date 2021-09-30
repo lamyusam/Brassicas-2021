@@ -94,7 +94,13 @@ knitr::kable(data.frame("Chi-squared"=signif(brass.inter.chisq$p.value,3),
                         "Paired t-test"=signif(brass.inter.t.test$p.value,3)) %>% "row.names<-"("p-value"))
 ```
 
-From this we must conclude that, in Brassica rapa, genes have not changed systematically in their plasticity in the course of domestication. 
+These results are non-significant, suggesting that genes have not changed systematically in their plasticity in the course of domestication. However, here we've combined the domesticated subspecies B rapa tricolouris and B rapa chinensis, which we know to be relatively distinct. Let's try re-running the analysis using subsets of the two domesticated subspecies separately:
+
+```{r}
+knitr::kable(read.csv("Analysis/RNAseq/Tables/brassica_interaction_gene_directionality_perspecies_summary.csv", row.names = 1))
+```
+
+This is interesting: when we subset by the domesticated subspecies, we do get significant results for at least some of the statistical tests: it seems that wild rapa is more plastic than tricolouris, but may be less plastic than chinensis.
 
 ### Raphanus gene expression
 
@@ -112,7 +118,7 @@ knitr::kable(read.csv("Analysis/RNAseq/Tables/raphanus_deseq_domesticate_vs_prog
 
 Compared to Brassica, we find that fewer genes are associated with domestication, but more with stress. 98 genes show an interaction between treatment and domestication, and are therefore of particular interest. Summary of the 49 GO terms associated with these interaction genes:
 
-```{r,out.width="90%",out.height="90%",fig.align="center"}
+```{r,out.width="90%",out.height="90%",fig.align="center",eval=F}
 knitr::include_graphics("Analysis/RNAseq/Images/raphanus_domesticate_vs_progenitor_GO_treeplot.png")
 ```
 
@@ -160,7 +166,22 @@ Here we plot the p-values and coefficients (in parentheses) for each independent
 knitr::include_graphics("Analysis/Phenotypic_analysis/Images/phenotypic_lmer_pvals_brassica_subset.png")
 ```
 
-Our primary interest is in the bottom row, since significant terms here will indicate traits that exhibit differential plasticity in domesticated vs wild rapa. However, none of these interaction terms are significant. Nor, indeed, are any traits significantly different between wild and domesticated rapa overall, which is very surprising! However, we're forced to conclude that none of the traits examined appear to have shown a shift in plasticity in the course of Brassica rapa domestication. 
+Our primary interest is in the bottom row, since significant terms here will indicate traits that exhibit differential plasticity in domesticated vs wild rapa. However, none of these interaction terms are significant. Nor, indeed, are any traits significantly different between wild and domesticated rapa overall, which is very surprising! One possibility is that the reason we're not seeing any effect is that we've combined two domesticated subspecies that we know to be fairly distinct: B rapa chinensis and B rapa tricolouris. What if we subset by these subspecies and re-run the analysis?
+
+The interaction terms:
+
+```{r}
+knitr::include_graphics("Analysis/Phenotypic_analysis/Images/phenotypic_lmer_pvals_brass_doms_perspecies.png")
+```
+
+The wild vs dom terms:
+
+```{r}
+knitr::include_graphics("Analysis/Phenotypic_analysis/Images/phenotypic_lmer_pvals_brass_doms_directdomcomp_perspecies.png")
+```
+
+Even subsetting, we find no significant terms, so we're forced to conclude that none of the traits examined have shifted in their overall expression nor in their plasticity in the course of Brassica rapa domestication. 
+
 
 ### Raphanus phenotypic expression
 
